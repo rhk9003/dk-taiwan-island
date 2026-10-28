@@ -46,18 +46,18 @@
       "name": "留言板",
       "building": "shop",
       "color": "#3E9A6A",
-      "desc": "這間店的留言牆特別熱鬧！留下你和 DK 空氣鞋的故事，店員看過就會貼上牆。",
+      "desc": "這間店的留言牆特別熱鬧！留下你和 DK 空氣鞋的故事，送出就會貼上牆。",
       "url": null,
       "cta": "去留言",
       "scrollTo": "board"
     },
     "workshop": {
-      "name": "手工做鞋工坊",
+      "name": "小白鞋工廠",
       "building": "shop",
       "color": "#7A5BA6",
-      "desc": "在虛擬工坊挑鞋面、鞋底、鞋帶，配一雙自己的空氣鞋。",
-      "url": null,
-      "cta": "即將開放"
+      "desc": "和四寶一起把鞋頭、鞋舌、鞋帶拖到對的位置，最後裝上氣閥，組一雙會呼吸的 DK 小白鞋。",
+      "url": "https://sweet294728.github.io/little-white-shoe-factory/",
+      "cta": "開始做鞋"
     }
   }
 }
