@@ -2,7 +2,7 @@
   "_說明": "路上頭頂冒「!」、有買鞋煩惱的路人：點他會出現他的煩惱和四雙鞋，讓玩家幫他挑。slots 是同一時間島上有幾個「!」。reward 是幫路人挑到鞋送的優惠券：after 是要幫幾位才能領，title／desc 是優惠券卡片的字，code 是優惠碼（可不填，填了可一鍵複製），cta／url 是領券按鈕的文字和網址；url 和 code 都留空就不送優惠券。每台裝置只能領一次。shoes 是可以推薦的鞋（salePageId 是官網商品頁序號，自動接連結和商品圖；tag 是一句話定位；points 是賣點）。customers 是路人的煩惱：who 是名字、says 是他說的話、need 是他最在意的事（選錯時他會說）、answer 是最適合的鞋（shoes 的 id）、also 是也算對的鞋、alsoNote 是選到 also 時的補充、thanks 是選對時他的回應、why 是為什麼適合。選項會從 answer 加三雙其他的鞋隨機排。",
   "slots": 3,
   "reward": {
-    "after": 1,
+    "after": 3,
     "title": "謝謝你幫忙挑鞋！",
     "desc": "送你一張 DK 優惠券，買鞋時用得到。",
     "code": "",

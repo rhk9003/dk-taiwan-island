@@ -309,6 +309,12 @@ export function createUI(data, handlers) {
     }
 
     // 幫到第 reward.after 位就送優惠券；每台裝置領一次
+    function rewardOffer() {
+      const after = data.shoppers.reward.after;
+      return after > 1
+        ? `🎁 幫 ${after} 位就送優惠券（已幫 ${Math.min(handlers.helped.size, after)}/${after}）`
+        : '🎁 挑對了就送優惠券！';
+    }
     function helpReward(count) {
       const reward = data.shoppers.reward;
       if (!reward) return null;
@@ -341,7 +347,7 @@ export function createUI(data, handlers) {
       head('SHOE HELP・路人的買鞋煩惱', c.who),
       h('div', { class: 'q-bubble', text: `「${c.says}」` }),
       h('p', { class: 'q-prompt' }, '你會推薦哪一雙？',
-        data.shoppers.reward && !handlers.helpCoupon.claimedAt ? h('span', { class: 'q-offer', text: '🎁 挑對了就送優惠券！' }) : null),
+        data.shoppers.reward && !handlers.helpCoupon.claimedAt ? h('span', { class: 'q-offer', text: rewardOffer() }) : null),
       h('div', { class: 'q-options' }, buttons),
       feedback,
       handlers.helped.size ? h('p', { class: 'q-count', text: `你已經幫 ${handlers.helped.size} 位路人挑到鞋` }) : null);
@@ -820,7 +826,10 @@ export function createUI(data, handlers) {
     shoppers: () => Boolean(data.shoppers),
   };
   const MARK_COLORS = ['#8B2332', '#E07A2E', '#3F7FBF', '#3E9A6A', '#7A5BA6', '#d6578c'];
-  const fillIn = (text) => String(text || '').replaceAll('{stores}', data.stores.length).replaceAll('{goal}', data.stamps?.goal ?? 10);
+  const fillIn = (text) => String(text || '')
+    .replaceAll('{stores}', data.stores.length)
+    .replaceAll('{goal}', data.stamps?.goal ?? 10)
+    .replaceAll('{helpGoal}', data.shoppers?.reward?.after ?? 3);
   const zhDate = (iso) => {
     const d = new Date(iso);
     return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日`;

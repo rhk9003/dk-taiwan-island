@@ -335,7 +335,9 @@ async function boot() {
   function drawShopperBtn() {
     // 還沒領優惠券時寫「送優惠券」吸引人，領過之後顯示幫過幾位
     const offer = data.shoppers.reward && !helpCoupon.claimedAt;
-    const count = offer ? [h('em', { text: '送優惠券' })] : helped.size ? [h('em', { text: `已幫 ${helped.size} 位` })] : [];
+    const after = data.shoppers.reward?.after ?? 1;
+    const offerText = after > 1 ? `送優惠券 ${Math.min(helped.size, after)}/${after}` : '送優惠券';
+    const count = offer ? [h('em', { text: offerText })] : helped.size ? [h('em', { text: `已幫 ${helped.size} 位` })] : [];
     shopperBtn.replaceChildren(h('i', { 'aria-hidden': 'true', text: '!' }), '幫路人挑鞋', ...count);
   }
 
