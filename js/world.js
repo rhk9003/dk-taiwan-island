@@ -81,7 +81,7 @@ export function createWorld(container, data, handlers) {
     const label = storeLabel(s, mod);
     label.position.set(0, top - t.h + 0.32, 0);
     g.add(label);
-    storeObjs.set(s.id, { group: g, tile: t, region: s.region, label });
+    storeObjs.set(s.id, { group: g, tile: t, region: s.region, label, spot: spots.length });
     // 門口站一個氣球人，穿的是這間店店長推薦的那雙鞋（還沒推薦就隨機配一雙）
     const door = new THREE.Vector3(0.46, 0, 0.6).applyAxisAngle(Y_AXIS, g.rotation.y);
     const shoe = shoeColorOf(data.products.get(s.products[0])) ?? SHOE_FALLBACK[Math.floor(rand() * SHOE_FALLBACK.length)];
@@ -391,6 +391,10 @@ export function createWorld(container, data, handlers) {
     setInsets({ left = 0, bottom = 0 }) {
       insetTarget.left = left;
       insetTarget.bottom = bottom;
+    },
+    setShoe(storeId, color) {
+      const o = storeObjs.get(storeId);
+      if (o) greeters.setShoe(o.spot, color);
     },
   };
 }

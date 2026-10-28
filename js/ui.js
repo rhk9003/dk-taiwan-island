@@ -124,17 +124,34 @@ export function createUI(data, handlers) {
     );
   }
 
-  function showStore(id) {
+  // 一個推薦商品；有官網網址就整塊可點
+  function pickItem(p) {
+    const body = [
+      p.image
+        ? h('img', { src: p.image, alt: '', loading: 'lazy', onerror: (e) => e.target.replaceWith(h('span', { class: 'noimg' })) })
+        : h('span', { class: 'noimg' }),
+      h('span', {},
+        h('b', { text: p.name }),
+        p.code || p.color ? h('small', { text: [p.code, p.color].filter(Boolean).join('・') }) : null,
+        p.reason ? h('em', { class: 'reason', text: p.reason }) : null),
+      p.url ? h('i', { text: '›' }) : null,
+    ];
+    return p.url ? h('a', { href: p.url, target: '_blank', rel: 'noopener' }, body) : h('div', { class: 'pick' }, body);
+  }
+
+  function showStore(id, { refresh = false } = {}) {
     const s = data.storeById.get(id);
     const r = regionById.get(s.region);
     const m = data.modules[s.module];
     current = { region: s.region, store: id };
     renderList();
-    if (!isMobile()) storeNodes.get(id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    if (!refresh && !isMobile()) storeNodes.get(id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    const scroll = card.scrollTop;
 
     const tel = (s.phone || '').replace(/[^\d]/g, '');
     const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.address)}`;
     const products = s.products.map((pid) => data.products.get(pid)).filter(Boolean);
+    const picks = s.pick ? [s.pick, ...products] : products;
 
     fillCard(
       head(`${r.no} ${r.name}・STORE`, s.name),
@@ -154,14 +171,16 @@ export function createUI(data, handlers) {
           : h('p', { class: 'empty', text: '店長的話蒐集中，敬請期待。' })),
       h('section', { class: 'picks' },
         h('p', { class: 'label' }, '店長推薦', s.sample && products.length ? h('span', { class: 'tag', text: '範例' }) : null),
-        products.length
-          ? h('ul', {}, products.map((p) => h('li', {},
-            h('a', { href: p.url, target: '_blank', rel: 'noopener' },
-              p.image ? h('img', { src: p.image, alt: '', loading: 'lazy' }) : h('span', { class: 'noimg' }),
-              h('span', {}, h('b', { text: p.name }), h('small', { text: [p.code, p.color].filter(Boolean).join('・') })),
-              h('i', { text: '›' })))))
+        picks.length
+          ? h('ul', {}, picks.map((p) => h('li', {}, pickItem(p))))
           : h('p', { class: 'empty', text: '店長推薦蒐集中。' })),
     );
+    if (refresh) card.scrollTop = scroll;
+  }
+
+  // 試算表的資料晚一點才到：重畫目前開著的門市卡
+  function refresh() {
+    if (current.store && !card.hidden) showStore(current.store, { refresh: true });
   }
 
   function showNone() {
@@ -245,5 +264,5 @@ export function createUI(data, handlers) {
     else if (!card.hidden) handlers.onCloseCard();
   });
 
-  return { showRegion, showStore, showNone, maybeShowIntro };
+  return { showRegion, showStore, showNone, maybeShowIntro, refresh };
 }

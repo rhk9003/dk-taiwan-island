@@ -1,6 +1,6 @@
 import { createWorld } from './world.js';
 import { createUI } from './ui.js';
-import { BUILDING_TYPES } from './buildings.js';
+import { BUILDING_TYPES, shoeColorOf } from './buildings.js';
 import { h } from './util.js';
 
 const FILES = ['site', 'regions', 'modules', 'stores', 'products'];
@@ -69,6 +69,13 @@ function normalize(raw) {
     stores.push({ ...s, region, module, products: productIds, quote: (s.quote || '').trim(), manager: (s.manager || '').trim() });
   }
 
+  // 接了試算表，就不在公開網站上秀範例內容
+  if (raw.site.managerPicksUrl) {
+    for (const s of stores) {
+      if (s.sample) Object.assign(s, { quote: '', manager: '', products: [], sample: false });
+    }
+  }
+
   return {
     site: raw.site,
     regions,
@@ -79,6 +86,48 @@ function normalize(raw) {
     warnings,
     warn,
   };
+}
+
+// 讀「店長的話蒐集」試算表（Apps Script 的 doGet），讀不到就算了，島照常運作
+async function loadManagerPicks(url) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12000);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (!json?.ok || !json.stores || typeof json.stores !== 'object') throw new Error(json?.message || '回傳格式不對');
+    return json;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// 店長有填的店，一句話和推薦商品以試算表為準；回傳要換鞋色的門市
+function applyPicks(data, picks) {
+  const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+  const shoes = new Map();
+  for (const s of data.stores) {
+    const p = picks.stores[s.id];
+    if (!p?.filled) continue;
+    s.quote = text(p.quote, 80) || s.quote;
+    s.manager = text(p.managerName, 30) || s.manager;
+    const name = text(p.product?.name, 60);
+    if (!name) continue;
+    const id = /^\d{1,12}$/.test(String(p.product.salePageId || '')) ? String(p.product.salePageId) : '';
+    const known = id ? data.products.get(id) : null;
+    s.pick = {
+      name,
+      reason: text(p.product.reason, 120),
+      url: id ? `https://www.dk-shoes.com.tw/SalePage/Index/${id}` : '',
+      image: known?.image || (id ? `https://img.91app.com/webapi/imagesV3/Cropped/SalePage/${id}/0/0?v=1` : ''),
+      code: known?.code || '',
+      color: known?.color || '',
+    };
+    const shoe = shoeColorOf(known) ?? shoeColorOf({ color: name });
+    if (shoe) shoes.set(s.id, shoe);
+  }
+  return shoes;
 }
 
 function showError(message) {
@@ -156,6 +205,15 @@ async function boot() {
     return;
   }
   $('loading').hidden = true;
+
+  if (data.site.managerPicksUrl) {
+    loadManagerPicks(data.site.managerPicksUrl)
+      .then((picks) => {
+        for (const [id, color] of applyPicks(data, picks)) world.setShoe(id, color);
+        ui.refresh();
+      })
+      .catch((e) => console.warn(`[DK 台灣島] 讀不到店長的話試算表，先不顯示：${e.message}`));
+  }
 
   if (data.warnings.length) {
     const badge = $('warn-badge');

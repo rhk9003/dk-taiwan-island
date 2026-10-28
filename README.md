@@ -30,8 +30,8 @@ data/             ← 平常只改這裡
 | 想做的事 | 改哪裡 |
 |---|---|
 | 換某間店的玩法 | `stores.json` 那間店的 `module`，填 `shop`、`balloon`、`quiz`、`fortune`、`board`、`workshop` 其中一個。島上的建築會跟著換 |
-| 填店長的一句話 | `stores.json` 的 `quote`（一句話）、`manager`（店長稱呼，留空就顯示「○○店店長」）。填好真的內容後，把 `"sample": true` 刪掉 |
-| 換店長推薦 | 先在 `products.json` 加商品，再把商品 id 填進 `stores.json` 的 `products`。門口氣球人會穿上第一雙推薦鞋的顏色 |
+| 店長的一句話、店長推薦 | 請店長用「店長的話蒐集」表單填（見下一節），島會自動讀。要手動修字，直接改那份 Google 試算表 |
+| 加碼推薦商品 | 先在 `products.json` 加商品，再把商品 id 填進 `stores.json` 的 `products`，會排在店長推薦後面 |
 | 加一個新玩法 | `modules.json` 加一項：`name`、`building`（用哪種建築造型）、`color`、`desc`、`url`（遊戲網址）、`cta`（按鈕文字）。`url` 留 `null` 會顯示「即將開放」 |
 | 新增門市 | `stores.json` 複製一間店改內容。`id` 不能重複；`region` 填分區代號；`latlng` 填經緯度 |
 | 調整門市在島上的位置 | 改 `latlng`。在 Google 地圖對門市按右鍵，點第一行的數字就會複製經緯度。位置跟別間店撞到時，會自動挪到旁邊最近的空地 |
@@ -39,6 +39,15 @@ data/             ← 平常只改這裡
 | 改標題、開場導覽 | `site.json` |
 
 **改完看右下角**：資料有寫錯（例如玩法代號打錯、商品 id 找不到），畫面右下角會出現「資料提醒 N 則」，按 F12 打開 Console 可以看是哪一間店的哪個欄位。json 格式錯誤（少逗號、少引號）時整個畫面會顯示錯在哪一個檔案。
+
+## 店長的話從試算表自動更新
+
+店長在 https://rhk9003.github.io/dk-store-manager-picks/ 填的「一句話＋推薦商品＋推薦理由」會存進 Google 試算表。島每次打開時會去讀那份試算表（讀取網址設在 `site.json` 的 `managerPicksUrl`）：
+
+- 店長送出後，下一個打開島的人就看得到；在試算表手動改字或勾「不採用」也一樣。
+- 有填的店，以試算表為準；推薦理由會顯示在商品下面。商品網址有商品編號的話，會自動抓官網的商品圖，門口氣球人也會換上那雙鞋的顏色（依商品名稱裡的顏色字判斷，或 `products.json` 裡同一個商品的顏色）。
+- 試算表暫時讀不到時，島照常運作，店長的話先顯示「蒐集中」。
+- 有設定 `managerPicksUrl` 時，`stores.json` 裡 `"sample": true` 的範例內容不會顯示；把 `managerPicksUrl` 清空，就回到只用 `stores.json`。
 
 ## 直接連到某間店或某一區
 
@@ -76,4 +85,3 @@ python -m http.server 8781 --directory dk-taiwan-island
 
 - 集點蓋章與兌獎（花東的熱氣球廣場已經預留位置）
 - 留言板、手工做鞋工坊（建築已在島上，按鈕顯示「即將開放」）
-- 店長的話改從「店長的話蒐集」Google Sheet 自動讀取（目前寫在 `stores.json`）

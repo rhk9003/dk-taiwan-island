@@ -338,7 +338,18 @@ export function createGreeters(spots) {
     bodies.instanceMatrix.needsUpdate = true;
     heads.instanceMatrix.needsUpdate = true;
   }
-  return { group, update };
+
+  // 店長換了推薦鞋，第 i 個氣球人就換鞋色
+  function setShoe(i, color) {
+    c.set(color);
+    for (const k of [i * 2, i * 2 + 1]) {
+      parts[2].setColorAt(k, c);
+      parts[3].setColorAt(k, c);
+    }
+    parts[2].instanceColor.needsUpdate = true;
+    parts[3].instanceColor.needsUpdate = true;
+  }
+  return { group, update, setShoe };
 }
 
 export function createClouds(bounds, count = 9) {
