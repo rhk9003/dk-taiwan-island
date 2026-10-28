@@ -144,6 +144,8 @@ python -m http.server 8781 --directory dk-taiwan-island
 
 之後只要改 `data/` 裡的檔案再推上去，網站就會更新，不用重新嵌入。
 
+**改了程式（`js/`、`css/`）再推之前**，先跑 `python tools/bump_version.py`：它會把 `index.html` 裡的 js、css 網址換上新的版本號。GitHub Pages 會讓瀏覽器把 js、css 留 10 分鐘，沒換版本號的話，剛更新時客人可能拿到「舊程式＋新資料」，畫面會少東西（例如開場邀請函不出現）。只改 `data/` 不用跑。
+
 ## 還沒做的
 
 - 手工做鞋工坊、選鞋研究所、鞋子高度探索站的內容（建築已在島上，按鈕顯示「即將開放」）
