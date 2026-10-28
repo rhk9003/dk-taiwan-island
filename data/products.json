@@ -1,0 +1,53 @@
+{
+  "_說明": "店長推薦可以選的商品。id 用官網商品頁網址最後那串數字（SalePage/Index/後面），stores.json 的 products 填這個 id。價格常變動，所以不放價格，點進官網看。門口氣球人會穿上這間店推薦的第一雙鞋，鞋面顏色依 color 的文字判斷（黑、白、杏、灰、可可…），想指定就加 shoeColor，例如 \"shoeColor\": \"#7a5743\"。",
+  "products": [
+    {
+      "id": "12257529",
+      "name": "Teddy Island 泰迪熊聯名空氣男鞋",
+      "code": "88-6198-90",
+      "color": "黑色",
+      "url": "https://www.dk-shoes.com.tw/SalePage/Index/12257529",
+      "image": "https://img.91app.com/webapi/imagesV3/Cropped/SalePage/12257529/0/639282446178800000?v=1"
+    },
+    {
+      "id": "12256620",
+      "name": "Teddy Island 泰迪熊聯名空氣女鞋",
+      "code": "89-6198-50",
+      "color": "白色",
+      "url": "https://www.dk-shoes.com.tw/SalePage/Index/12256620",
+      "image": "https://img.91app.com/webapi/imagesV3/Cropped/SalePage/12256620/0/639282446178800000?v=1"
+    },
+    {
+      "id": "12255061",
+      "name": "網布抽繩厚底休閒鞋",
+      "code": "89-6195-69",
+      "color": "灰色",
+      "url": "https://www.dk-shoes.com.tw/SalePage/Index/12255061",
+      "image": "https://img.91app.com/webapi/imagesV3/Cropped/SalePage/12255061/0/639281705813900000?v=1"
+    },
+    {
+      "id": "12255057",
+      "name": "立體編織厚底懶人鞋",
+      "code": "89-6192-89",
+      "color": "杏色",
+      "url": "https://www.dk-shoes.com.tw/SalePage/Index/12255057",
+      "image": "https://img.91app.com/webapi/imagesV3/Cropped/SalePage/12255057/0/639281705813900000?v=1"
+    },
+    {
+      "id": "12255055",
+      "name": "牛皮沖孔厚底綁帶休閒鞋",
+      "code": "89-6190-50",
+      "color": "白色",
+      "url": "https://www.dk-shoes.com.tw/SalePage/Index/12255055",
+      "image": "https://img.91app.com/webapi/imagesV3/Cropped/SalePage/12255055/0/639281705813900000?v=1"
+    },
+    {
+      "id": "12255053",
+      "name": "網布拼接鏤空緩震女鞋",
+      "code": "73-6308-42",
+      "color": "可可色",
+      "url": "https://www.dk-shoes.com.tw/SalePage/Index/12255053",
+      "image": "https://img.91app.com/webapi/imagesV3/Cropped/SalePage/12255053/0/639281705813900000?v=1"
+    }
+  ]
+}

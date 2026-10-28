@@ -1,0 +1,14 @@
+# 系統檔
+Thumbs.db
+.DS_Store
+Desktop.ini
+
+# 敏感與暫存
+.env
+*.log
+__pycache__/
+*.py[cod]
+venv/
+temp_uploads/
+temp_zips/
+output/

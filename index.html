@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>DK 台灣島｜全台門市地圖</title>
+  <meta name="description" content="DK 高博士全台門市，拼成一座會呼吸的台灣島。每間店都有自己的玩法、店長的一句話與店長推薦。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@1,9..144,600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div class="app">
+    <main id="stage" class="stage">
+      <header class="brand">
+        <p id="brand-eyebrow" class="brand-eyebrow"></p>
+        <h1 id="brand-title">DK 台灣島</h1>
+        <p id="brand-sub" class="brand-sub"></p>
+      </header>
+
+      <nav class="toolbar" aria-label="工具列">
+        <button id="btn-overview" type="button">全景</button>
+        <button id="btn-list" type="button" class="only-mobile">清單</button>
+        <button id="btn-help" type="button" aria-label="導覽">?</button>
+      </nav>
+
+      <section id="card" class="card" hidden aria-live="polite"></section>
+
+      <div id="loading" class="loading">
+        <span class="spinner" aria-hidden="true"></span>
+        <p>島正在浮出海面…</p>
+      </div>
+      <p id="warn-badge" class="warn-badge" hidden></p>
+    </main>
+
+    <aside id="index" class="index" aria-label="門市清單">
+      <div class="index-head">
+        <p class="eyebrow">THE STORE INDEX</p>
+        <h2 id="index-title"></h2>
+        <p id="index-stats" class="muted"></p>
+        <button id="index-close" type="button" class="index-close only-mobile" aria-label="收起清單">×</button>
+      </div>
+      <input id="search" class="search" type="search" placeholder="搜尋門市、地址或玩法…" autocomplete="off">
+      <div id="chips" class="chips"></div>
+      <ol id="region-list" class="region-list"></ol>
+    </aside>
+  </div>
+
+  <div id="intro" class="intro" hidden>
+    <div id="intro-box" class="intro-box" role="dialog" aria-modal="true"></div>
+  </div>
+
+  <div id="modal" class="modal" hidden>
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <header>
+        <b id="modal-title"></b>
+        <a id="modal-open" target="_blank" rel="noopener">另開視窗 ↗</a>
+        <button id="modal-close" type="button" aria-label="關閉">×</button>
+      </header>
+      <iframe id="modal-frame" title="門市小遊戲" allow="autoplay; fullscreen; clipboard-write"></iframe>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

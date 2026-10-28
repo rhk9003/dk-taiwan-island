@@ -1,0 +1,53 @@
+{
+  "_說明": "門市的玩法模組。門市在 stores.json 用 module 指定其中一個。building 決定島上的建築造型（shop 商店、carnival 遊樂帳篷、classroom 教室、temple 廟、board 留言板、workshop 工坊）；url 留 null 代表還沒做好，按鈕會顯示 cta 的文字並且不能按。",
+  "modules": {
+    "shop": {
+      "name": "DK 門市",
+      "building": "shop",
+      "color": "#8B2332",
+      "desc": "看看店長的一句話和店長推薦。",
+      "url": null,
+      "cta": null
+    },
+    "balloon": {
+      "name": "氣球特攻隊",
+      "building": "carnival",
+      "color": "#E07A2E",
+      "desc": "射氣球小遊戲，玩完拿優惠券。",
+      "url": "https://sweet294728.github.io/dkec-balloon-game/",
+      "cta": "開始玩"
+    },
+    "quiz": {
+      "name": "空氣鞋小教室",
+      "building": "classroom",
+      "color": "#3F7FBF",
+      "desc": "跟呼吸小氣球挑戰 5 題，認識 DK 的得獎紀錄與專利。",
+      "url": "https://rhk9003.github.io/dk-air-balloon-quiz/",
+      "cta": "開始上課"
+    },
+    "fortune": {
+      "name": "今日鞋籤",
+      "building": "temple",
+      "color": "#C8452F",
+      "desc": "洗牌、深呼吸，抽一張今日鞋籤。",
+      "url": "https://rhk9003.github.io/dk-shoe-fortune/",
+      "cta": "抽一張"
+    },
+    "board": {
+      "name": "留言板",
+      "building": "board",
+      "color": "#3E9A6A",
+      "desc": "留下你和 DK 空氣鞋的故事。",
+      "url": null,
+      "cta": "即將開放"
+    },
+    "workshop": {
+      "name": "手工做鞋工坊",
+      "building": "workshop",
+      "color": "#7A5BA6",
+      "desc": "在虛擬工坊挑鞋面、鞋底、鞋帶，配一雙自己的空氣鞋。",
+      "url": null,
+      "cta": "即將開放"
+    }
+  }
+}

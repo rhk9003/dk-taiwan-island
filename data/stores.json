@@ -1,0 +1,931 @@
+{
+  "_說明": "全台門市。latlng 是門市在島上的位置 [緯度, 經度]：在 Google 地圖對門市按右鍵，點第一行的數字就會複製（例如 25.0435, 121.5470）；沒填就先放在該縣市中心附近，位置撞到別間店會自動挪到旁邊的空地。module 填 modules.json 裡的代號（shop、balloon、quiz、fortune、board、workshop），換了建築就會跟著換。quote 是店長的一句話、manager 是店長稱呼、products 填 products.json 的商品 id。sample: true 代表內容是範例，卡片上會標「範例」。",
+  "stores": [
+    {
+      "id": "頂好",
+      "name": "DK-頂好店",
+      "region": "north",
+      "address": "台北市大安區大安路一段42號",
+      "phone": "(02) 27711655",
+      "latlng": [
+        25.0435,
+        121.547
+      ],
+      "module": "workshop",
+      "manager": "",
+      "quote": "第一次穿就懂，什麼叫做腳會呼吸。",
+      "products": [
+        "12257529",
+        "12256620"
+      ],
+      "sample": true
+    },
+    {
+      "id": "民生",
+      "name": "DK-民生店",
+      "region": "north",
+      "address": "台北市松山區民生東路5段117號",
+      "phone": "(02) 27630188",
+      "latlng": [
+        25.059,
+        121.565
+      ],
+      "module": "quiz",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "忠孝",
+      "name": "DK-忠孝店",
+      "region": "north",
+      "address": "台北市信義區忠孝東路五段516號",
+      "phone": "(02) 27264313",
+      "latlng": [
+        25.041,
+        121.577
+      ],
+      "module": "fortune",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "市民",
+      "name": "DK-市民店",
+      "region": "north",
+      "address": "台北市大同區市民大道一段100號",
+      "phone": "(02) 25509066",
+      "latlng": [
+        25.048,
+        121.515
+      ],
+      "module": "board",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "雙連",
+      "name": "DK-雙連店",
+      "region": "north",
+      "address": "台北市中山區民生西路14號1樓",
+      "phone": "(02) 25632277",
+      "latlng": [
+        25.058,
+        121.521
+      ],
+      "module": "workshop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "沅陵",
+      "name": "DK-沅陵店",
+      "region": "north",
+      "address": "台北市中正區沅陵街5號",
+      "phone": "(02) 23717769",
+      "latlng": [
+        25.044,
+        121.508
+      ],
+      "module": "shop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "博愛",
+      "name": "DK-博愛店",
+      "region": "north",
+      "address": "台北市中正區博愛路91號",
+      "phone": "(02) 23112999",
+      "latlng": [
+        25.042,
+        121.511
+      ],
+      "module": "quiz",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "萬芳",
+      "name": "DK-萬芳店",
+      "region": "north",
+      "address": "台北市文山區興隆路三段80號",
+      "phone": "(02) 29331799",
+      "latlng": [
+        24.999,
+        121.562
+      ],
+      "module": "quiz",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "永和",
+      "name": "DK-永和店",
+      "region": "north",
+      "address": "新北市永和區永和路二段186號",
+      "phone": "(02) 29262669",
+      "latlng": [
+        25.013,
+        121.514
+      ],
+      "module": "fortune",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "內湖",
+      "name": "DK-內湖店",
+      "region": "north",
+      "address": "台北市內湖區內湖路一段293號",
+      "phone": "(02) 26577168",
+      "latlng": [
+        25.078,
+        121.576
+      ],
+      "module": "board",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "萬華",
+      "name": "DK-萬華店",
+      "region": "north",
+      "address": "台北市萬華區西園路一段214-1號",
+      "phone": "(02) 89652888",
+      "latlng": [
+        25.035,
+        121.498
+      ],
+      "module": "workshop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "三重",
+      "name": "DK-三重店",
+      "region": "north",
+      "address": "新北市三重區重新路二段51之1號",
+      "phone": "(02) 29889266",
+      "latlng": [
+        25.062,
+        121.493
+      ],
+      "module": "shop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "成功",
+      "name": "DK-成功店",
+      "region": "north",
+      "address": "台北市內湖區成功路四段28號",
+      "phone": "(02) 27926658",
+      "latlng": [
+        25.082,
+        121.594
+      ],
+      "module": "balloon",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "南勢角",
+      "name": "DK-南勢角店",
+      "region": "north",
+      "address": "新北市中和區興南路一段76號1樓",
+      "phone": "(02) 31517373",
+      "latlng": [
+        24.993,
+        121.509
+      ],
+      "module": "quiz",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "北新",
+      "name": "DK-北新店",
+      "region": "north",
+      "address": "新北市新店區北新路二段99號",
+      "phone": "(02) 29182298",
+      "latlng": [
+        24.976,
+        121.54
+      ],
+      "module": "fortune",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "新光醫",
+      "name": "DK-新光醫",
+      "region": "north",
+      "address": "台北市士林區文昌路89號",
+      "phone": "(02) 28362121",
+      "latlng": [
+        25.096,
+        121.52
+      ],
+      "module": "board",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "新店",
+      "name": "DK-新店店",
+      "region": "north",
+      "address": "新北市新店區中正路181號",
+      "phone": "(02) 29111999",
+      "latlng": [
+        24.968,
+        121.542
+      ],
+      "module": "workshop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "埔墘",
+      "name": "DK-埔墘店",
+      "region": "north",
+      "address": "新北市板橋區中山路二段228號",
+      "phone": "(02) 29569070",
+      "latlng": [
+        25.017,
+        121.472
+      ],
+      "module": "shop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "石牌",
+      "name": "DK-石牌店",
+      "region": "north",
+      "address": "台北市北投區石牌路二段185號",
+      "phone": "(02) 28227952",
+      "latlng": [
+        25.118,
+        121.518
+      ],
+      "module": "balloon",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "府中",
+      "name": "DK-府中店",
+      "region": "north",
+      "address": "新北市板橋區府中路85號1樓",
+      "phone": "(02) 29662828",
+      "latlng": [
+        25.009,
+        121.46
+      ],
+      "module": "quiz",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "蘆洲",
+      "name": "DK-蘆洲店",
+      "region": "north",
+      "address": "新北市蘆洲區長榮路26號",
+      "phone": "(02) 82869988",
+      "latlng": [
+        25.085,
+        121.472
+      ],
+      "module": "fortune",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "新泰",
+      "name": "DK-新泰店",
+      "region": "north",
+      "address": "新北市新莊區新泰路292號",
+      "phone": "(02) 22763568",
+      "latlng": [
+        25.04,
+        121.45
+      ],
+      "module": "board",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "裕民",
+      "name": "DK-裕民店",
+      "region": "north",
+      "address": "新北市土城區裕民路146號",
+      "phone": "(02) 22616161",
+      "latlng": [
+        24.984,
+        121.446
+      ],
+      "module": "workshop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "樹林",
+      "name": "DK-樹林店",
+      "region": "north",
+      "address": "新北市樹林區中山路一段92號1F",
+      "phone": "(02) 26819899",
+      "latlng": [
+        24.993,
+        121.425
+      ],
+      "module": "shop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "淡水",
+      "name": "DK-淡水店",
+      "region": "north",
+      "address": "新北市淡水區英專路11號",
+      "phone": "(02) 26239877",
+      "latlng": [
+        25.171,
+        121.442
+      ],
+      "module": "balloon",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "林口",
+      "name": "DK-林口店",
+      "region": "taozhumiao",
+      "address": "桃園市龜山區復興一路100號",
+      "phone": "(03) 3281585",
+      "latlng": [
+        25.073,
+        121.37
+      ],
+      "module": "quiz",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "三峽",
+      "name": "DK-三峽店",
+      "region": "north",
+      "address": "新北市三峽區民生街100號1樓",
+      "phone": "(02) 26722288",
+      "latlng": [
+        24.934,
+        121.372
+      ],
+      "module": "quiz",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "基隆",
+      "name": "DK-基隆店",
+      "region": "north",
+      "address": "基隆市仁愛區仁二路223號",
+      "phone": "(02) 24287599",
+      "latlng": [
+        25.13,
+        121.742
+      ],
+      "module": "fortune",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "桃園",
+      "name": "DK-桃園店",
+      "region": "taozhumiao",
+      "address": "桃園市桃園區中正路24號",
+      "phone": "(03) 3373988",
+      "latlng": [
+        24.99,
+        121.313
+      ],
+      "module": "fortune",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "藝文",
+      "name": "DK-藝文店",
+      "region": "taozhumiao",
+      "address": "桃園市桃園區中正路1210號",
+      "phone": "(03) 3262288",
+      "latlng": [
+        25.017,
+        121.299
+      ],
+      "module": "board",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "八德",
+      "name": "DK-八德店",
+      "region": "taozhumiao",
+      "address": "桃園市八德區介壽路一段959號1樓",
+      "phone": "(03) 3677777",
+      "latlng": [
+        24.959,
+        121.29
+      ],
+      "module": "workshop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "元化",
+      "name": "DK-元化店",
+      "region": "taozhumiao",
+      "address": "桃園市中壢區元化路366號",
+      "phone": "(03) 4277762",
+      "latlng": [
+        24.956,
+        121.224
+      ],
+      "module": "shop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "新生",
+      "name": "DK-新生店",
+      "region": "taozhumiao",
+      "address": "桃園市中壢區新生路59號",
+      "phone": "(03) 4279115",
+      "latlng": [
+        24.96,
+        121.227
+      ],
+      "module": "balloon",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "羅東",
+      "name": "DK-羅東店",
+      "region": "yilan",
+      "address": "宜蘭縣羅東鎮興東路23-2號",
+      "phone": "(03) 9565858",
+      "latlng": [
+        24.678,
+        121.771
+      ],
+      "module": "shop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "竹北",
+      "name": "DK-竹北店",
+      "region": "taozhumiao",
+      "address": "新竹縣竹北市三民路326號",
+      "phone": "(03) 5531133",
+      "latlng": [
+        24.832,
+        121.011
+      ],
+      "module": "quiz",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "新竹",
+      "name": "DK-新竹店",
+      "region": "taozhumiao",
+      "address": "新竹市東區中正路76號",
+      "phone": "(03) 5220606",
+      "latlng": [
+        24.804,
+        120.968
+      ],
+      "module": "fortune",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "苗栗",
+      "name": "DK-苗栗店",
+      "region": "taozhumiao",
+      "address": "苗栗縣苗栗市中正路855號",
+      "phone": "(037) 361919",
+      "latlng": [
+        24.563,
+        120.821
+      ],
+      "module": "board",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "豐原",
+      "name": "DK-豐原店",
+      "region": "central",
+      "address": "台中市豐原區中正路166號",
+      "phone": "(04) 25253568",
+      "latlng": [
+        24.252,
+        120.722
+      ],
+      "module": "fortune",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "大甲",
+      "name": "DK-大甲店",
+      "region": "central",
+      "address": "台中市大甲區順天路189號",
+      "phone": "(04) 26880909",
+      "latlng": [
+        24.348,
+        120.623
+      ],
+      "module": "board",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "精武",
+      "name": "DK-精武店",
+      "region": "central",
+      "address": "台中市東區精武東路101號",
+      "phone": "(04) 22120333",
+      "latlng": [
+        24.145,
+        120.693
+      ],
+      "module": "workshop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "精明",
+      "name": "DK-精明店",
+      "region": "central",
+      "address": "台中市西屯區大墩19街5號",
+      "phone": "(04) 23197979",
+      "latlng": [
+        24.153,
+        120.655
+      ],
+      "module": "shop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "美村",
+      "name": "DK-美村店",
+      "region": "central",
+      "address": "台中市西區美村路一段263號",
+      "phone": "(04) 23053388",
+      "latlng": [
+        24.143,
+        120.66
+      ],
+      "module": "balloon",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "大里",
+      "name": "DK-大里店",
+      "region": "central",
+      "address": "台中市大里區中興路二段323號",
+      "phone": "(04) 24865959",
+      "latlng": [
+        24.1,
+        120.68
+      ],
+      "module": "quiz",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "沙鹿",
+      "name": "DK-沙鹿店",
+      "region": "central",
+      "address": "台中市沙鹿區沙田路185號",
+      "phone": "(04) 26625151",
+      "latlng": [
+        24.235,
+        120.565
+      ],
+      "module": "fortune",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "草屯",
+      "name": "DK-草屯店",
+      "region": "central",
+      "address": "南投縣草屯鎮太平路二段359號",
+      "phone": "(04) 92336866",
+      "latlng": [
+        23.975,
+        120.68
+      ],
+      "module": "board",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "彰化",
+      "name": "DK-彰化店",
+      "region": "central",
+      "address": "彰化縣彰化市曉陽路56號",
+      "phone": "(04) 7237588",
+      "latlng": [
+        24.08,
+        120.543
+      ],
+      "module": "workshop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "員林",
+      "name": "DK-員林店",
+      "region": "central",
+      "address": "彰化縣員林市中正路406號",
+      "phone": "(04) 8335050",
+      "latlng": [
+        23.958,
+        120.573
+      ],
+      "module": "shop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "鹿港",
+      "name": "DK-鹿港店",
+      "region": "central",
+      "address": "彰化縣鹿港鎮中山路363號",
+      "phone": "(04) 7762255",
+      "latlng": [
+        24.056,
+        120.433
+      ],
+      "module": "balloon",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "斗六",
+      "name": "DK-斗六店",
+      "region": "yunjianan",
+      "address": "雲林縣斗六市大同路9號",
+      "phone": "(05) 5329696",
+      "latlng": [
+        23.709,
+        120.542
+      ],
+      "module": "board",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "虎尾",
+      "name": "DK-虎尾店",
+      "region": "yunjianan",
+      "address": "雲林縣虎尾鎮中正路34號",
+      "phone": "(05) 6361818",
+      "latlng": [
+        23.708,
+        120.433
+      ],
+      "module": "workshop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "嘉義",
+      "name": "DK-嘉義店",
+      "region": "yunjianan",
+      "address": "嘉義市西區中山路351號",
+      "phone": "(05) 2256111",
+      "latlng": [
+        23.48,
+        120.448
+      ],
+      "module": "shop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "垂楊",
+      "name": "DK-垂楊店",
+      "region": "yunjianan",
+      "address": "嘉義市西區垂楊路527號1樓",
+      "phone": "(05) 2865288",
+      "latlng": [
+        23.474,
+        120.44
+      ],
+      "module": "balloon",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "新營",
+      "name": "DK-新營店",
+      "region": "yunjianan",
+      "address": "台南市新營區民權路5號",
+      "phone": "(06) 6356060",
+      "latlng": [
+        23.307,
+        120.316
+      ],
+      "module": "quiz",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "麻豆",
+      "name": "DK-麻豆店",
+      "region": "yunjianan",
+      "address": "台南市麻豆區興中路2號",
+      "phone": "(06) 5717199",
+      "latlng": [
+        23.181,
+        120.248
+      ],
+      "module": "fortune",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "台南",
+      "name": "DK-台南店",
+      "region": "yunjianan",
+      "address": "台南市中西區中正路226號",
+      "phone": "(06) 2239899",
+      "latlng": [
+        22.993,
+        120.199
+      ],
+      "module": "fortune",
+      "manager": "",
+      "quote": "府城巷子多，一雙好走的鞋最實在。",
+      "products": [
+        "12255057"
+      ],
+      "sample": true
+    },
+    {
+      "id": "屏東",
+      "name": "DK-屏東店",
+      "region": "kaoping",
+      "address": "屏東縣屏東市民生路311號",
+      "phone": "(08) 7663939",
+      "latlng": [
+        22.672,
+        120.488
+      ],
+      "module": "workshop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "裕誠",
+      "name": "DK-裕誠店",
+      "region": "kaoping",
+      "address": "高雄市左營區裕誠路350號",
+      "phone": "(07) 5579866",
+      "latlng": [
+        22.668,
+        120.303
+      ],
+      "module": "shop",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "大樂",
+      "name": "DK-大樂店",
+      "region": "kaoping",
+      "address": "高雄市三民區民族一路463號B1（大樂專櫃）",
+      "phone": "(07) 3982255",
+      "latlng": [
+        22.655,
+        120.317
+      ],
+      "module": "balloon",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "鳳山",
+      "name": "DK-鳳山店",
+      "region": "kaoping",
+      "address": "高雄市鳳山區中山路118號",
+      "phone": "(07) 7194599",
+      "latlng": [
+        22.627,
+        120.359
+      ],
+      "module": "quiz",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "大連",
+      "name": "DK-大連店",
+      "region": "kaoping",
+      "address": "高雄市三民區大連街170號",
+      "phone": "(07) 3135599",
+      "latlng": [
+        22.64,
+        120.295
+      ],
+      "module": "fortune",
+      "manager": "",
+      "quote": "",
+      "products": []
+    },
+    {
+      "id": "三多",
+      "name": "DK-三多店",
+      "region": "kaoping",
+      "address": "高雄市苓雅區三多三路228號",
+      "phone": "(07) 3355151",
+      "latlng": [
+        22.615,
+        120.305
+      ],
+      "module": "balloon",
+      "manager": "",
+      "quote": "高雄天氣熱，選雙透氣的，腳才會開心。",
+      "products": [
+        "12255061",
+        "12255053"
+      ],
+      "sample": true
+    }
+  ]
+}
