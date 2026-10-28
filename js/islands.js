@@ -197,9 +197,13 @@ export function layoutTaiwan(regions, stores, landmarks, service, warn) {
     const area = lm.footprint ? [t, ...neighbors(t)] : [t];
     for (const c of area) {
       c.reserved = lm.id;
-      if (lm.footprint) Object.assign(c, { kind: 'land', h: LAND_H, m: 0, apron: true });
+      if (lm.footprint && lm.model !== 'lake') Object.assign(c, { kind: 'land', h: LAND_H, m: 0, apron: true });
     }
-    if (lm.model === 'lake') t.h = Math.max(LAND_H, t.h - 0.5); // 湖在山谷裡，比周圍低一點
+    // 湖在山谷裡，比周圍低一點；footprint 1 的大湖連旁邊一圈都壓到同一個高度，湖水才不會被擋住
+    if (lm.model === 'lake') {
+      const h = Math.max(LAND_H, t.h - 0.5);
+      for (const c of area) c.h = h;
+    }
     spots.push({ landmark: lm, tile: t });
   }
   // 客服任務島：中央放任務看板和客服氣球人，四個站照 offset 排在四周

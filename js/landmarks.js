@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { kit, mat } from './buildings.js';
+import { kit, mat, MASCOT } from './buildings.js';
 
 // 台灣景點、機場、離島地標的低多邊形造型。原點在格子頂面中央，正面朝南（+z）
 const { box, cyl, cone, ball, prism, place, geo, sign } = kit;
@@ -16,6 +16,31 @@ function squareFrustum(rTop, rBottom, h, c, y) {
   const m = cyl(rTop, rBottom, h, 4, c, 0, y, 0);
   m.rotation.y = Math.PI / 4;
   return m;
+}
+
+// 泳渡日月潭的氣球人：戴泳帽、後面拖著橘色浮具，兩隻手輪流划水，從這岸游到對岸再游回來
+function swimmer(anims) {
+  const s = new THREE.Group();
+  const skin = MASCOT[2];
+  const body = cyl(0.05, 0.05, 0.13, 10, skin, 0, 0, 0);
+  body.rotation.x = Math.PI / 2 - 0.35;
+  body.position.set(0, 0.035, -0.09);
+  s.add(body);
+  s.add(ball(0.06, skin, 0, 0.1, 0.07, 2));
+  const cap = ball(0.063, '#e8473a', 0, 0.108, 0.065, 2);
+  cap.scale.y = 0.7;
+  s.add(cap);
+  const arms = [-1, 1].map((side) => {
+    const arm = new THREE.Group();
+    arm.position.set(side * 0.065, 0.075, 0.05);
+    arm.add(cyl(0.018, 0.018, 0.1, 6, skin, 0, -0.1, 0));
+    s.add(arm);
+    return arm;
+  });
+  s.add(ball(0.03, '#ff8a1f', 0, 0.07, -0.17, 1)); // 浮具
+  [-0.03, 0.03].forEach((x) => s.add(ball(0.022, '#ffffff', x, 0.065, -0.1, 1))); // 打水的水花
+  anims.push({ obj: s, kind: 'swim', from: [-0.6, 0.6], to: [0.6, 0.6], y: 0.02, speed: 0.08, phase: 0.3, arms });
+  return s;
 }
 
 const MODELS = {
@@ -82,11 +107,12 @@ const MODELS = {
       tower.add(cyl(r, r, 0.14, 8, '#f6efe3', 0, i * 0.17, 0));
       tower.add(cone(r + 0.05, 0.05, 8, '#d08a3a', 0, i * 0.17 + 0.14, 0));
     });
-    tower.position.set(-0.68, 0.06, -0.5);
+    tower.position.set(-0.76, 0, -0.62); // 慈恩塔在湖岸邊
     g.add(tower);
     const boat = box(0.18, 0.06, 0.08, '#f2f2f2', 0.35, 0.06, 0.3);
     anims.push({ obj: boat, kind: 'bob', base: 0.06, phase: 1, amp: 0.015 });
     g.add(boat);
+    g.add(swimmer(anims));
     return g;
   },
 

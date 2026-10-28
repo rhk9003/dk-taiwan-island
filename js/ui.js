@@ -1,7 +1,7 @@
 import { h, shortName } from './util.js';
 import { mascotIndex } from './buildings.js';
 import { shippingStation, returnsStation, comingSoonStation } from './service.js';
-import { RESIDENT_OPTIONS } from './residents.js';
+import { RESIDENT_OPTIONS, createResidentPreview } from './residents.js';
 import { stampSvg, stampDate, STAMPER_SVG } from './stamps.js';
 import { cleanText, textProblem } from './textrules.js';
 
@@ -726,15 +726,27 @@ export function createUI(data, handlers) {
       mode: me?.mode || 'loop',
     };
     const labelOf = (key, id) => O[key].find((o) => o.id === id)?.label || '';
-    const preview = h('div', { class: 'me-preview' });
-    const drawPreview = () => preview.replaceChildren(
-      h('img', { src: `assets/mascot-${choice.body}.png`, alt: '' }),
-      h('ul', {},
+    // 預覽：3D 小人跟島上長得一樣，選什麼馬上換上；瀏覽器畫不了 3D 就退回身體的圖
+    const look = () => ({ body: choice.body, hat: choice.hat, acc: choice.acc, shoe: choice.shoe });
+    const canvas = h('canvas', { class: 'me-figure', 'aria-label': '我的島民預覽' });
+    let figure = null;
+    try {
+      figure = createResidentPreview(canvas);
+    } catch {
+      figure = null;
+    }
+    const fallback = h('img', { src: `assets/mascot-${choice.body}.png`, alt: '' });
+    const list = h('ul');
+    const preview = h('div', { class: 'me-preview' }, figure ? canvas : fallback, list);
+    const drawPreview = () => {
+      figure?.set(look());
+      fallback.src = `assets/mascot-${choice.body}.png`;
+      list.replaceChildren(
         h('li', { text: `帽子：${labelOf('hat', choice.hat)}` }),
         h('li', { text: `配件：${labelOf('acc', choice.acc)}` }),
         h('li', {}, '鞋子：', h('i', { class: 'swatch', style: `background:${choice.shoe}` })),
-        h('li', { text: `移動：${labelOf('mode', choice.mode)}` })),
-    );
+        h('li', { text: `移動：${labelOf('mode', choice.mode)}` }));
+    };
     drawPreview();
 
     const group = (key, title, items, render) => {
@@ -770,9 +782,11 @@ export function createUI(data, handlers) {
         website: honeypot.value,
       });
       submit.disabled = false;
+      // 後端還沒更新到認得「泳渡日月潭」時，請客人先選別的
+      const lakeNotReady = !res.ok && choice.mode === 'lake' && /移動方式/.test(res.message || '');
       status.textContent = res.ok
         ? (res.pending ? '上島了！暱稱審核通過後，大家就看得到你的名字。' : '上島了！快去找找你的島民。')
-        : res.message;
+        : lakeNotReady ? '「泳渡日月潭」還在準備中，先選別的移動方式，晚點再回來換！' : res.message;
     });
 
     fillCard(
@@ -808,6 +822,8 @@ export function createUI(data, handlers) {
       ins.left = card.offsetWidth + 16;
     }
     handlers.onInsets(ins);
+    // 手機上右下角的按鈕要移到卡片上方，告訴 CSS 卡片多高
+    document.documentElement.style.setProperty('--sheet', `${card.hidden ? 0 : card.offsetHeight}px`);
   }
   new ResizeObserver(reportInsets).observe(card);
   window.addEventListener('resize', reportInsets);

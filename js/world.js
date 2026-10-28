@@ -274,10 +274,14 @@ export function createWorld(container, data, handlers) {
     const t = nearestTile(v);
     return new THREE.Vector3(v.x, t ? Math.max(t.h, LAND_H) : LAND_H, v.z);
   });
+  // 日月潭的湖面（中心、水面高度、半徑）：選「泳渡日月潭」的島民在這裡游
+  const lakeObj = [...landmarkObjs.values()].find((o) => o.landmark.model === 'lake');
+  const lake = lakeObj && { x: lakeObj.tile.x, z: lakeObj.tile.z, y: lakeObj.tile.h + 0.06 * lakeObj.group.scale.x, r: 0.9 * lakeObj.group.scale.x };
   const makeMover = createMovers({
     streets: [...layout.streets, ...plazaWalk],
     loop: loopPoints,
     trails: hikers.map((hk) => ({ path: hk.path, dist: hk.dist, length: hk.length })),
+    lake,
   });
   // DK 物流車：沿著環島公路送貨
   const trucks = [0, 0.25, 0.5, 0.75].map((offset, i) => {
@@ -681,6 +685,15 @@ export function createWorld(container, data, handlers) {
         a.obj.material.emissiveIntensity = (Math.floor(t * 3) + a.phase) % 2 ? 1.2 : 0.15;
       } else if (a.kind === 'turn') {
         a.obj.rotation.y = t * a.speed;
+      } else if (a.kind === 'swim') {
+        // 泳渡：從這岸游到對岸再游回來，兩隻手輪流划水
+        const k = (t * a.speed + a.phase) % 2;
+        const f = k < 1 ? k : 2 - k;
+        const dx = a.to[0] - a.from[0];
+        const dz = a.to[1] - a.from[1];
+        a.obj.position.set(a.from[0] + dx * f, a.y + Math.sin(t * 5) * 0.006, a.from[1] + dz * f);
+        a.obj.rotation.y = Math.atan2(dx, dz) + (k < 1 ? 0 : Math.PI);
+        a.arms.forEach((arm, i) => { arm.rotation.x = t * 4 + i * Math.PI; });
       } else if (a.kind === 'belt') {
         a.obj.position.x = a.from + ((t * a.speed + a.phase) % 1) * (a.to - a.from);
       }

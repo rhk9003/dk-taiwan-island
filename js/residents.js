@@ -35,6 +35,7 @@ export const RESIDENT_OPTIONS = {
     { id: 'east', label: '東區' },
     { id: 'street', label: '逛商圈' },
     { id: 'mountain', label: '爬山' },
+    { id: 'lake', label: '泳渡日月潭' },
   ],
 };
 
@@ -151,6 +152,30 @@ export function createMovers(places) {
         return Math.sin(st.step);
       };
     }
+    // 泳渡日月潭：從湖的這岸游到對岸再游回來，身體一半泡在水裡
+    if (mode === 'lake' && places.lake) {
+      const L = places.lake;
+      const R = L.r * 0.8;
+      const a = rand() * Math.PI * 2;
+      const off = (rand() - 0.5) * R; // 每個人游的路線錯開一點
+      const half = Math.sqrt(R * R - off * off);
+      const ux = Math.cos(a);
+      const uz = Math.sin(a);
+      const from = { x: L.x - uz * off + ux * half, z: L.z + ux * off + uz * half };
+      const to = { x: L.x - uz * off - ux * half, z: L.z + ux * off - uz * half };
+      const st = { k: rand(), dir: rand() < 0.5 ? 1 : -1, speed: (0.22 + rand() * 0.08) / (2 * half), step: rand() * 6 };
+      return (p, dt) => {
+        st.k += st.dir * st.speed * dt;
+        if (st.k > 1) { st.k = 1; st.dir = -1; }
+        if (st.k < 0) { st.k = 0; st.dir = 1; }
+        st.step += dt * 5;
+        p.x = from.x + (to.x - from.x) * st.k;
+        p.z = from.z + (to.z - from.z) * st.k;
+        p.y = L.y - 0.24 + Math.sin(st.step) * 0.015;
+        turnToward(p, (to.x - from.x) * st.dir, (to.z - from.z) * st.dir, dt);
+        return Math.sin(st.step);
+      };
+    }
     // 在某一區（或全島）的商圈街道上逛
     const tiles = pool(mode);
     const from = tiles[Math.floor(rand() * tiles.length)];
@@ -234,6 +259,63 @@ export function createResidents(list, makeMover, mineId) {
     dispose() {
       group.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
       for (const { obj } of labels) obj.element.remove();
+    },
+  };
+}
+
+/** 捏島民時的預覽：小畫布上一個原地踏步、慢慢轉圈的氣球人，造型跟島上的一模一樣。畫布離開畫面就自己收掉 */
+export function createResidentPreview(canvas) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const scene = new THREE.Scene();
+  scene.add(new THREE.HemisphereLight('#fffaf0', '#d8c6b4', 2.2));
+  const sun = new THREE.DirectionalLight('#fff1dc', 2.2);
+  sun.position.set(1, 2, 2);
+  scene.add(sun);
+  scene.add(new THREE.Mesh(new THREE.CircleGeometry(0.2, 24).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.08 })));
+  const camera = new THREE.PerspectiveCamera(30, 1, 0.01, 10);
+  camera.position.set(0, 0.45, 1.3);
+  camera.lookAt(0, 0.27, 0);
+
+  let fig = null;
+  let rot = 0.5;
+  let walk = 0;
+  const spin = () => (p, dt) => {
+    rot += dt * 0.8;
+    walk += dt * 5;
+    p.rot = rot;
+    return Math.sin(walk) * 0.5;
+  };
+  let last = performance.now();
+  requestAnimationFrame(function frame(now) {
+    if (!canvas.isConnected) {
+      if (fig) fig.dispose();
+      renderer.dispose();
+      renderer.forceContextLoss();
+      return;
+    }
+    const w = canvas.clientWidth;
+    const hgt = canvas.clientHeight;
+    if (w && hgt && (canvas.width !== Math.round(w * renderer.getPixelRatio()) || canvas.height !== Math.round(hgt * renderer.getPixelRatio()))) {
+      renderer.setSize(w, hgt, false);
+      camera.aspect = w / hgt;
+      camera.updateProjectionMatrix();
+    }
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    fig?.update(now / 1000, dt);
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  });
+
+  return {
+    set(look) {
+      if (fig) {
+        scene.remove(fig.group);
+        fig.dispose();
+      }
+      fig = createResidents([{ id: 'preview', look, mode: 'street', nickname: '' }], spin, null);
+      scene.add(fig.group);
     },
   };
 }
