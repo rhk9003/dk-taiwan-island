@@ -1,5 +1,5 @@
 {
-  "_說明": "全台門市。latlng 是門市在島上的位置 [緯度, 經度]：在 Google 地圖對門市按右鍵，點第一行的數字就會複製（例如 25.0435, 121.5470）；沒填就先放在該縣市中心附近，位置撞到別間店會自動挪到旁邊的空地。module 填 modules.json 裡的代號（shop、balloon、quiz、fortune、board、workshop），換了建築就會跟著換。quote 是店長的一句話、manager 是店長稱呼、products 填 products.json 的商品 id。sample: true 代表內容是範例，卡片上會標「範例」。",
+  "_說明": "全台門市。latlng 是門市在島上的位置 [緯度, 經度]：在 Google 地圖對門市按右鍵，點第一行的數字就會複製（例如 25.0435, 121.5470）；沒填就先放在該縣市中心附近，位置撞到別間店會自動挪到旁邊的空地。module 填 modules.json 裡的代號（shop、balloon、downstairs、quiz、fortune、board、workshop），換了建築就會跟著換。quote 是店長的一句話、manager 是店長稱呼、products 填 products.json 的商品 id。sample: true 代表內容是範例，卡片上會標「範例」。",
   "stores": [
     {
       "id": "頂好",
@@ -90,7 +90,7 @@
         25.044,
         121.508
       ],
-      "module": "shop",
+      "module": "downstairs",
       "manager": "",
       "quote": "",
       "products": []
@@ -180,7 +180,7 @@
         25.062,
         121.493
       ],
-      "module": "shop",
+      "module": "downstairs",
       "manager": "",
       "quote": "",
       "products": []
@@ -270,7 +270,7 @@
         25.017,
         121.472
       ],
-      "module": "shop",
+      "module": "downstairs",
       "manager": "",
       "quote": "",
       "products": []
@@ -360,7 +360,7 @@
         24.993,
         121.425
       ],
-      "module": "shop",
+      "module": "downstairs",
       "manager": "",
       "quote": "",
       "products": []
@@ -480,7 +480,7 @@
         24.956,
         121.224
       ],
-      "module": "shop",
+      "module": "downstairs",
       "manager": "",
       "quote": "",
       "products": []
@@ -510,7 +510,7 @@
         24.678,
         121.771
       ],
-      "module": "shop",
+      "module": "downstairs",
       "manager": "",
       "quote": "",
       "products": []
@@ -615,7 +615,7 @@
         24.153,
         120.655
       ],
-      "module": "shop",
+      "module": "downstairs",
       "manager": "",
       "quote": "",
       "products": []
@@ -705,7 +705,7 @@
         23.958,
         120.573
       ],
-      "module": "shop",
+      "module": "downstairs",
       "manager": "",
       "quote": "",
       "products": []
@@ -765,7 +765,7 @@
         23.48,
         120.448
       ],
-      "module": "shop",
+      "module": "downstairs",
       "manager": "",
       "quote": "",
       "products": []
@@ -858,7 +858,7 @@
         22.668,
         120.303
       ],
-      "module": "shop",
+      "module": "downstairs",
       "manager": "",
       "quote": "",
       "products": []

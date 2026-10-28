@@ -36,7 +36,7 @@ data/             ← 平常只改這裡
 
 | 想做的事 | 改哪裡 |
 |---|---|
-| 換某間店的玩法 | `stores.json` 那間店的 `module`，填 `shop`、`balloon`、`quiz`、`fortune`、`board`、`workshop` 其中一個。島上的建築會跟著換 |
+| 換某間店的玩法 | `stores.json` 那間店的 `module`，填 `shop`、`balloon`、`downstairs`、`quiz`、`fortune`、`board`、`workshop` 其中一個。島上的建築會跟著換 |
 | 店長的一句話、店長推薦 | 請店長用「店長的話蒐集」表單填（見下一節），島會自動讀。要手動修字，直接改那份 Google 試算表 |
 | 加碼推薦商品 | 先在 `products.json` 加商品，再把商品 id 填進 `stores.json` 的 `products`，會排在店長推薦後面 |
 | 加一個新玩法 | `modules.json` 加一項：`name`、`building`（用哪種建築造型）、`color`、`desc`、`url`（遊戲網址）、`cta`（按鈕文字）。`url` 留 `null` 會顯示「即將開放」 |

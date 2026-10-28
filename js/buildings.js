@@ -134,6 +134,28 @@ const TEMPLATES = {
     return g;
   },
 
+  // 小氣球下樓梯：歡樂玩具塔，彩色台階一圈圈繞著往下，塔頂飄著一顆氣球
+  toytower(color, anims) {
+    const g = new THREE.Group();
+    g.add(cyl(0.5, 0.54, 0.08, 10, '#f3e6c9'));
+    g.add(cyl(0.07, 0.08, 1.3, 8, WALL, 0, 0.08, 0));
+    const steps = [MASCOT[3], MASCOT[2], MASCOT[1], MASCOT[0], color, MASCOT[3]];
+    steps.forEach((c, i) => {
+      const a = i * 1.15;
+      const step = box(0.3, 0.06, 0.16, c, Math.cos(a) * 0.26, 1.18 - i * 0.2, Math.sin(a) * 0.26);
+      step.rotation.y = -a;
+      g.add(step);
+    });
+    g.add(cone(0.12, 0.12, 8, color, 0, 1.38, 0));
+    g.add(cyl(0.005, 0.005, 0.3, 3, '#ffffff', 0, 1.5, 0));
+    const b = ball(0.15, MASCOT[3], 0, 1.95, 0);
+    b.scale.y = 1.15;
+    anims.push({ obj: b, kind: 'bob', base: 1.95, phase: 0.6, amp: 0.06 });
+    g.add(b);
+    g.add(signBoard(-0.44, 0.42, 0.25));
+    return g;
+  },
+
   // 小教室：藍屋頂校舍、鐘塔、門口黑板
   classroom(color) {
     const g = new THREE.Group();

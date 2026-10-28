@@ -385,6 +385,10 @@ export function createUI(data, handlers) {
   function openModule(m) {
     $('modal-title').textContent = m.name;
     $('modal-open').href = m.url;
+    // 直式遊戲（例如 5:7）照遊戲比例開視窗，兩邊不會空一大塊
+    const box = modal.querySelector('.modal-box');
+    box.classList.toggle('portrait', Boolean(m.aspect));
+    box.style.setProperty('--aspect', m.aspect || 'auto');
     frame.src = m.url;
     modal.hidden = false;
   }

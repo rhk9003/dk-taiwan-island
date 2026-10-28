@@ -827,6 +827,12 @@ a { color: var(--wine); }
 .modal-box header a { font-size: 13px; font-weight: 700; text-decoration: none; }
 .modal-box header button { width: 36px; height: 36px; border: 0; border-radius: 50%; background: var(--cream); font-size: 22px; }
 .modal-box iframe { flex: 1; width: 100%; border: 0; }
+.modal-box.portrait {
+  width: min(500px, 100%, calc((88vh - 58px) * var(--aspect)));
+  width: min(500px, 100%, calc((88dvh - 58px) * var(--aspect)));
+  height: auto;
+}
+.modal-box.portrait iframe { flex: none; height: auto; aspect-ratio: var(--aspect); }
 
 /* ---------- 手機 ---------- */
 @media (max-width: 820px) {

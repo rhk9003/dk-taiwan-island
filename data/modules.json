@@ -1,5 +1,5 @@
 {
-  "_說明": "門市的玩法模組。門市在 stores.json 用 module 指定其中一個。building 決定島上的建築造型（shop 商店、carnival 遊樂帳篷、classroom 教室、temple 廟、board 留言板、workshop 工坊）；url 留 null 代表還沒做好，按鈕會顯示 cta 的文字並且不能按。scrollTo 設成 board 的玩法，按鈕會捲到店裡的留言牆（每間店都有留言牆）。",
+  "_說明": "門市的玩法模組。門市在 stores.json 用 module 指定其中一個。building 決定島上的建築造型（shop 商店、carnival 遊樂帳篷、toytower 玩具塔、classroom 教室、temple 廟、board 留言板、workshop 工坊）；aspect 是直式遊戲的畫面比例（例如 \"5 / 7\"），遊戲視窗會照這個比例開；url 留 null 代表還沒做好，按鈕會顯示 cta 的文字並且不能按。scrollTo 設成 board 的玩法，按鈕會捲到店裡的留言牆（每間店都有留言牆）。",
   "modules": {
     "shop": {
       "name": "DK 門市",
@@ -16,6 +16,15 @@
       "desc": "射氣球小遊戲，玩完拿優惠券。",
       "url": "https://sweet294728.github.io/dkec-balloon-game/",
       "cta": "開始玩"
+    },
+    "downstairs": {
+      "name": "小氣球下樓梯",
+      "building": "toytower",
+      "color": "#d6578c",
+      "desc": "選一隻氣球人，左右閃，一路往下踩台階，看你能下幾層！",
+      "url": "https://sweet294728.github.io/little-balloon-downstairs/",
+      "cta": "開始玩",
+      "aspect": "5 / 7"
     },
     "quiz": {
       "name": "空氣鞋小教室",
