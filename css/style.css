@@ -276,7 +276,7 @@ a { color: var(--wine); }
   text-decoration: none;
   border: 0;
   border-radius: 12px;
-  background: var(--c);
+  background: var(--c, var(--wine)); /* 沒指定顏色的按鈕用品牌酒紅，不然底色透明、白字看不到 */
   color: #fff;
   font-weight: 700;
   font-size: 15px;
