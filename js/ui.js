@@ -239,6 +239,82 @@ export function createUI(data, handlers) {
     shop.classList.remove('opening', 'is-station');
   }
 
+  // ---- 有買鞋煩惱的路人：聽他說煩惱，從四雙鞋裡幫他挑 ----
+  const shuffle = (list) => {
+    const a = [...list];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  function showShopper(c, slot) {
+    const { shoes } = data.shoppers;
+    current = { region: null, store: null };
+    renderList();
+    closeShop();
+    const others = shuffle([...shoes.keys()].filter((id) => !c.answer.includes(id)));
+    const options = shuffle([c.answer[0], ...others.slice(0, 3)]);
+    const feedback = h('div', { class: 'q-feedback', role: 'status' });
+    let solved = false;
+
+    const buttons = options.map((id) => {
+      const s = shoes.get(id);
+      const btn = h('button', { type: 'button', class: 'q-option' },
+        h('span', { class: 'q-img' },
+          s.image
+            ? h('img', { src: s.image, alt: '', loading: 'lazy', onerror: (e) => e.target.replaceWith(h('span', { class: 'shoe-box', text: 'DK' })) })
+            : h('span', { class: 'shoe-box', text: 'DK' })),
+        h('small', { text: s.tag }),
+        h('b', { text: s.name }),
+        s.points.length ? h('ul', {}, s.points.slice(0, 2).map((pt) => h('li', { text: pt }))) : null);
+      btn.addEventListener('click', () => pick(id, btn));
+      return btn;
+    });
+
+    function pick(id, btn) {
+      if (solved) return;
+      const s = shoes.get(id);
+      const right = c.answer.includes(id);
+      const also = !right && (c.also || []).includes(id);
+      if (!right && !also) {
+        btn.disabled = true;
+        btn.classList.add('wrong');
+        feedback.className = 'q-feedback no';
+        feedback.replaceChildren(
+          h('p', { class: 'q-say', text: `${c.who}：「這雙很好，可是我最在意的是${c.need}……」` }),
+          h('p', { text: '再挑一次看看吧！' }));
+        return;
+      }
+      solved = true;
+      buttons.forEach((b) => { b.disabled = true; });
+      btn.classList.add('right');
+      const count = handlers.onShopperSolved(slot, c);
+      const best = shoes.get(c.answer[0]);
+      const shoeLink = (shoe, label) => (shoe.url
+        ? h('a', { class: 'cta', style: '--c:#8B2332', href: shoe.url, target: '_blank', rel: 'noopener' }, label)
+        : null);
+      feedback.className = 'q-feedback yes';
+      feedback.replaceChildren(
+        h('p', { class: 'q-say', text: `${c.who}：「${right ? c.thanks || '就是這雙，謝謝你！' : '這雙也不錯耶！'}」` }),
+        h('p', { text: also ? c.alsoNote || c.why : c.why }),
+        h('div', { class: 'q-actions' },
+          shoeLink(s, `看${s.name} ↗`),
+          also ? shoeLink(best, `看${best.name} ↗`) : null,
+          h('button', { type: 'button', class: 'cta q-next', onclick: () => handlers.onNextShopper(slot) }, '去幫下一位路人 →')),
+        h('p', { class: 'q-count', text: `你已經幫 ${count} 位路人挑到鞋` }));
+    }
+
+    fillCard(
+      head('SHOE HELP・路人的買鞋煩惱', c.who),
+      h('div', { class: 'q-bubble', text: `「${c.says}」` }),
+      h('p', { class: 'q-prompt', text: '你會推薦哪一雙？' }),
+      h('div', { class: 'q-options' }, buttons),
+      feedback,
+      handlers.helped.size ? h('p', { class: 'q-count', text: `你已經幫 ${handlers.helped.size} 位路人挑到鞋` }) : null);
+  }
+
   // ---- 門市集章：櫃台旁的蓋章台 ----
   const stampCount = () => {
     const b = handlers.stamps;
@@ -709,6 +785,7 @@ export function createUI(data, handlers) {
     stamps: () => Boolean(handlers.stamps),
     residents: () => Boolean(data.site.residents && data.site.managerPicksUrl),
     service: () => Boolean(data.service),
+    shoppers: () => Boolean(data.shoppers),
   };
   const MARK_COLORS = ['#8B2332', '#E07A2E', '#3F7FBF', '#3E9A6A', '#7A5BA6', '#d6578c'];
   const fillIn = (text) => String(text || '').replaceAll('{stores}', data.stores.length).replaceAll('{goal}', data.stamps?.goal ?? 10);
@@ -825,5 +902,5 @@ export function createUI(data, handlers) {
     else if (!card.hidden) handlers.onCloseCard();
   });
 
-  return { showRegion, showLandmark, showCoupon, showServiceMenu, openStation, showResidentEditor, showStampBook, markStamps: renderList, selectStore, openShop, showNone, maybeShowIntro, refresh };
+  return { showRegion, showLandmark, showCoupon, showServiceMenu, openStation, showResidentEditor, showStampBook, showShopper, markStamps: renderList, selectStore, openShop, showNone, maybeShowIntro, refresh };
 }

@@ -6,8 +6,17 @@ import { cleanResident, residentIdOf } from './residents.js';
 import { createStampBook } from './stamps.js';
 import { h } from './util.js';
 
-const FILES = ['site', 'regions', 'modules', 'stores', 'products', 'landmarks', 'service', 'picks'];
-const OPTIONAL = new Set(['landmarks', 'service', 'picks']); // 沒有這些檔也能跑
+const FILES = ['site', 'regions', 'modules', 'stores', 'products', 'landmarks', 'service', 'picks', 'shoppers'];
+const OPTIONAL = new Set(['landmarks', 'service', 'picks', 'shoppers']); // 沒有這些檔也能跑
+
+// 官網商品頁序號 → 商品頁網址和商品圖
+function salePage(salePageId) {
+  const id = /^\d{1,12}$/.test(String(salePageId || '')) ? String(salePageId) : '';
+  return {
+    url: id ? `https://www.dk-shoes.com.tw/SalePage/Index/${id}` : '',
+    image: id ? `https://img.91app.com/webapi/imagesV3/Cropped/SalePage/${id}/0/0?v=1` : '',
+  };
+}
 const $ = (id) => document.getElementById(id);
 
 async function loadData() {
@@ -103,17 +112,36 @@ function normalize(raw) {
     s.curatedAt = text(c.source, 40);
     s.quote = text(c.quote, 80) || s.quote;
     s.manager = text(c.manager, 30) || s.manager;
-    s.picks = (Array.isArray(c.products) ? c.products : []).filter((p) => text(p?.name, 60)).map((p) => {
-      const id = /^\d{1,12}$/.test(String(p.salePageId || '')) ? String(p.salePageId) : '';
-      return {
-        name: text(p.name, 60),
-        reason: text(p.reason, 120),
-        code: text(p.code, 30),
-        color: text(p.color, 12),
-        url: id ? `https://www.dk-shoes.com.tw/SalePage/Index/${id}` : '',
-        image: id ? `https://img.91app.com/webapi/imagesV3/Cropped/SalePage/${id}/0/0?v=1` : '',
-      };
+    s.picks = (Array.isArray(c.products) ? c.products : []).filter((p) => text(p?.name, 60)).map((p) => ({
+      name: text(p.name, 60),
+      reason: text(p.reason, 120),
+      code: text(p.code, 30),
+      color: text(p.color, 12),
+      ...salePage(p.salePageId),
+    }));
+  }
+
+  // 有買鞋煩惱的路人：煩惱裡的答案要對得到 shoes 裡的鞋
+  let shoppers = null;
+  if (raw.shoppers?.customers?.length) {
+    const shoes = new Map();
+    for (const sh of raw.shoppers.shoes || []) {
+      if (!sh?.id || !sh.name || shoes.has(sh.id)) {
+        warn(`shoppers.json 有一雙鞋缺少 id 或 name（或 id 重複）：${sh?.name || sh?.id}`);
+        continue;
+      }
+      shoes.set(sh.id, { ...sh, points: Array.isArray(sh.points) ? sh.points : [], ...salePage(sh.salePageId) });
+    }
+    const customers = raw.shoppers.customers.filter((c) => {
+      const answer = Array.isArray(c?.answer) ? c.answer : [];
+      const missing = [...answer, ...(Array.isArray(c?.also) ? c.also : [])].filter((id) => !shoes.has(id));
+      if (c?.id && c.who && c.says && answer.length && !missing.length) return true;
+      warn(`shoppers.json 的「${c?.who || c?.id}」缺少 id／who／says／answer，或答案不在 shoes 裡（${missing.join('、')}），已略過`);
+      return false;
     });
+    const slots = Math.round(Number(raw.shoppers.slots) || 3);
+    if (customers.length && shoes.size >= 4) shoppers = { slots: Math.min(6, Math.max(1, slots)), shoes, customers };
+    else warn('shoppers.json 至少要有 4 雙鞋和 1 個路人，先不放「!」');
   }
 
   // 集點蓋章：集滿幾間不同門市的章才能領獎（不能比門市還多）
@@ -132,6 +160,7 @@ function normalize(raw) {
   return {
     site: raw.site,
     stamps,
+    shoppers,
     regions,
     landmarks,
     service: raw.service?.missions?.length ? raw.service : null,
@@ -267,6 +296,26 @@ async function boot() {
   }
   let world = null;
 
+  // 有買鞋煩惱的路人：每個「!」（slot）配一個煩惱；幫過哪些人存在這台裝置
+  const HELP_KEY = 'dk-island-helped';
+  const helped = new Set();
+  try { (JSON.parse(localStorage.getItem(HELP_KEY) || '[]') || []).forEach((id) => helped.add(id)); } catch { /* 讀不到就從 0 開始 */ }
+  const slotCustomer = [];
+  function nextCustomer() {
+    const busy = new Set(slotCustomer.map((c) => c?.id));
+    const pool = data.shoppers.customers.filter((c) => !busy.has(c.id));
+    const fresh = pool.filter((c) => !helped.has(c.id)); // 先排還沒幫過的
+    const list = fresh.length ? fresh : pool.length ? pool : data.shoppers.customers;
+    return list[Math.floor(Math.random() * list.length)];
+  }
+  function shopperSolved(slot, customer) {
+    helped.add(customer.id);
+    try { localStorage.setItem(HELP_KEY, JSON.stringify([...helped])); } catch { /* 存不了就只算這次 */ }
+    slotCustomer[slot] = null; // 「!」換到別人頭上時，換一個新的煩惱
+    world.cheerShopper(slot);
+    return helped.size;
+  }
+
   // 集點蓋章：蓋章紀錄存在這台裝置
   const book = data.stamps ? createStampBook(new Set(data.stores.map((s) => s.id)), data.stamps.goal) : null;
   const stampBtn = $('btn-stamps');
@@ -355,6 +404,18 @@ async function boot() {
       else world.overview();
       setHash('stamps');
     },
+    // 點了頭上有「!」的路人：他停下來，卡片上是他的煩惱和幾雙鞋
+    shopper(slot) {
+      if (!data.shoppers) return app.overview();
+      clearTimeout(enterTimer);
+      Object.assign(state, { region: null, store: null, mission: null });
+      slotCustomer[slot] ||= nextCustomer();
+      ui.showShopper(slotCustomer[slot], slot);
+      world.setFocus(null);
+      world.setSelected(null);
+      world.focusShopper(slot);
+      setHash('');
+    },
     coupon() {
       if (!data.site.coupon) return app.overview();
       clearTimeout(enterTimer);
@@ -389,6 +450,15 @@ async function boot() {
     },
   };
   let enterTimer = 0;
+  // 去看別的地方時，停下來的路人繼續走
+  for (const key of Object.keys(app)) {
+    if (key === 'shopper') continue;
+    const go = app[key];
+    app[key] = (...args) => {
+      world?.releaseShoppers();
+      return go(...args);
+    };
+  }
 
   const ui = createUI(data, {
     onRegion: app.region,
@@ -401,6 +471,9 @@ async function boot() {
     onSaveResident: (choice) => saveResident(choice),
     onFindMe: () => world.focusResident(),
     stamps: book,
+    helped,
+    onShopperSolved: shopperSolved,
+    onNextShopper: (slot) => app.shopper((slot + 1) % data.shoppers.slots),
     onStamp: addStamp,
     onStampBook: () => app.stamps(),
     onClaim: () => { book.claim(); drawStampBtn(); },
@@ -411,13 +484,14 @@ async function boot() {
   });
 
   try {
-    world = createWorld($('stage'), data, { onRegion: app.region, onStore: app.store, onLandmark: app.landmark, onCoupon: app.coupon, onMission: app.mission, onService: app.service });
+    world = createWorld($('stage'), data, { onRegion: app.region, onStore: app.store, onLandmark: app.landmark, onCoupon: app.coupon, onMission: app.mission, onService: app.service, onShopper: app.shopper });
   } catch (e) {
     console.error(e);
     showError(`這個瀏覽器沒辦法顯示 3D 畫面（${e.message}）`);
     return;
   }
   $('loading').hidden = true;
+  if (data.shoppers) world.setShoppers(data.shoppers.slots);
   // 門口店員穿整理過的店長推薦第一雙鞋的顏色
   for (const s of data.stores) {
     const shoe = shoeColorOf({ color: s.picks?.[0]?.color || '' });

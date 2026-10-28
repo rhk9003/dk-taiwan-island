@@ -37,7 +37,7 @@
   "subtitle": "全台門市地圖",
   "eyebrow": "DR.KAO AIR ISLAND",
   "indexTitle": "走進每一間 DK",
-  "_invite說明": "一進網站看到的登島邀請函：每台裝置第一次來會先看到信封，拆開是信；右上角「?」可以再看一次。{stores} 會換成門市數、{goal} 換成集章目標章數。to 是信封上的字；body 可以放好幾段；highlights 每一項是信裡的一行亮點，mark 是圓章裡的一個字，needs 填 stamps／residents／service 時，那個功能關掉這行就不顯示；sign 是署名；cta 是登島證上的按鈕字。",
+  "_invite說明": "一進網站看到的登島邀請函：每台裝置第一次來會先看到信封，拆開是信；右上角「?」可以再看一次。{stores} 會換成門市數、{goal} 換成集章目標章數。to 是信封上的字；body 可以放好幾段；highlights 每一項是信裡的一行亮點，mark 是圓章裡的一個字，needs 填 stamps／residents／service／shoppers 時，那個功能關掉這行就不顯示；sign 是署名；cta 是登島證上的按鈕字。",
   "invite": {
     "to": "致 親愛的旅人",
     "title": "歡迎登上 DK 台灣島",
@@ -48,6 +48,7 @@
     "highlights": [
       { "mark": "店", "title": "走進每一間 DK", "text": "照真實位置蓋在島上，進門聽店長的一句話、看店長推薦" },
       { "mark": "玩", "title": "每間店都有自己的玩法", "text": "射氣球、空氣鞋小教室、抽鞋籤、小氣球下樓梯……" },
+      { "mark": "幫", "title": "幫路人挑鞋", "text": "路上頭頂冒出「!」的人有買鞋的煩惱，點一下、幫忙挑一雙", "needs": "shoppers" },
       { "mark": "章", "title": "門市集章換優惠券", "text": "在櫃台旁蓋章，集滿 {goal} 間不同門市就能領", "needs": "stamps" },
       { "mark": "民", "title": "成為島民", "text": "捏一個自己的氣球人，放上島一起逛", "needs": "residents" },
       { "mark": "客", "title": "客服任務島", "text": "什麼時候到貨、怎麼退換貨，到島上一問就懂", "needs": "service" }

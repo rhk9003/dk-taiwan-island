@@ -165,7 +165,7 @@ export function createPeople(greeters, streets) {
   function update(t, dt) {
     people.forEach((p, i) => {
       let swing = 0;
-      if (p.walk) {
+      if (p.walk && !p.hold) {
         stepWalker(p, dt);
         swing = Math.sin(p.walk.step);
       }
@@ -177,6 +177,13 @@ export function createPeople(greeters, streets) {
     for (const mesh of uniform) mesh.instanceMatrix.needsUpdate = true;
   }
 
-  // 店長換了推薦鞋，第 i 個人（門口的店長）就換鞋色
-  return { group, update, setShoe: (i, color) => figures.setShoe(i, color) };
+  // 店長換了推薦鞋，第 i 個人（門口的店長）就換鞋色；walkers／positionOf／hold 給「有買鞋煩惱的路人」用
+  return {
+    group,
+    update,
+    setShoe: (i, color) => figures.setShoe(i, color),
+    walkers: people.map((p, i) => (p.walk ? i : -1)).filter((i) => i >= 0),
+    positionOf: (i) => people[i],
+    hold: (i, on) => { if (people[i]) people[i].hold = on; },
+  };
 }

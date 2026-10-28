@@ -337,6 +337,34 @@ export function createWorld(container, data, handlers) {
 
   const people = createPeople(spots, layout.streets);
   scene.add(people.group);
+
+  // ---- 有買鞋煩惱的路人：頭上冒「!」，點了幫他挑鞋（slot 是第幾個「!」，換人時 slot 不變）----
+  const shoppers = [];
+  function pickWalker() {
+    // 隨機抽幾個人，挑離其他「!」最遠的，讓「!」散在島上不同地方
+    const taken = shoppers.map((s) => people.positionOf(s.walker));
+    let best = null;
+    let bestD = -1;
+    for (let k = 0; k < 10; k++) {
+      const i = people.walkers[Math.floor(Math.random() * people.walkers.length)];
+      if (shoppers.some((s) => s.walker === i)) continue;
+      const p = people.positionOf(i);
+      const d = taken.length ? Math.min(...taken.map((q) => Math.hypot(q.x - p.x, q.z - p.z))) : 0;
+      if (d > bestD) { best = i; bestD = d; }
+    }
+    return best;
+  }
+  function shopperLabel(slot) {
+    const el = h('button', {
+      type: 'button',
+      class: 'qlabel',
+      'aria-label': '有買鞋煩惱的路人',
+      onclick: (e) => { e.stopPropagation(); handlers.onShopper?.(slot); },
+    }, h('span', { text: '!' }));
+    const obj = new CSS2DObject(el);
+    scene.add(obj);
+    return obj;
+  }
   const clouds = createClouds(bounds, 14);
   scene.add(clouds.group);
   const ring = createRing();
@@ -709,6 +737,10 @@ export function createWorld(container, data, handlers) {
       }
     }
     people.update(t, dt);
+    for (const s of shoppers) {
+      const p = people.positionOf(s.walker);
+      s.label.position.set(p.x, p.y + 0.95, p.z);
+    }
     clouds.update(dt);
 
     renderer.render(scene, camera);
@@ -744,6 +776,50 @@ export function createWorld(container, data, handlers) {
       mineId = mine;
       residents = createResidents(list, makeMover, mine);
       scene.add(residents.group);
+    },
+    // 有買鞋煩惱的路人：放 n 個「!」在不同地方的路人頭上
+    setShoppers(n) {
+      while (shoppers.length < n && people.walkers.length > shoppers.length) {
+        const walker = pickWalker();
+        if (walker == null) break;
+        shoppers.push({ walker, label: shopperLabel(shoppers.length) });
+      }
+    },
+    // 點了某個「!」：他停下來，鏡頭飛過去一路跟著
+    focusShopper(slot) {
+      const s = shoppers[slot];
+      if (!s) return;
+      for (const o of shoppers) {
+        people.hold(o.walker, o === s);
+        o.label.element.classList.toggle('is-open', o === s);
+      }
+      const p = people.positionOf(s.walker);
+      flyTo(new THREE.Vector3(p.x, p.y + 0.4, p.z), W < 600 ? 9 : 7, 1.05);
+      follow = () => {
+        const q = people.positionOf(s.walker);
+        return followAt.set(q.x, q.y + 0.4, q.z);
+      };
+    },
+    releaseShoppers() {
+      for (const o of shoppers) {
+        people.hold(o.walker, false);
+        o.label.element.classList.remove('is-open');
+      }
+    },
+    // 幫他挑到鞋了：頭上換成愛心，過一下「!」跑到另一個路人頭上
+    cheerShopper(slot) {
+      const s = shoppers[slot];
+      if (!s) return;
+      const el = s.label.element;
+      el.classList.remove('is-open');
+      el.classList.add('happy');
+      el.firstChild.textContent = '♥';
+      setTimeout(() => {
+        people.hold(s.walker, false);
+        s.walker = pickWalker() ?? s.walker;
+        el.classList.remove('happy');
+        el.firstChild.textContent = '!';
+      }, 1800);
     },
     // 鏡頭飛到自己的島民，然後一路跟著
     focusResident(id = mineId) {
