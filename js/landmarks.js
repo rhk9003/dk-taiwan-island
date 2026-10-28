@@ -91,24 +91,48 @@ const MODELS = {
   },
 
   // 阿里山：森林小火車在鐵軌上來回，旁邊一棵神木
+  // 阿里山：千年神木（紅檜）站在中間，旁邊幾棵小樹，森林小火車在前面來回
   train(anims) {
     const g = new THREE.Group();
-    g.add(box(1.4, 0.02, 0.04, '#6b5a4a', 0, 0, 0.18), box(1.4, 0.02, 0.04, '#6b5a4a', 0, 0, 0.3));
+    g.add(box(1.5, 0.02, 0.04, '#6b5a4a', 0, 0, 0.42), box(1.5, 0.02, 0.04, '#6b5a4a', 0, 0, 0.56));
     const train = new THREE.Group();
-    train.add(box(0.26, 0.18, 0.16, '#c0392b', 0, 0.02, 0.24), box(0.28, 0.03, 0.18, '#2b2b2b', 0, 0.2, 0.24));
-    train.add(box(0.24, 0.16, 0.16, '#c0392b', -0.3, 0.02, 0.24), box(0.26, 0.03, 0.18, '#2b2b2b', -0.3, 0.18, 0.24));
-    anims.push({ obj: train, kind: 'slide', base: 0, amp: 0.4, speed: 0.5 });
+    train.add(box(0.26, 0.18, 0.16, '#c0392b', 0, 0.02, 0.49), box(0.28, 0.03, 0.18, '#2b2b2b', 0, 0.2, 0.49));
+    train.add(box(0.24, 0.16, 0.16, '#c0392b', -0.3, 0.02, 0.49), box(0.26, 0.03, 0.18, '#2b2b2b', -0.3, 0.18, 0.49));
+    anims.push({ obj: train, kind: 'slide', base: 0, amp: 0.45, speed: 0.5 });
     g.add(train);
-    g.add(cyl(0.08, 0.13, 0.7, 6, '#7a5236', 0.2, 0, -0.35));
-    g.add(cone(0.42, 1.0, 7, '#3f7d4a', 0.2, 0.55, -0.35));
+    // 神木：又粗又高的紅褐色樹幹、往外抓地的樹根，上面一層一層的針葉
+    const trunk = '#7a3f26';
+    g.add(cyl(0.17, 0.27, 1.35, 9, trunk, 0, 0, -0.12));
+    for (let i = 0; i < 5; i++) {
+      const root = cyl(0.03, 0.09, 0.32, 5, '#6b3520', Math.cos((i / 5) * Math.PI * 2) * 0.22, 0, -0.12 + Math.sin((i / 5) * Math.PI * 2) * 0.22);
+      root.rotation.set(Math.sin((i / 5) * Math.PI * 2) * 0.9, 0, -Math.cos((i / 5) * Math.PI * 2) * 0.9);
+      g.add(root);
+    }
+    g.add(cyl(0.05, 0.07, 0.4, 5, trunk, 0.18, 0.95, -0.12));
+    [[0.66, 0.62, 0.9, '#2d6a3e'], [0.54, 0.55, 1.28, '#357545'], [0.4, 0.5, 1.62, '#3f824f'], [0.24, 0.42, 1.92, '#4c925b']]
+      .forEach(([r, h, y, c]) => g.add(cone(r, h, 8, c, 0, y, -0.12)));
+    // 旁邊的小樹，襯出神木有多大
+    g.add(cyl(0.05, 0.08, 0.35, 6, '#7a5236', -0.62, 0, -0.32), cone(0.26, 0.7, 7, '#3f7d4a', -0.62, 0.25, -0.32));
+    g.add(cyl(0.05, 0.07, 0.3, 6, '#7a5236', 0.6, 0, -0.38), cone(0.22, 0.6, 7, '#4a8a55', 0.6, 0.22, -0.38));
     return g;
   },
 
-  // 玉山：積雪的山頂
-  peak() {
+  // 玉山：主峰加兩側較矮的山峰，山頂積雪，山腰一圈慢慢繞的雲海
+  peak(anims) {
     const g = new THREE.Group();
-    g.add(cone(0.85, 1.3, 7, '#9fa3a8'));
+    g.add(cyl(0.85, 1.05, 0.6, 7, '#7f858c', 0, -0.6, 0)); // 往地下延伸的山腳：放大後旁邊的格子比較低，也不會看到山浮在半空
+    g.add(cone(0.85, 1.3, 7, '#8e949b'));
     g.add(cone(0.36, 0.56, 7, '#ffffff', 0, 0.74, 0));
+    g.add(cone(0.55, 0.8, 6, '#9aa0a6', -0.62, 0, 0.18), cone(0.2, 0.3, 6, '#ffffff', -0.62, 0.5, 0.18));
+    g.add(cone(0.5, 0.7, 6, '#a3a8ad', 0.6, 0, -0.22), cone(0.18, 0.26, 6, '#ffffff', 0.6, 0.44, -0.22));
+    const clouds = new THREE.Group();
+    for (let i = 0; i < 7; i++) {
+      const a = (i / 7) * Math.PI * 2;
+      clouds.add(ball(0.15 + (i % 2) * 0.05, '#ffffff', Math.cos(a) * 1.0, 0.4 + (i % 3) * 0.07, Math.sin(a) * 1.0));
+    }
+    anims.push({ obj: clouds, kind: 'turn', speed: 0.12 });
+    g.add(clouds);
+    g.userData.summit = { radius: 0.85, height: 1.3 }; // 主峰的大小：登山客沿著山坡爬到這個尖頂
     return g;
   },
 

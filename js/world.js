@@ -120,17 +120,20 @@ export function createWorld(container, data, handlers) {
     return obj;
   };
 
+  const featuredLabels = []; // 重點景點（玉山、阿里山神木）的名牌：全景也看得到
   for (const { landmark: lm, tile: t } of layout.landmarks) {
     const { group: g, anims: a } = createLandmark(lm.model);
     g.position.set(t.x, t.h, t.z);
+    if (Number(lm.scale) > 0) g.scale.setScalar(clamp(Number(lm.scale), 0.3, 4));
     g.userData.landmarkId = lm.id;
     scene.add(g);
     pickables.push(g);
     anims.push(...a);
     const top = new THREE.Box3().setFromObject(g).max.y;
     const kind = lm.model === 'airport' ? ' airport' : lm.type === 'temple' ? ' temple' : lm.type === 'cinema' ? ' cinema' : '';
-    const label = smallLabel(`llabel${kind}`, lm.name, () => handlers.onLandmark?.(lm.id));
+    const label = smallLabel(`llabel${kind}${lm.featured ? ' featured' : ''}`, lm.name, () => handlers.onLandmark?.(lm.id));
     label.position.set(t.x, top + 0.35, t.z);
+    if (lm.featured) featuredLabels.push(label);
     scene.add(label);
     landmarkObjs.set(lm.id, { group: g, tile: t, landmark: lm, height: top - t.h });
   }
@@ -219,9 +222,25 @@ export function createWorld(container, data, handlers) {
       if (t && pts[pts.length - 1] !== t) pts.push(t);
     }
     const path = pts.map((t) => new THREE.Vector3(t.x, t.h, t.z));
-    // 山頂那格如果有景點（玉山的岩峰），就爬到造型的尖頂上，不要走進岩石裡
+    // 山頂那格如果有景點（玉山），沿著主峰的山坡爬到尖頂，不要走進岩石裡
     const peak = [...landmarkObjs.values()].find((o) => o.tile === pts[pts.length - 1]);
-    if (peak) path[path.length - 1].y += peak.height - 0.05;
+    const summitShape = peak?.group.userData.summit;
+    if (summitShape) {
+      const k = peak.group.scale.x;
+      const R = summitShape.radius * k;
+      const H = summitShape.height * k;
+      const c = new THREE.Vector3(peak.tile.x, peak.tile.h, peak.tile.z);
+      const along = (p) => Math.hypot(p.x - c.x, p.z - c.z);
+      while (path.length > 1 && along(path[path.length - 1]) < R * 1.05) path.pop();
+      const start = path[path.length - 1].clone();
+      for (let s = 1; s <= 10; s++) {
+        const f = s / 10;
+        const p = new THREE.Vector3(start.x + (c.x - start.x) * f, 0, start.z + (c.z - start.z) * f);
+        p.y = Math.max(start.y * (1 - f) + c.y * f, c.y + H * (1 - along(p) / R)) + 0.02;
+        path.push(p);
+      }
+      path[path.length - 1].y = c.y + H - 0.05;
+    } else if (peak) path[path.length - 1].y += peak.height - 0.05;
     const dist = [0];
     for (let k = 1; k < path.length; k++) dist.push(dist[k - 1] + path[k].distanceTo(path[k - 1]));
     const hiker = createHiker(trail.color);
@@ -575,7 +594,7 @@ export function createWorld(container, data, handlers) {
   function detectNear() {
     const dist = camera.position.distanceTo(controls.target);
     const showExtra = dist < 95; // 景點、離島名牌：全景時太擠，拉近一點才出現
-    for (const obj of extraLabels) obj.visible = showExtra;
+    for (const obj of extraLabels) obj.visible = showExtra || featuredLabels.includes(obj);
     for (const obj of residents?.labels || []) obj.visible = obj.userData.mine || dist < 30;
     let best = null;
     if (dist < 40) {
@@ -660,6 +679,8 @@ export function createWorld(container, data, handlers) {
         a.obj.rotation.y = Math.sin(t * a.speed) * a.amp;
       } else if (a.kind === 'blink') {
         a.obj.material.emissiveIntensity = (Math.floor(t * 3) + a.phase) % 2 ? 1.2 : 0.15;
+      } else if (a.kind === 'turn') {
+        a.obj.rotation.y = t * a.speed;
       } else if (a.kind === 'belt') {
         a.obj.position.x = a.from + ((t * a.speed + a.phase) % 1) * (a.to - a.from);
       }

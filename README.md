@@ -49,7 +49,7 @@ data/             ← 平常只改這裡
 | 加一個新玩法 | `modules.json` 加一項：`name`、`building`（用哪種建築造型）、`color`、`desc`、`url`（遊戲網址）、`cta`（按鈕文字）。`url` 留 `null` 會顯示「即將開放」 |
 | 新增門市 | `stores.json` 複製一間店改內容。`id` 不能重複；`region` 填分區代號；`latlng` 填經緯度 |
 | 調整門市在島上的位置 | 改 `latlng`。在 Google 地圖對門市按右鍵，點第一行的數字就會複製經緯度。位置跟別間店撞到時，會自動挪到旁邊最近的空地 |
-| 加一個景點或機場 | `landmarks.json` 加一項：`name`、`latlng`、`model`（造型）、`desc`。點景點會顯示簡介和離它最近的三間 DK |
+| 加一個景點或機場 | `landmarks.json` 加一項：`name`、`latlng`、`model`（造型）、`desc`。點景點會顯示簡介和離它最近的三間 DK。`scale` 可以放大（例如 2 是兩倍大），`featured: true` 的名牌比較大、全景也看得到（目前玉山、阿里山神木） |
 | 加一間公廟 | `landmarks.json` 加一項，`type` 填 `temple`、`model` 填 `shrine`、`deity` 填主祀神明。公廟的 `id` 之後遶境路線會用到，不要隨意改 |
 | 打開／關掉留言板 | `site.json` 的 `messageBoard`（true／false） |
 | 換飛機拖的活動彩帶 | `site.json` 的 `banners`：每一項是 `text`（彩帶上的字）、`url`（點彩帶開的活動頁）、`color`（底色），可以放好幾個，飛機每飛一趟換下一個 |

@@ -1132,6 +1132,18 @@ a { color: var(--wine); }
 .llabel.service i { border-bottom-color: #f2b134; }
 .llabel.service-ask { background: rgba(139, 35, 50, 0.92); }
 .llabel.cinema { background: rgba(94, 21, 32, 0.92); }
+/* 重點景點（玉山、阿里山神木）：名牌大一號、金色，全景也看得到 */
+.llabel.featured {
+  gap: 6px;
+  padding: 5px 12px 5px 9px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #2f6b3f, #1f4f2e);
+  box-shadow: 0 4px 14px rgba(20, 40, 25, 0.4);
+  font-size: 14px;
+  font-weight: 900;
+}
+.llabel.featured i { border-left-width: 6px; border-right-width: 6px; border-bottom: 10px solid #ffd36b; }
 .llabel.cinema i { border-bottom-color: #ffd36b; }
 
 .missions { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
