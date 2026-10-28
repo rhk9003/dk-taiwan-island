@@ -1697,6 +1697,23 @@ a { color: var(--wine); }
 .q-actions .cta { height: 42px; }
 .q-next { --c: #fff; border: 2px solid var(--wine) !important; color: var(--wine) !important; }
 .q-count { margin: 10px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
+.q-prompt { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.q-offer { padding: 3px 10px; border-radius: 999px; background: #fff0c2; color: #9a5b0f; font-size: 12px; font-weight: 700; }
+.q-reward-left { margin: 8px 0 0; color: #9a5b0f; font-weight: 700; }
+/* 幫到了就送的優惠券：金色卡片 */
+.q-reward {
+  margin: 10px 0 4px;
+  padding: 14px;
+  border: 2px solid #f0c661;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fff4d1, #ffe7a8);
+  text-align: center;
+  animation: q-pop 0.5s ease-out both;
+}
+.q-gift { display: block; font-size: 30px; line-height: 1.1; }
+.q-reward b { display: block; margin: 4px 0; color: var(--wine); font-size: 16px; }
+.q-reward p { margin: 0 0 10px; }
+.q-reward .cta { height: 42px; }
 
 @media (max-width: 820px) {
   .app { grid-template-columns: 1fr; }

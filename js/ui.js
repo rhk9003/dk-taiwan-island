@@ -296,20 +296,52 @@ export function createUI(data, handlers) {
         ? h('a', { class: 'cta', style: '--c:#8B2332', href: shoe.url, target: '_blank', rel: 'noopener' }, label)
         : null);
       feedback.className = 'q-feedback yes';
-      feedback.replaceChildren(
+      feedback.replaceChildren(...[
         h('p', { class: 'q-say', text: `${c.who}：「${right ? c.thanks || '就是這雙，謝謝你！' : '這雙也不錯耶！'}」` }),
         h('p', { text: also ? c.alsoNote || c.why : c.why }),
+        helpReward(count),
         h('div', { class: 'q-actions' },
           shoeLink(s, `看${s.name} ↗`),
           also ? shoeLink(best, `看${best.name} ↗`) : null,
           h('button', { type: 'button', class: 'cta q-next', onclick: () => handlers.onNextShopper(slot) }, '去幫下一位路人 →')),
-        h('p', { class: 'q-count', text: `你已經幫 ${count} 位路人挑到鞋` }));
+        h('p', { class: 'q-count', text: `你已經幫 ${count} 位路人挑到鞋` }),
+      ].filter(Boolean));
+    }
+
+    // 幫到第 reward.after 位就送優惠券；每台裝置領一次
+    function helpReward(count) {
+      const reward = data.shoppers.reward;
+      if (!reward) return null;
+      if (handlers.helpCoupon.claimedAt) return h('p', { class: 'q-count', text: '你已經領過優惠券囉，謝謝你繼續幫忙！' });
+      if (count < reward.after) return h('p', { class: 'q-reward-left', text: `再幫 ${reward.after - count} 位路人挑到鞋，就能領優惠券！` });
+      const status = h('p', { class: 'note-status', role: 'status' });
+      return h('section', { class: 'q-reward' },
+        h('span', { class: 'q-gift', 'aria-hidden': 'true', text: '🎁' }),
+        h('b', { text: reward.title || '謝謝你幫忙挑鞋！' }),
+        reward.desc ? h('p', { text: reward.desc }) : null,
+        reward.code ? h('div', { class: 'reward-code' },
+          h('code', { text: reward.code }),
+          h('button', {
+            type: 'button',
+            onclick: async () => {
+              try {
+                await navigator.clipboard.writeText(reward.code);
+                status.textContent = '優惠碼複製好了！';
+              } catch {
+                status.textContent = '複製不了，請長按優惠碼自己複製。';
+              }
+              handlers.onClaimHelpCoupon();
+            },
+          }, '複製')) : null,
+        reward.url ? h('a', { class: 'cta coupon-cta', href: reward.url, target: '_blank', rel: 'noopener', onclick: () => handlers.onClaimHelpCoupon() }, `${reward.cta || '領取優惠券'} →`) : null,
+        status);
     }
 
     fillCard(
       head('SHOE HELP・路人的買鞋煩惱', c.who),
       h('div', { class: 'q-bubble', text: `「${c.says}」` }),
-      h('p', { class: 'q-prompt', text: '你會推薦哪一雙？' }),
+      h('p', { class: 'q-prompt' }, '你會推薦哪一雙？',
+        data.shoppers.reward && !handlers.helpCoupon.claimedAt ? h('span', { class: 'q-offer', text: '🎁 挑對了就送優惠券！' }) : null),
       h('div', { class: 'q-options' }, buttons),
       feedback,
       handlers.helped.size ? h('p', { class: 'q-count', text: `你已經幫 ${handlers.helped.size} 位路人挑到鞋` }) : null);

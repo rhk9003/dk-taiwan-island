@@ -63,7 +63,7 @@ data/             ← 平常只改這裡
 | 開放選鞋研究所、高度探索站 | 內容還沒做；`service.json` 那個任務的 `comingSoon` 目前是 true |
 | 改分區名稱、介紹、名牌位置 | `regions.json` |
 | 改標題 | `site.json` 的 `title`、`subtitle` |
-| 改「幫路人挑鞋」的鞋款和煩惱 | `shoppers.json`：`shoes` 是可以推薦的鞋（填 `salePageId` 就有官網連結和商品圖）、`customers` 是路人的煩惱（`answer` 最適合的鞋、`also` 也算對的鞋）、`slots` 是島上同時有幾個「!」 |
+| 改「幫路人挑鞋」的鞋款、煩惱、優惠券 | `shoppers.json`：`reward` 是挑對送的優惠券；`shoes` 是可以推薦的鞋（填 `salePageId` 就有官網連結和商品圖）、`customers` 是路人的煩惱（`answer` 最適合的鞋、`also` 也算對的鞋）、`slots` 是島上同時有幾個「!」 |
 | 改開場的登島邀請函 | `site.json` 的 `invite`：信封上的字、信的內容、亮點清單（`mark` 是圓章裡的字）、署名、登島按鈕。每台裝置第一次來會先看到信封，右上角「?」可以再看一次 |
 
 **改完用 `?debug` 檢查**：在網址後面加 `?debug`（例如 `https://rhk9003.github.io/dk-taiwan-island/?debug`、本機 `http://localhost:8781/?debug`），資料有寫錯（例如玩法代號打錯、商品 id 找不到）時，畫面右下角會出現「資料提醒 N 則」，按 F12 打開 Console 可以看是哪一間店的哪個欄位。一般客人的網址不會看到這個提醒。json 格式錯誤（少逗號、少引號）時整個畫面會顯示錯在哪一個檔案。
@@ -121,6 +121,7 @@ data/             ← 平常只改這裡
 - 選錯了：他會說自己最在意什麼，可以再選一次。
 - 選到 `also` 裡的鞋也算對，他會補充一句更推薦哪一雙。
 - 右下角的黃色「幫路人挑鞋」按鈕會直接飛到有煩惱的路人；登島邀請函上也有黃色任務單（`site.json` invite 裡 `featured: true` 的那一項），按「馬上去幫忙」直接開始。
+- **挑對就送優惠券**：`shoppers.json` 的 `reward` 設定幫幾位（`after`）才送、優惠券卡片的字、領券網址 `url` 或優惠碼 `code`。每台裝置只能領一次；`url` 和 `code` 都留空就不送。跟集章一樣存在客人的瀏覽器，懂技術的人可以繞過，建議用官網「每個會員限領一次」的領券頁。
 - 幫過幾位路人存在客人自己的瀏覽器。鞋款和煩惱都在 `data/shoppers.json`，加一個煩惱就是在 `customers` 加一項。
 
 ## 島民角色

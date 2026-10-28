@@ -140,7 +140,10 @@ function normalize(raw) {
       return false;
     });
     const slots = Math.round(Number(raw.shoppers.slots) || 3);
-    if (customers.length && shoes.size >= 4) shoppers = { slots: Math.min(6, Math.max(1, slots)), shoes, customers };
+    // 幫路人挑到鞋送的優惠券：要有領券網址或優惠碼才送
+    const r = raw.shoppers.reward;
+    const reward = r && (r.url || r.code) ? { ...r, after: Math.max(1, Math.round(Number(r.after) || 1)) } : null;
+    if (customers.length && shoes.size >= 4) shoppers = { slots: Math.min(6, Math.max(1, slots)), shoes, customers, reward };
     else warn('shoppers.json 至少要有 4 雙鞋和 1 個路人，先不放「!」');
   }
 
@@ -298,6 +301,15 @@ async function boot() {
 
   // 有買鞋煩惱的路人：每個「!」（slot）配一個煩惱；幫過哪些人存在這台裝置
   const HELP_KEY = 'dk-island-helped';
+  const HELP_COUPON_KEY = 'dk-island-help-coupon'; // 幫路人挑鞋送的優惠券，什麼時候領的（每台裝置一次）
+  const helpCoupon = { claimedAt: null };
+  try { helpCoupon.claimedAt = localStorage.getItem(HELP_COUPON_KEY); } catch { /* 讀不到就當還沒領 */ }
+  function claimHelpCoupon() {
+    if (helpCoupon.claimedAt) return;
+    helpCoupon.claimedAt = new Date().toISOString();
+    try { localStorage.setItem(HELP_COUPON_KEY, helpCoupon.claimedAt); } catch { /* 存不了就只是下次還會看到領券按鈕 */ }
+    drawShopperBtn();
+  }
   const helped = new Set();
   try { (JSON.parse(localStorage.getItem(HELP_KEY) || '[]') || []).forEach((id) => helped.add(id)); } catch { /* 讀不到就從 0 開始 */ }
   const slotCustomer = [];
@@ -321,7 +333,9 @@ async function boot() {
   let shopperCursor = -1;
   const nextShopperSlot = () => (shopperCursor = (shopperCursor + 1) % data.shoppers.slots);
   function drawShopperBtn() {
-    const count = helped.size ? [h('em', { text: `已幫 ${helped.size} 位` })] : [];
+    // 還沒領優惠券時寫「送優惠券」吸引人，領過之後顯示幫過幾位
+    const offer = data.shoppers.reward && !helpCoupon.claimedAt;
+    const count = offer ? [h('em', { text: '送優惠券' })] : helped.size ? [h('em', { text: `已幫 ${helped.size} 位` })] : [];
     shopperBtn.replaceChildren(h('i', { 'aria-hidden': 'true', text: '!' }), '幫路人挑鞋', ...count);
   }
 
@@ -481,7 +495,9 @@ async function boot() {
     onFindMe: () => world.focusResident(),
     stamps: book,
     helped,
+    helpCoupon,
     onShopperSolved: shopperSolved,
+    onClaimHelpCoupon: claimHelpCoupon,
     onNextShopper: () => app.shopper(nextShopperSlot()),
     onInviteGo: (feature) => { if (feature === 'shoppers' && data.shoppers) app.shopper(nextShopperSlot()); },
     onStamp: addStamp,
