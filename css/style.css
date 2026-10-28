@@ -154,6 +154,9 @@ a { color: var(--wine); }
 }
 .llabel i, .ilabel i { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid #ffd36b; }
 .llabel.airport { background: rgba(43, 70, 110, 0.9); }
+.llabel.temple { background: rgba(170, 48, 34, 0.92); }
+.llabel.temple i { border-bottom-color: #ffd36b; }
+.card .deity { margin: 0 0 6px; font-size: 13px; font-weight: 700; color: #a33a2a; }
 .llabel.airport i { border: 0; width: 8px; height: 8px; border-radius: 2px; background: #9fd0f2; }
 .ilabel { background: rgba(255, 253, 248, 0.92); color: #2f6f84; border-radius: 999px; }
 .ilabel i { border-bottom-color: #4fb3d1; }

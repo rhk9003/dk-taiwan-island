@@ -1,80 +1,113 @@
 {
-  "_說明": "島上的台灣景點與機場。latlng 是位置 [緯度, 經度]；model 是造型（tower101、tower85、lanterns、queen、lake、train、peak、gorge、lighthouse、pavilion、airport），造型不認得時會用一般小紀念碑；footprint 填 1 會連旁邊一圈都整平（機場跑道用）。點景點會出現 desc 和離它最近的 DK 門市。",
+  "_說明": "島上的台灣景點、機場與公廟。latlng 是位置 [緯度, 經度]；model 是造型（tower101、tower85、lanterns、queen、lake、train、peak、gorge、lighthouse、pavilion、airport、shrine），造型不認得時會用一般小紀念碑；footprint 填 1 會連旁邊一圈都整平（機場跑道用）。type 填 temple 的是公廟，deity 是主祀神明。點了會出現 desc 和離它最近的 DK 門市。公廟的 id 之後做遶境路線會用到（路線＝依序經過的廟宇／門市 id），請不要隨意改。",
   "landmarks": [
     {
       "id": "taipei101",
       "name": "台北 101",
-      "latlng": [25.0339, 121.5645],
+      "latlng": [
+        25.0339,
+        121.5645
+      ],
       "model": "tower101",
       "desc": "台北的天際線，竹節造型的 508 公尺大樓，跨年煙火就從這裡放。"
     },
     {
       "id": "jiufen",
       "name": "九份老街",
-      "latlng": [25.1092, 121.8443],
+      "latlng": [
+        25.1092,
+        121.8443
+      ],
       "model": "lanterns",
       "desc": "依山而建的老街，入夜後整條街亮起紅燈籠。"
     },
     {
       "id": "yehliu",
       "name": "野柳女王頭",
-      "latlng": [25.2063, 121.6905],
+      "latlng": [
+        25.2063,
+        121.6905
+      ],
       "model": "queen",
       "desc": "海風和浪花雕了幾千年的奇岩，遠看像一位女王的側臉。"
     },
     {
       "id": "sunmoonlake",
       "name": "日月潭",
-      "latlng": [23.8650, 120.9160],
+      "latlng": [
+        23.865,
+        120.916
+      ],
       "model": "lake",
       "desc": "台灣最大的天然湖泊，湖邊的慈恩塔可以俯瞰整片湖景。"
     },
     {
       "id": "alishan",
       "name": "阿里山",
-      "latlng": [23.5100, 120.8050],
+      "latlng": [
+        23.51,
+        120.805
+      ],
       "model": "train",
       "desc": "坐森林小火車上山，看神木、雲海和日出。"
     },
     {
       "id": "yushan",
       "name": "玉山",
-      "latlng": [23.4700, 120.9570],
+      "latlng": [
+        23.47,
+        120.957
+      ],
       "model": "peak",
       "desc": "東北亞最高峰，海拔 3952 公尺，冬天山頂會積雪。"
     },
     {
       "id": "taroko",
       "name": "太魯閣",
-      "latlng": [24.1600, 121.6000],
+      "latlng": [
+        24.16,
+        121.6
+      ],
       "model": "gorge",
       "desc": "立霧溪切出來的大理石峽谷，峽谷之間跨著紅色的吊橋。"
     },
     {
       "id": "eluanbi",
       "name": "鵝鑾鼻燈塔",
-      "latlng": [21.9020, 120.8530],
+      "latlng": [
+        21.902,
+        120.853
+      ],
       "model": "lighthouse",
       "desc": "台灣最南端的白色燈塔，旁邊就是墾丁的海。"
     },
     {
       "id": "chihkan",
       "name": "赤崁樓",
-      "latlng": [22.9975, 120.2025],
+      "latlng": [
+        22.9975,
+        120.2025
+      ],
       "model": "pavilion",
       "desc": "府城台南的古蹟樓閣，紅牆、燕尾屋脊。"
     },
     {
       "id": "kh85",
       "name": "高雄 85 大樓",
-      "latlng": [22.6117, 120.3000],
+      "latlng": [
+        22.6117,
+        120.3
+      ],
       "model": "tower85",
       "desc": "高雄港邊最高的大樓，造型像一個「高」字。"
     },
     {
       "id": "tpe",
       "name": "桃園國際機場",
-      "latlng": [25.0797, 121.2342],
+      "latlng": [
+        25.0797,
+        121.2342
+      ],
       "model": "airport",
       "footprint": 1,
       "desc": "台灣最大的國際機場，出國回國都從這裡。"
@@ -82,7 +115,10 @@
     {
       "id": "tsa",
       "name": "松山機場",
-      "latlng": [25.0697, 121.5525],
+      "latlng": [
+        25.0697,
+        121.5525
+      ],
       "model": "airport",
       "footprint": 1,
       "desc": "就在台北市區裡的機場，飛離島和東亞城市。"
@@ -90,7 +126,10 @@
     {
       "id": "rmq",
       "name": "台中清泉崗機場",
-      "latlng": [24.2647, 120.6208],
+      "latlng": [
+        24.2647,
+        120.6208
+      ],
       "model": "airport",
       "footprint": 1,
       "desc": "中台灣的機場，飛金門、澎湖和鄰近國家。"
@@ -98,10 +137,289 @@
     {
       "id": "khh",
       "name": "高雄小港機場",
-      "latlng": [22.5771, 120.3500],
+      "latlng": [
+        22.5771,
+        120.35
+      ],
       "model": "airport",
       "footprint": 1,
       "desc": "南台灣的國際機場。"
+    },
+    {
+      "id": "lungshan",
+      "name": "艋舺龍山寺",
+      "type": "temple",
+      "latlng": [
+        25.0372,
+        121.4999
+      ],
+      "model": "shrine",
+      "deity": "觀世音菩薩",
+      "desc": "台北最有名的古剎，香火鼎盛，三百年來一直是萬華的信仰中心。"
+    },
+    {
+      "id": "xingtian",
+      "name": "行天宮",
+      "type": "temple",
+      "latlng": [
+        25.0631,
+        121.5339
+      ],
+      "model": "shrine",
+      "deity": "關聖帝君",
+      "desc": "台北人收驚、求平安的恩主公廟，不燒金紙、不收牲禮。"
+    },
+    {
+      "id": "xiahai",
+      "name": "大稻埕霞海城隍廟",
+      "type": "temple",
+      "latlng": [
+        25.0558,
+        121.5101
+      ],
+      "model": "shrine",
+      "deity": "城隍爺、月下老人",
+      "desc": "迪化街上的小廟，月老求姻緣出了名的靈。"
+    },
+    {
+      "id": "cihyou",
+      "name": "松山慈祐宮",
+      "type": "temple",
+      "latlng": [
+        25.051,
+        121.5776
+      ],
+      "model": "shrine",
+      "deity": "天上聖母",
+      "desc": "饒河夜市入口的媽祖廟，松山地區的信仰中心。"
+    },
+    {
+      "id": "qingan",
+      "name": "基隆慶安宮",
+      "type": "temple",
+      "latlng": [
+        25.1295,
+        121.743
+      ],
+      "model": "shrine",
+      "deity": "天上聖母",
+      "desc": "基隆港邊的媽祖廟，保佑討海人出入平安。"
+    },
+    {
+      "id": "fuyou",
+      "name": "淡水福佑宮",
+      "type": "temple",
+      "latlng": [
+        25.1697,
+        121.4396
+      ],
+      "model": "shrine",
+      "deity": "天上聖母",
+      "desc": "淡水最古老的廟宇，老街上看得到河口的媽祖廟。"
+    },
+    {
+      "id": "zushi",
+      "name": "三峽祖師廟",
+      "type": "temple",
+      "latlng": [
+        24.9364,
+        121.3696
+      ],
+      "model": "shrine",
+      "deity": "清水祖師",
+      "desc": "李梅樹主持重建、雕工精細的「東方藝術殿堂」。"
+    },
+    {
+      "id": "jingfu",
+      "name": "桃園景福宮",
+      "type": "temple",
+      "latlng": [
+        24.9925,
+        121.311
+      ],
+      "model": "shrine",
+      "deity": "開漳聖王",
+      "desc": "桃園大廟，在地人口中的「大廟」。"
+    },
+    {
+      "id": "hsinchu-chenghuang",
+      "name": "新竹都城隍廟",
+      "type": "temple",
+      "latlng": [
+        24.8048,
+        120.966
+      ],
+      "model": "shrine",
+      "deity": "城隍爺",
+      "desc": "全台位階最高的城隍廟，廟口小吃也很有名。"
+    },
+    {
+      "id": "baishatun",
+      "name": "白沙屯拱天宮",
+      "type": "temple",
+      "latlng": [
+        24.5655,
+        120.7072
+      ],
+      "model": "shrine",
+      "deity": "天上聖母",
+      "desc": "白沙屯媽祖徒步進香的起點，路線每年由媽祖指示。"
+    },
+    {
+      "id": "zhenlan",
+      "name": "大甲鎮瀾宮",
+      "type": "temple",
+      "latlng": [
+        24.3466,
+        120.6244
+      ],
+      "model": "shrine",
+      "deity": "天上聖母",
+      "desc": "大甲媽祖遶境進香的起點，九天八夜走遍中南部。"
+    },
+    {
+      "id": "ciji",
+      "name": "豐原慈濟宮",
+      "type": "temple",
+      "latlng": [
+        24.253,
+        120.72
+      ],
+      "model": "shrine",
+      "deity": "天上聖母",
+      "desc": "豐原廟東夜市就在廟旁邊。"
+    },
+    {
+      "id": "nanyao",
+      "name": "彰化南瑤宮",
+      "type": "temple",
+      "latlng": [
+        24.0712,
+        120.547
+      ],
+      "model": "shrine",
+      "deity": "天上聖母",
+      "desc": "彰化媽祖的大本營，廟宇融合日式與巴洛克風格。"
+    },
+    {
+      "id": "lukang-tianhou",
+      "name": "鹿港天后宮",
+      "type": "temple",
+      "latlng": [
+        24.0587,
+        120.4352
+      ],
+      "model": "shrine",
+      "deity": "天上聖母",
+      "desc": "供奉湄洲開基媽祖，鹿港老街的起點。"
+    },
+    {
+      "id": "chaotian",
+      "name": "北港朝天宮",
+      "type": "temple",
+      "latlng": [
+        23.5679,
+        120.3046
+      ],
+      "model": "shrine",
+      "deity": "天上聖母",
+      "desc": "台灣媽祖信仰的重鎮，白沙屯媽祖進香的終點。"
+    },
+    {
+      "id": "fengtian",
+      "name": "新港奉天宮",
+      "type": "temple",
+      "latlng": [
+        23.5555,
+        120.347
+      ],
+      "model": "shrine",
+      "deity": "天上聖母",
+      "desc": "大甲媽祖遶境進香的終點站。"
+    },
+    {
+      "id": "chiayi-chenghuang",
+      "name": "嘉義城隍廟",
+      "type": "temple",
+      "latlng": [
+        23.4815,
+        120.452
+      ],
+      "model": "shrine",
+      "deity": "城隍爺",
+      "desc": "嘉義市的守護神，廟內的藻井是國定古蹟級的工藝。"
+    },
+    {
+      "id": "daitian",
+      "name": "麻豆代天府",
+      "type": "temple",
+      "latlng": [
+        23.1745,
+        120.231
+      ],
+      "model": "shrine",
+      "deity": "五府千歲",
+      "desc": "有一條巨龍和十八層地獄造景的王爺廟。"
+    },
+    {
+      "id": "datianhou",
+      "name": "台南大天后宮",
+      "type": "temple",
+      "latlng": [
+        22.9968,
+        120.2018
+      ],
+      "model": "shrine",
+      "deity": "天上聖母",
+      "desc": "原本是寧靖王府邸，台灣第一座官建媽祖廟。"
+    },
+    {
+      "id": "sanfeng",
+      "name": "高雄三鳳宮",
+      "type": "temple",
+      "latlng": [
+        22.639,
+        120.293
+      ],
+      "model": "shrine",
+      "deity": "中壇元帥",
+      "desc": "三民區的太子爺廟，廟前就是三鳳中街。"
+    },
+    {
+      "id": "cifeng",
+      "name": "屏東慈鳳宮",
+      "type": "temple",
+      "latlng": [
+        22.674,
+        120.488
+      ],
+      "model": "shrine",
+      "deity": "天上聖母",
+      "desc": "屏東市中心的媽祖廟，屏東夜市就在附近。"
+    },
+    {
+      "id": "donglong",
+      "name": "東港東隆宮",
+      "type": "temple",
+      "latlng": [
+        22.466,
+        120.45
+      ],
+      "model": "shrine",
+      "deity": "溫府千歲",
+      "desc": "三年一科的迎王平安祭典，燒王船是全台盛事。"
+    },
+    {
+      "id": "zhenan",
+      "name": "羅東震安宮",
+      "type": "temple",
+      "latlng": [
+        24.677,
+        121.769
+      ],
+      "model": "shrine",
+      "deity": "天上聖母",
+      "desc": "羅東夜市旁的媽祖廟，蘭陽平原的信仰中心之一。"
     }
   ]
 }

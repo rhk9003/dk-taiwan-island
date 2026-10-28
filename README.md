@@ -43,6 +43,7 @@ data/             ← 平常只改這裡
 | 新增門市 | `stores.json` 複製一間店改內容。`id` 不能重複；`region` 填分區代號；`latlng` 填經緯度 |
 | 調整門市在島上的位置 | 改 `latlng`。在 Google 地圖對門市按右鍵，點第一行的數字就會複製經緯度。位置跟別間店撞到時，會自動挪到旁邊最近的空地 |
 | 加一個景點或機場 | `landmarks.json` 加一項：`name`、`latlng`、`model`（造型）、`desc`。點景點會顯示簡介和離它最近的三間 DK |
+| 加一間公廟 | `landmarks.json` 加一項，`type` 填 `temple`、`model` 填 `shrine`、`deity` 填主祀神明。公廟的 `id` 之後遶境路線會用到，不要隨意改 |
 | 打開／關掉留言板 | `site.json` 的 `messageBoard`（true／false） |
 | 審核留言 | 到「店長的話蒐集」試算表的「門市留言」分頁，勾「上牆」才會貼到那間店的留言牆 |
 | 改分區名稱、介紹、名牌位置 | `regions.json` |

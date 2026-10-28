@@ -8,6 +8,7 @@ const SIZE = 0.9;
 const SHOE = 1.4; // 鞋子刻意做大一點（卡通比例），遠看也認得出是鞋
 const LIFT = 0.075 * SHOE; // 身體踩在鞋子上
 const WALKER_SHOES = [...SHOE_FALLBACK, '#9a86c6', '#5b80b8', '#f1b6c4'];
+const POLO = '#501f7f'; // 店員制服的紫色 polo 衫
 
 export function createPeople(greeters, streets) {
   const rand = rng('walkers');
@@ -61,8 +62,22 @@ export function createPeople(greeters, streets) {
     }
   });
 
+  // 門口的店員穿紫色 polo 衫（DK 制服）：上衣、polo 領、白色門襟，跟著身體一起呼吸
+  const staff = people.map((p, i) => (p.staff ? i : -1)).filter((i) => i >= 0);
+  const polo = new THREE.MeshStandardMaterial({ color: POLO, roughness: 0.7 });
+  const uniform = [
+    [new THREE.CylinderGeometry(0.104, 0.11, 0.15, 14).translate(0, LIFT + 0.145, 0), polo],
+    [new THREE.TorusGeometry(0.074, 0.018, 6, 14).rotateX(Math.PI / 2).translate(0, LIFT + 0.225, 0), polo],
+    [new THREE.BoxGeometry(0.016, 0.065, 0.008).translate(0, LIFT + 0.18, 0.107), mat('#f4eefa')],
+  ].map(([g, m]) => {
+    const mesh = new THREE.InstancedMesh(g, m, Math.max(staff.length, 1));
+    mesh.count = staff.length;
+    mesh.castShadow = true;
+    return mesh;
+  });
+
   const group = new THREE.Group();
-  group.add(bodies, heads, ...parts);
+  group.add(bodies, heads, ...parts, ...uniform);
 
   const pickNext = (tile, prev) => {
     const options = tile.links.filter((t) => t !== prev);
@@ -102,6 +117,8 @@ export function createPeople(greeters, streets) {
   const S = new THREE.Vector3();
   const UP = new THREE.Vector3(0, 1, 0);
 
+  const staffSlot = new Map(staff.map((pi, k) => [pi, k]));
+
   function update(t, dt) {
     people.forEach((p, i) => {
       let bob = 0;
@@ -116,6 +133,8 @@ export function createPeople(greeters, streets) {
       fig.compose(P.set(p.x, p.y + bob, p.z), Q, S.set(SIZE * (1 + 0.05 * b), SIZE * (1 + 0.025 * b), SIZE * (1 + 0.05 * b)));
       bodies.setMatrixAt(i, fig);
       heads.setMatrixAt(i, fig);
+      const k = staffSlot.get(i);
+      if (k !== undefined) for (const mesh of uniform) mesh.setMatrixAt(k, fig);
       // 走路時兩隻腳一前一後，往前的那隻稍微抬起來
       fig.compose(P.set(p.x, p.y, p.z), Q, S.setScalar(SIZE));
       [-1, 1].forEach((side, j) => {
@@ -125,7 +144,7 @@ export function createPeople(greeters, streets) {
         for (const mesh of parts) mesh.setMatrixAt(i * 2 + j, out);
       });
     });
-    for (const mesh of [bodies, heads, ...parts]) mesh.instanceMatrix.needsUpdate = true;
+    for (const mesh of [bodies, heads, ...parts, ...uniform]) mesh.instanceMatrix.needsUpdate = true;
   }
 
   // 店長換了推薦鞋，第 i 個人（門口的店長）就換鞋色

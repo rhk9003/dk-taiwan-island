@@ -344,15 +344,17 @@ export function createUI(data, handlers) {
     renderList();
     closeShop();
     const airport = lm.model === 'airport';
+    const temple = lm.type === 'temple';
     const near = data.stores
       .filter((s) => Array.isArray(s.latlng))
       .map((s) => ({ s, km: distanceKm(lm.latlng, s.latlng) }))
       .sort((a, b) => a.km - b.km)
       .slice(0, 3);
     fillCard(
-      head(airport ? 'AIRPORT・機場' : 'SPOT・台灣景點', lm.name),
+      head(airport ? 'AIRPORT・機場' : temple ? 'TEMPLE・在地公廟' : 'SPOT・台灣景點', lm.name),
+      lm.deity ? h('p', { class: 'deity', text: `主祀　${lm.deity}` }) : null,
       lm.desc ? h('p', { class: 'lead', text: lm.desc }) : null,
-      near.length ? h('p', { class: 'hint', text: airport ? '下了飛機，最近的 DK 在這裡：' : '逛完順路去最近的 DK：' }) : null,
+      near.length ? h('p', { class: 'hint', text: airport ? '下了飛機，最近的 DK 在這裡：' : temple ? '拜拜完，順路逛逛附近的 DK：' : '逛完順路去最近的 DK：' }) : null,
       near.length ? h('ul', { class: 'card-stores' }, near.map(({ s, km }) =>
         h('li', {}, storeRow(s, km < 1.5 ? '就在附近' : `約 ${Math.round(km)} 公里`)))) : null,
     );

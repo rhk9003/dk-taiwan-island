@@ -195,6 +195,44 @@ const MODELS = {
     return g;
   },
 
+  // 在地公廟：石台、紅牆紅柱、兩層金色燕尾屋頂、廟前大香爐冒著煙
+  shrine(anims) {
+    const g = new THREE.Group();
+    const RED = '#c0392b';
+    const GOLD = '#e0a23b';
+    const ridge = (w, h, d, y) => {
+      const roof = prism(d, h, w, GOLD, 0, y, -0.06);
+      roof.rotation.y = Math.PI / 2; // 屋脊左右向
+      return roof;
+    };
+    g.add(box(1.0, 0.1, 0.86, '#cdbf9f'));
+    g.add(box(0.86, 0.34, 0.5, RED, 0, 0.1, -0.06));
+    for (const x of [-0.34, -0.12, 0.12, 0.34]) g.add(cyl(0.024, 0.024, 0.34, 6, '#8e1f16', x, 0.1, 0.22));
+    g.add(ridge(1.04, 0.2, 0.66, 0.44));
+    g.add(box(0.5, 0.14, 0.34, RED, 0, 0.56, -0.06));
+    g.add(ridge(0.68, 0.18, 0.46, 0.7));
+    // 燕尾：屋脊兩端翹起來
+    for (const side of [-1, 1]) {
+      const tail = cone(0.035, 0.16, 5, GOLD, side * 0.34, 0.82, -0.06);
+      tail.rotation.z = side * -0.9;
+      g.add(tail);
+    }
+    g.add(ball(0.045, '#f6d365', 0, 0.92, -0.06, 0));
+    for (const x of [-0.3, 0.3]) {
+      const l = place(geo('lantern', () => new THREE.IcosahedronGeometry(0.05, 1)), LANTERN, x, 0.36, 0.26);
+      l.scale.y = 1.3;
+      g.add(l);
+    }
+    g.add(cyl(0.12, 0.1, 0.14, 8, '#8a6a2c', 0, 0.1, 0.36));
+    for (let i = 0; i < 2; i++) {
+      const puff = ball(0.06, '#f4f1ea', 0, 0.3, 0.36, 0);
+      puff.castShadow = false;
+      anims.push({ obj: puff, kind: 'smoke', base: 0.26, phase: i * 0.5 });
+      g.add(puff);
+    }
+    return g;
+  },
+
   // 認不得的造型：一座小紀念碑
   monument() {
     const g = new THREE.Group();

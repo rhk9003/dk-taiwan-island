@@ -90,7 +90,7 @@ export function createWorld(container, data, handlers) {
     // 門口站一個氣球人，穿的是這間店店長推薦的那雙鞋（還沒推薦就隨機配一雙）
     const door = new THREE.Vector3(0.46, 0, 0.6).applyAxisAngle(Y_AXIS, g.rotation.y);
     const shoe = shoeColorOf(data.products.get(s.products[0])) ?? SHOE_FALLBACK[Math.floor(rand() * SHOE_FALLBACK.length)];
-    spots.push({ x: t.x + door.x, y: t.h, z: t.z + door.z, color: MASCOT[mascotIndex(s.id)], shoe, phase: rand() * 6, rot: g.rotation.y });
+    spots.push({ x: t.x + door.x, y: t.h, z: t.z + door.z, color: MASCOT[mascotIndex(s.id)], shoe, phase: rand() * 6, rot: g.rotation.y, staff: true });
   }
 
   for (const ri of layout.regions.values()) {
@@ -122,7 +122,8 @@ export function createWorld(container, data, handlers) {
     pickables.push(g);
     anims.push(...a);
     const top = new THREE.Box3().setFromObject(g).max.y;
-    const label = smallLabel(lm.model === 'airport' ? 'llabel airport' : 'llabel', lm.name, () => handlers.onLandmark?.(lm.id));
+    const kind = lm.model === 'airport' ? ' airport' : lm.type === 'temple' ? ' temple' : '';
+    const label = smallLabel(`llabel${kind}`, lm.name, () => handlers.onLandmark?.(lm.id));
     label.position.set(t.x, top + 0.35, t.z);
     scene.add(label);
     landmarkObjs.set(lm.id, { group: g, tile: t, landmark: lm, height: top - t.h });
