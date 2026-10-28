@@ -7,9 +7,9 @@
     { "text": "Teddy Island 泰迪熊聯名", "url": "https://www.dk-shoes.com.tw/", "color": "#E07A2E" },
     { "text": "官網獨家價 $1388 起", "url": "https://www.dk-shoes.com.tw/", "color": "#3F7FBF" }
   ],
-  "_coupon說明": "領優惠券的金色氣球人。latlng 是它飄在島上的位置，label 是頭上的名牌，title／desc 是點它出現的卡片內容，cta／url 是領券按鈕的文字和網址。",
+  "_coupon說明": "領優惠券的金色氣球人，會在全島上空快速巡迴。lapSeconds 是繞一圈幾秒（越小越快）；route 可以自訂巡迴路線（[緯度, 經度] 至少 3 點，不填就繞台灣一圈）；label 是頭上的名牌，title／desc 是點它出現的卡片內容，cta／url 是領券按鈕的文字和網址。",
   "coupon": {
-    "latlng": [23.78, 120.95],
+    "lapSeconds": 50,
     "label": "領優惠券",
     "title": "優惠券氣球人",
     "desc": "玩一場氣球特攻隊，射中氣球就能把優惠券帶回家！",

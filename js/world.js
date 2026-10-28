@@ -13,6 +13,11 @@ const SEA = '#7fcbd8';
 const SKY = '#cdebf1';
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 const SUN_DIR = new THREE.Vector3(-30, 60, 35).normalize();
+// 優惠券氣球人預設的巡迴路線：繞台灣一圈 [緯度, 經度]
+const COUPON_ROUTE = [
+  [25.05, 121.52], [25.13, 121.74], [24.75, 121.75], [23.98, 121.60], [22.76, 121.14], [22.00, 120.80],
+  [22.63, 120.30], [23.00, 120.20], [23.48, 120.45], [24.08, 120.54], [24.15, 120.67], [24.80, 120.97], [24.99, 121.30],
+];
 
 /** 建立整個 3D 世界；handlers.onRegion / onStore 在使用者點分區或點門市時被呼叫 */
 export function createWorld(container, data, handlers) {
@@ -185,35 +190,31 @@ export function createWorld(container, data, handlers) {
   const flightDir = new THREE.Vector3();
   const ROPE = 1.4;
 
-  // 領優惠券的金色氣球人：飄在島中央上空，用繩子綁在地上（site.json 的 coupon）
+  // 領優惠券的金色氣球人：沿著 route 在全島上空快速巡迴（site.json 的 coupon）
   let coupon = null;
-  if (data.site.coupon?.latlng) {
-    const p = project(data.site.coupon.latlng);
-    let ground = LAND_H;
-    let bd = Infinity;
-    for (const t of layout.tiles) {
-      const d = (t.x - p.x) ** 2 + (t.z - p.z) ** 2;
-      if (d < bd) { bd = d; ground = t.h; }
-    }
+  if (data.site.coupon) {
+    const route = Array.isArray(data.site.coupon.route) && data.site.coupon.route.length >= 3 ? data.site.coupon.route : COUPON_ROUTE;
+    const curve = new THREE.CatmullRomCurve3(route.map((ll) => {
+      const p = project(ll);
+      return new THREE.Vector3(p.x, 0, p.z);
+    }), true, 'centripetal');
     const { group: g, anims: a } = createCouponMascot();
-    const floatY = ground + 6;
-    g.position.set(p.x, floatY, p.z);
     g.userData.coupon = true;
     scene.add(g);
     pickables.push(g);
-    anims.push(...a, { obj: g, kind: 'bob', base: floatY, phase: 0, amp: 0.45 });
-    const tether = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1, 5).translate(0, 0.5, 0), new THREE.MeshStandardMaterial({ color: '#8a8a8a' }));
-    tether.position.set(p.x, ground, p.z);
-    scene.add(tether);
+    anims.push(...a);
     const label = new CSS2DObject(h('button', {
       class: 'clabel',
       type: 'button',
       onclick: (e) => { e.stopPropagation(); handlers.onCoupon?.(); },
     }, h('span', {}, h('i'), data.site.coupon.label || '領優惠券'))); // 動畫放在內層，外層的 transform 是 3D 定位用的
-    label.position.set(0, 5.1, 0);
+    label.position.set(0, 7.9, 0);
     g.add(label);
-    coupon = { group: g, tether, ground };
+    coupon = { group: g, curve, lap: Number(data.site.coupon.lapSeconds) || 50 };
   }
+  const couponPos = new THREE.Vector3();
+  const followWant = new THREE.Vector3();
+  let followCoupon = false; // 點了優惠券氣球人：鏡頭跟著它飛
   const flightPos = new THREE.Vector3();
   const flightNext = new THREE.Vector3();
   function flightAt(f, u, out) {
@@ -313,6 +314,7 @@ export function createWorld(container, data, handlers) {
 
   let tween = null;
   function flyTo(target, dist, polar = VIEW_POLAR, duration = 1100, az = controls.getAzimuthalAngle()) {
+    followCoupon = false; // 換去看別的地方就不再跟著優惠券氣球人
     tween = {
       fromT: controls.target.clone(),
       fromP: camera.position.clone(),
@@ -322,7 +324,7 @@ export function createWorld(container, data, handlers) {
       duration,
     };
   }
-  controls.addEventListener('start', () => { tween = null; });
+  controls.addEventListener('start', () => { tween = null; followCoupon = false; });
 
   function clampTarget() {
     const t = controls.target;
@@ -516,7 +518,18 @@ export function createWorld(container, data, handlers) {
         a.obj.rotation.y = Math.sin(t * a.speed) * a.amp;
       }
     }
-    if (coupon) coupon.tether.scale.y = Math.max(0.1, coupon.group.position.y - coupon.ground);
+    if (coupon) {
+      // 沿路線快速巡迴、一路彈跳，身體一直轉向鏡頭讓優惠券被看到
+      const g = coupon.group;
+      coupon.curve.getPointAt((t / coupon.lap) % 1, couponPos);
+      g.position.set(couponPos.x, LAND_H + 4.5 + Math.abs(Math.sin(t * 3)) * 0.9, couponPos.z);
+      g.rotation.y = Math.atan2(camera.position.x - g.position.x, camera.position.z - g.position.z);
+      if (followCoupon && !tween) {
+        followWant.set(g.position.x, g.position.y + 2, g.position.z).sub(controls.target).multiplyScalar(0.12);
+        controls.target.add(followWant);
+        camera.position.add(followWant);
+      }
+    }
     for (const f of flights) {
       const raw = t * 0.04 + f.phase;
       const u = raw % 2;
@@ -571,7 +584,8 @@ export function createWorld(container, data, handlers) {
     focusCoupon() {
       if (!coupon) return;
       const p = coupon.group.position;
-      flyTo(new THREE.Vector3(p.x, p.y + 1.6, p.z), W < 600 ? 30 : 24, 1.12);
+      flyTo(new THREE.Vector3(p.x, p.y + 2, p.z), W < 600 ? 40 : 32, 1.05);
+      followCoupon = true; // 飛到之後一路跟著它
     },
     focusLandmark(id) {
       const o = landmarkObjs.get(id);

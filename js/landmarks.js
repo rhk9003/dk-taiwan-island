@@ -357,7 +357,7 @@ export function createCouponMascot() {
   ticket.position.set(0, 0.2, 0.15);
   ticket.rotation.x = -0.15;
   body.add(ticket);
-  body.scale.setScalar(9);
+  body.scale.setScalar(14); // 比一般氣球人大很多，全景也看得到
   g.add(body);
 
   // 閃光
@@ -365,7 +365,8 @@ export function createCouponMascot() {
   for (let i = 0; i < 5; i++) {
     const s = place(geo('spark', () => new THREE.OctahedronGeometry(0.16, 0)), sparkle);
     s.castShadow = false;
-    anims.push({ obj: s, kind: 'orbit', radius: 1.9 + (i % 2) * 0.4, height: 1 + i * 0.6, speed: 0.8 + i * 0.1, phase: (i * Math.PI * 2) / 5 });
+    s.scale.setScalar(1.5);
+    anims.push({ obj: s, kind: 'orbit', radius: 3.0 + (i % 2) * 0.6, height: 1.5 + i * 0.9, speed: 0.8 + i * 0.1, phase: (i * Math.PI * 2) / 5 });
     g.add(s);
   }
   anims.push({ obj: body, kind: 'sway', speed: 0.6, amp: 0.35 });
