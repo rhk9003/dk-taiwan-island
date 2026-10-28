@@ -161,6 +161,7 @@ async function boot() {
 
   const app = {
     overview() {
+      clearTimeout(enterTimer);
       Object.assign(state, { region: null, store: null });
       ui.showNone();
       world.setFocus(null);
@@ -170,6 +171,7 @@ async function boot() {
     },
     region(id) {
       if (!data.regions.some((r) => r.id === id)) return app.overview();
+      clearTimeout(enterTimer);
       Object.assign(state, { region: id, store: null });
       ui.showRegion(id);
       world.setFocus(id);
@@ -177,23 +179,28 @@ async function boot() {
       world.focusRegion(id);
       setHash(`region/${id}`);
     },
+    // 進店：鏡頭先降到店門口，到了再開門
     store(id) {
       const s = data.storeById.get(id);
       if (!s) return app.overview();
       Object.assign(state, { region: s.region, store: id });
-      ui.showStore(id);
+      ui.selectStore(id);
       world.setFocus(s.region);
       world.setSelected(id);
       world.focusStore(id);
+      clearTimeout(enterTimer);
+      enterTimer = setTimeout(() => { if (state.store === id) ui.openShop(id); }, 1000);
       setHash(`store/${encodeURIComponent(id)}`);
     },
   };
+  let enterTimer = 0;
 
   const ui = createUI(data, {
     onRegion: app.region,
     onStore: app.store,
     onOverview: app.overview,
     onCloseCard: () => (state.store ? app.region(state.region) : app.overview()),
+    onCloseShop: () => app.region(state.region),
     onInsets: (ins) => world?.setInsets(ins),
   });
 

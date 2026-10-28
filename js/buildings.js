@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { rng } from './util.js';
+import { rng, hashSeed } from './util.js';
 
 // 建築全部用程式拼出來（不用 3D 模型檔）。每個造型的原點在格子頂面中央，正面朝南（+z，對著鏡頭）
 const WALL = '#fbf5ec';
@@ -53,28 +53,49 @@ function prism(w, h, d, c, x, y, z, right = false) {
   return place(g, c, x, y, z);
 }
 
+// DK DR.KAO 招牌（酒紅底白字，比例 1.6:1）。拿到官方 logo 圖檔後可以改成貼圖
 let signMat = null;
 function sign(w, h, x, y, z) {
   if (!signMat) {
     const cv = document.createElement('canvas');
-    cv.width = 128;
-    cv.height = 64;
+    cv.width = 256;
+    cv.height = 160;
     const ctx = cv.getContext('2d');
     ctx.fillStyle = WINE;
-    ctx.fillRect(0, 0, 128, 64);
+    ctx.fillRect(0, 0, 256, 160);
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(10, 10, 236, 140);
     ctx.fillStyle = '#fff';
-    ctx.font = '900 44px Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('DK', 64, 35);
+    ctx.font = '700 80px Didot, "Bodoni 72", "Times New Roman", Georgia, serif';
+    ctx.fillText('DK', 128, 98);
+    ctx.font = '600 22px Georgia, "Times New Roman", serif';
+    ctx.letterSpacing = '6px';
+    ctx.fillText('DR.KAO', 131, 132);
     const tex = new THREE.CanvasTexture(cv);
     tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
     signMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.7 });
   }
   const m = new THREE.Mesh(geo(`plane${w},${h}`, () => new THREE.PlaneGeometry(w, h)), signMat);
   m.position.set(x, y, z);
   return m;
 }
+
+// 立在門口的招牌（建築正面沒地方掛時用）
+function signBoard(x, z, rot = 0) {
+  const g = new THREE.Group();
+  g.add(box(0.03, 0.42, 0.03, WOOD, 0, 0, 0));
+  g.add(box(0.34, 0.22, 0.03, '#5e1520', 0, 0.26, 0));
+  g.add(sign(0.3, 0.19, 0, 0.37, 0.017));
+  g.position.set(x, 0, z);
+  g.rotation.y = rot;
+  return g;
+}
+
+// 每間店固定配一位 DKEC 氣球人（島上門口那位、進店後櫃台那位是同一個）
+export const mascotIndex = (storeId) => hashSeed(storeId) % MASCOT.length;
 
 const TEMPLATES = {
   // 一般門市：白牆、酒紅屋頂、DK 招牌
@@ -85,7 +106,7 @@ const TEMPLATES = {
     g.add(box(0.9, 0.05, 0.22, color, 0, 0.36, 0.42));
     g.add(box(0.22, 0.3, 0.02, DOOR, 0, 0, 0.335));
     g.add(box(0.2, 0.16, 0.02, GLASS, -0.27, 0.13, 0.335), box(0.2, 0.16, 0.02, GLASS, 0.27, 0.13, 0.335));
-    g.add(sign(0.3, 0.15, 0, 0.6, 0.395));
+    g.add(sign(0.3, 0.19, 0, 0.6, 0.395));
     return g;
   },
 
@@ -106,6 +127,7 @@ const TEMPLATES = {
       anims.push({ obj: b, kind: 'bob', base: b.position.y, phase: i * 1.7 });
       g.add(b);
     });
+    g.add(signBoard(-0.42, 0.44, 0.25));
     return g;
   },
 
@@ -126,6 +148,7 @@ const TEMPLATES = {
     g.add(box(0.18, 0.015, 0.005, '#ffffff', 0.42, 0.17, 0.517));
     g.add(cyl(0.012, 0.012, 0.72, 4, '#9a9a9a', -0.44, 0, 0.44));
     g.add(box(0.16, 0.1, 0.01, color, -0.36, 0.6, 0.44));
+    g.add(sign(0.3, 0.19, 0, 0.55, 0.356));
     return g;
   },
 
@@ -149,6 +172,7 @@ const TEMPLATES = {
       g.add(lantern);
     }
     g.add(cyl(0.09, 0.07, 0.12, 6, '#a8742c', 0, 0, 0.55));
+    g.add(sign(0.24, 0.15, 0, 0.72, 0.135));
     return g;
   },
 
@@ -163,6 +187,7 @@ const TEMPLATES = {
     });
     g.add(box(0.5, 0.04, 0.14, '#a8754e', 0, 0.13, 0.44));
     g.add(box(0.04, 0.13, 0.12, WOOD, -0.2, 0, 0.44), box(0.04, 0.13, 0.12, WOOD, 0.2, 0, 0.44));
+    g.add(signBoard(-0.5, 0.38, 0.3));
     return g;
   },
 
@@ -179,7 +204,8 @@ const TEMPLATES = {
       g.add(puff);
     }
     g.add(box(0.3, 0.3, 0.02, DOOR, -0.22, 0, 0.345));
-    g.add(box(0.2, 0.14, 0.02, GLASS, 0.2, 0.2, 0.345));
+    g.add(box(0.2, 0.14, 0.02, GLASS, 0.2, 0.12, 0.345));
+    g.add(sign(0.24, 0.15, 0.05, 0.385, 0.346));
     const shoe = new THREE.Group();
     shoe.add(box(0.44, 0.07, 0.19, '#fdfbf7'));
     shoe.add(box(0.26, 0.14, 0.17, WINE, -0.07, 0.07, 0));
@@ -269,87 +295,6 @@ export function shoeColorOf(product) {
   if (product.shoeColor) return product.shoeColor;
   const name = product.color || '';
   return SHOE_COLORS.find(([k]) => name.includes(k))?.[1] ?? null;
-}
-
-/** 站在門口「呼吸」的 DKEC 氣球人，腳上穿 DK 空氣鞋 */
-export function createGreeters(spots) {
-  const n = Math.max(spots.length, 1);
-  const SHOE = 1.4; // 鞋子刻意做大一點（卡通比例），遠看也認得出是鞋
-  const LIFT = 0.075 * SHOE; // 身體踩在鞋子上
-  const bodyGeo = new THREE.CapsuleGeometry(0.1, 0.08, 3, 10).translate(0, 0.14 + LIFT, 0);
-  const headGeo = new THREE.IcosahedronGeometry(0.1, 2).translate(0, 0.37 + LIFT, 0);
-  const material = new THREE.MeshStandardMaterial({ roughness: 0.45 });
-  const bodies = new THREE.InstancedMesh(bodyGeo, material, n);
-  const heads = new THREE.InstancedMesh(headGeo, material, n);
-  bodies.count = heads.count = spots.length;
-  bodies.castShadow = heads.castShadow = true;
-  const c = new THREE.Color();
-  spots.forEach((s, i) => {
-    bodies.setColorAt(i, c.set(s.color));
-    heads.setColorAt(i, c.set(s.color));
-  });
-
-  // 一隻鞋 = 深色大底 + 白色氣墊中底 + 鞋面 + 鞋頭；鞋子不跟著呼吸，擺一次就好
-  const shoeMat = new THREE.MeshStandardMaterial({ roughness: 0.6, flatShading: true });
-  const parts = [
-    [new THREE.BoxGeometry(0.09, 0.016, 0.18).translate(0, 0.008, 0.03), mat('#7d746b')],
-    [new THREE.BoxGeometry(0.086, 0.032, 0.172).translate(0, 0.032, 0.03), mat('#fbfaf6')],
-    [new THREE.BoxGeometry(0.078, 0.05, 0.09).translate(0, 0.073, -0.01), shoeMat],
-    [new THREE.IcosahedronGeometry(0.042, 1).scale(0.92, 0.72, 1.15).translate(0, 0.055, 0.06), shoeMat],
-  ].map(([g, m]) => {
-    const mesh = new THREE.InstancedMesh(g.scale(SHOE, SHOE, SHOE), m, 2 * n);
-    mesh.count = 2 * spots.length;
-    mesh.castShadow = true;
-    return mesh;
-  });
-  const fig = new THREE.Matrix4();
-  const foot = new THREE.Matrix4();
-  const out = new THREE.Matrix4();
-  const q = new THREE.Quaternion();
-  const p = new THREE.Vector3();
-  const up = new THREE.Vector3(0, 1, 0);
-  const size = new THREE.Vector3(0.9, 0.9, 0.9);
-  spots.forEach((s, i) => {
-    fig.compose(p.set(s.x, s.y, s.z), q.setFromAxisAngle(up, s.rot), size);
-    [-1, 1].forEach((side, j) => {
-      foot.makeRotationY(side * 0.12).setPosition(side * 0.06 * SHOE, 0, 0);
-      out.multiplyMatrices(fig, foot);
-      const k = i * 2 + j;
-      for (const mesh of parts) mesh.setMatrixAt(k, out);
-      parts[2].setColorAt(k, c.set(s.shoe));
-      parts[3].setColorAt(k, c.set(s.shoe));
-    });
-  });
-
-  const group = new THREE.Group();
-  group.add(bodies, heads, ...parts);
-  const dummy = new THREE.Object3D();
-
-  function update(t) {
-    spots.forEach((s, i) => {
-      const b = Math.sin(t * 2.2 + s.phase);
-      dummy.position.set(s.x, s.y, s.z);
-      dummy.rotation.set(0, s.rot, 0);
-      dummy.scale.set(0.9 + 0.05 * b, 0.9 + 0.025 * b, 0.9 + 0.05 * b);
-      dummy.updateMatrix();
-      bodies.setMatrixAt(i, dummy.matrix);
-      heads.setMatrixAt(i, dummy.matrix);
-    });
-    bodies.instanceMatrix.needsUpdate = true;
-    heads.instanceMatrix.needsUpdate = true;
-  }
-
-  // 店長換了推薦鞋，第 i 個氣球人就換鞋色
-  function setShoe(i, color) {
-    c.set(color);
-    for (const k of [i * 2, i * 2 + 1]) {
-      parts[2].setColorAt(k, c);
-      parts[3].setColorAt(k, c);
-    }
-    parts[2].instanceColor.needsUpdate = true;
-    parts[3].instanceColor.needsUpdate = true;
-  }
-  return { group, update, setShoe };
 }
 
 export function createClouds(bounds, count = 9) {

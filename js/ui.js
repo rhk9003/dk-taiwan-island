@@ -1,6 +1,8 @@
 import { h, shortName } from './util.js';
+import { mascotIndex } from './buildings.js';
 
 const INTRO_KEY = 'dk-island-intro-v1';
+const MASCOT_LETTERS = ['d', 'k', 'e', 'c']; // assets/mascot-?.png，順序跟島上氣球人的顏色一樣
 
 /** 介面：右側門市清單、門市／區域卡、遊戲視窗、開場導覽 */
 export function createUI(data, handlers) {
@@ -12,6 +14,8 @@ export function createUI(data, handlers) {
   const chips = $('chips');
   const modal = $('modal');
   const frame = $('modal-frame');
+  const shop = $('shop');
+  const shopInner = $('shop-inner');
   const isMobile = () => window.matchMedia('(max-width: 820px)').matches;
   const regionById = new Map(data.regions.map((r) => [r.id, r]));
   const storesIn = (rid) => data.stores.filter((s) => s.region === rid);
@@ -110,6 +114,7 @@ export function createUI(data, handlers) {
     const r = regionById.get(id);
     const stores = storesIn(id);
     current = { region: id, store: null };
+    closeShop();
     renderList();
     const counts = moduleIds
       .map((mid) => [data.modules[mid], stores.filter((s) => s.module === mid).length])
@@ -124,69 +129,106 @@ export function createUI(data, handlers) {
     );
   }
 
-  // 一個推薦商品；有官網網址就整塊可點
-  function pickItem(p) {
-    const body = [
-      p.image
-        ? h('img', { src: p.image, alt: '', loading: 'lazy', onerror: (e) => e.target.replaceWith(h('span', { class: 'noimg' })) })
-        : h('span', { class: 'noimg' }),
-      h('span', {},
-        h('b', { text: p.name }),
-        p.code || p.color ? h('small', { text: [p.code, p.color].filter(Boolean).join('・') }) : null,
-        p.reason ? h('em', { class: 'reason', text: p.reason }) : null),
-      p.url ? h('i', { text: '›' }) : null,
-    ];
-    return p.url ? h('a', { href: p.url, target: '_blank', rel: 'noopener' }, body) : h('div', { class: 'pick' }, body);
+  // ---- 進店 ----
+  // 點門市：先在清單標出來、收起區域卡；鏡頭飛到門口後再開門進店（openShop）
+  function selectStore(id) {
+    const s = data.storeById.get(id);
+    current = { region: s.region, store: id };
+    renderList();
+    if (!isMobile()) storeNodes.get(id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    index.classList.remove('open');
+    hideCard();
   }
 
-  function showStore(id, { refresh = false } = {}) {
+  // 鞋牆上的一雙推薦鞋；有官網網址就整塊可點
+  function shelfItem(p) {
+    const body = [
+      h('span', { class: 'shoe-img' },
+        p.image
+          ? h('img', { src: p.image, alt: '', loading: 'lazy', onerror: (e) => e.target.replaceWith(h('span', { class: 'shoe-box', text: 'DK' })) })
+          : h('span', { class: 'shoe-box', text: 'DK' })),
+      h('span', { class: 'shoe-tag' },
+        h('b', { text: p.name }),
+        p.reason ? h('small', { text: p.reason }) : p.code || p.color ? h('small', { text: [p.code, p.color].filter(Boolean).join('・') }) : null),
+    ];
+    return p.url ? h('a', { class: 'shoe', href: p.url, target: '_blank', rel: 'noopener' }, body) : h('div', { class: 'shoe' }, body);
+  }
+
+  function openShop(id, { refresh = false } = {}) {
     const s = data.storeById.get(id);
     const r = regionById.get(s.region);
     const m = data.modules[s.module];
-    current = { region: s.region, store: id };
-    renderList();
-    if (!refresh && !isMobile()) storeNodes.get(id)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    const scroll = card.scrollTop;
-
     const tel = (s.phone || '').replace(/[^\d]/g, '');
     const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.address)}`;
     const products = s.products.map((pid) => data.products.get(pid)).filter(Boolean);
     const picks = s.pick ? [s.pick, ...products] : products;
+    const sampleTag = s.sample ? h('span', { class: 'tag', text: '範例' }) : null;
+    const scroll = shopInner.scrollTop;
 
-    fillCard(
-      head(`${r.no} ${r.name}・STORE`, s.name),
-      h('p', { class: 'addr', text: s.address }),
-      h('div', { class: 'links' },
+    shopInner.replaceChildren(
+      h('header', { class: 'shop-sign' },
+        h('div', { class: 'shop-logo', 'aria-hidden': 'true' }, h('b', { text: 'DK' }), h('small', { text: 'DR.KAO' })),
+        h('div', { class: 'shop-title' },
+          h('p', { class: 'eyebrow', text: `${r.no} ${r.name}・歡迎光臨` }),
+          h('h2', { id: 'shop-name', text: s.name })),
+        h('button', { type: 'button', class: 'shop-exit', onclick: () => handlers.onCloseShop() }, '← 離開門市')),
+      h('div', { class: 'shop-awning', style: `--c:${m.color}` }),
+      h('div', { class: 'shop-room' },
+        h('section', { class: 'shop-counter' },
+          h('div', { class: s.quote ? 'bubble' : 'bubble empty' },
+            s.quote ? `「${s.quote}」` : '店長的話還在準備中，下次來就聽得到囉！',
+            sampleTag),
+          h('img', { class: 'mascot', src: `assets/mascot-${MASCOT_LETTERS[mascotIndex(s.id)]}.png`, alt: '' }),
+          h('div', { class: 'counter' },
+            h('span', { class: 'nameplate', text: s.manager || `${shortName(s.name)}店長` }))),
+        h('section', { class: 'shop-wall' },
+          h('p', { class: 'shop-label' }, '店長推薦', s.sample && products.length ? h('span', { class: 'tag', text: '範例' }) : null),
+          h('div', { class: 'shelves' },
+            picks.length
+              ? picks.map(shelfItem)
+              : [0, 1].map(() => h('div', { class: 'shoe waiting' },
+                h('span', { class: 'shoe-img' }, h('span', { class: 'shoe-box', text: 'DK' })),
+                h('span', { class: 'shoe-tag' }, h('b', { text: '即將上架' })))))),
+        h('section', { class: 'shop-corner', style: `--c:${m.color}` },
+          h('p', { class: 'shop-label', text: '店內玩法' }),
+          h('h3', { text: m.name }),
+          m.desc ? h('p', { text: m.desc }) : null,
+          m.cta
+            ? h('button', { type: 'button', class: 'cta', disabled: !m.url, onclick: () => openModule(m) }, m.url ? `${m.cta} →` : m.cta)
+            : h('a', { class: 'cta', href: maps, target: '_blank', rel: 'noopener' }, '來門市試穿 →'))),
+      h('footer', { class: 'shop-info' },
+        h('span', { text: s.address }),
         tel ? h('a', { href: `tel:${tel}`, text: s.phone }) : null,
         h('a', { href: maps, target: '_blank', rel: 'noopener', text: 'Google 地圖 ↗' })),
-      h('section', { class: 'mod', style: `--c:${m.color}` },
-        h('p', { class: 'label', text: '這間店的玩法' }),
-        h('h4', { text: m.name }),
-        m.desc ? h('p', { text: m.desc }) : null,
-        m.cta ? h('button', { type: 'button', class: 'cta', disabled: !m.url, onclick: () => openModule(m) }, m.url ? `${m.cta} →` : m.cta) : null),
-      h('section', { class: 'quote' },
-        h('p', { class: 'label' }, '店長的話', s.sample ? h('span', { class: 'tag', text: '範例' }) : null),
-        s.quote
-          ? [h('blockquote', { text: `「${s.quote}」` }), h('p', { class: 'by', text: `— ${s.manager || `${shortName(s.name)}店長`}` })]
-          : h('p', { class: 'empty', text: '店長的話蒐集中，敬請期待。' })),
-      h('section', { class: 'picks' },
-        h('p', { class: 'label' }, '店長推薦', s.sample && products.length ? h('span', { class: 'tag', text: '範例' }) : null),
-        picks.length
-          ? h('ul', {}, picks.map((p) => h('li', {}, pickItem(p))))
-          : h('p', { class: 'empty', text: '店長推薦蒐集中。' })),
     );
-    if (refresh) card.scrollTop = scroll;
+
+    if (refresh) {
+      shopInner.scrollTop = scroll;
+      return;
+    }
+    shop.hidden = false;
+    shop.classList.remove('opening');
+    void shop.offsetWidth; // 重新觸發開門動畫
+    shop.classList.add('opening');
+    shopInner.scrollTop = 0;
+    shopInner.focus({ preventScroll: true });
   }
 
-  // 試算表的資料晚一點才到：重畫目前開著的門市卡
+  function closeShop() {
+    shop.hidden = true;
+    shop.classList.remove('opening');
+  }
+
+  // 試算表的資料晚一點才到：店裡正開著就重畫
   function refresh() {
-    if (current.store && !card.hidden) showStore(current.store, { refresh: true });
+    if (current.store && !shop.hidden) openShop(current.store, { refresh: true });
   }
 
   function showNone() {
     current = { region: null, store: null };
     renderList();
     hideCard();
+    closeShop();
   }
 
   // 告訴 3D 場景哪裡被卡片擋住，讓鏡頭把門市擺在看得到的地方
@@ -261,8 +303,9 @@ export function createUI(data, handlers) {
     if (e.key !== 'Escape') return;
     if (!modal.hidden) closeModal();
     else if (!$('intro').hidden) closeIntro();
+    else if (!shop.hidden) handlers.onCloseShop();
     else if (!card.hidden) handlers.onCloseCard();
   });
 
-  return { showRegion, showStore, showNone, maybeShowIntro, refresh };
+  return { showRegion, selectStore, openShop, showNone, maybeShowIntro, refresh };
 }

@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { layoutTaiwan, buildIsland, LAND_H } from './islands.js';
-import { createBuilding, createPlaza, createGreeters, createClouds, createRing, MASCOT, SHOE_FALLBACK, shoeColorOf } from './buildings.js';
+import { createBuilding, createPlaza, createClouds, createRing, MASCOT, SHOE_FALLBACK, shoeColorOf, mascotIndex } from './buildings.js';
+import { buildTown } from './town.js';
+import { createPeople } from './people.js';
 import { easeInOutCubic, clamp, h, rng, shortName } from './util.js';
 
 const VIEW_POLAR = 0.9; // 鏡頭和正上方的夾角（弧度），越大越斜
@@ -37,6 +39,7 @@ export function createWorld(container, data, handlers) {
   scene.background = new THREE.Color(SKY);
   scene.fog = new THREE.Fog(SKY, maxDim * 1.8, maxDim * 3.6);
   scene.add(island.group);
+  scene.add(buildTown(layout.tiles));
 
   const sea = new THREE.Mesh(
     new THREE.PlaneGeometry(maxDim * 14, maxDim * 14),
@@ -85,7 +88,7 @@ export function createWorld(container, data, handlers) {
     // 門口站一個氣球人，穿的是這間店店長推薦的那雙鞋（還沒推薦就隨機配一雙）
     const door = new THREE.Vector3(0.46, 0, 0.6).applyAxisAngle(Y_AXIS, g.rotation.y);
     const shoe = shoeColorOf(data.products.get(s.products[0])) ?? SHOE_FALLBACK[Math.floor(rand() * SHOE_FALLBACK.length)];
-    spots.push({ x: t.x + door.x, y: t.h, z: t.z + door.z, color: MASCOT[spots.length % 4], shoe, phase: rand() * 6, rot: g.rotation.y });
+    spots.push({ x: t.x + door.x, y: t.h, z: t.z + door.z, color: MASCOT[mascotIndex(s.id)], shoe, phase: rand() * 6, rot: g.rotation.y });
   }
 
   for (const ri of layout.regions.values()) {
@@ -99,8 +102,8 @@ export function createWorld(container, data, handlers) {
     for (const sp of p.spots) spots.push({ ...sp, x: sp.x + ri.plazaTile.x, y: LAND_H, z: sp.z + ri.plazaTile.z });
   }
 
-  const greeters = createGreeters(spots);
-  scene.add(greeters.group);
+  const people = createPeople(spots, layout.streets);
+  scene.add(people.group);
   const clouds = createClouds(bounds, 14);
   scene.add(clouds.group);
   const ring = createRing();
@@ -142,7 +145,7 @@ export function createWorld(container, data, handlers) {
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
-  controls.minDistance = 3.5;
+  controls.minDistance = 3.2;
   controls.maxDistance = maxDim * 2.6;
   controls.minPolarAngle = 0.25;
   controls.maxPolarAngle = 1.2;
@@ -270,6 +273,26 @@ export function createWorld(container, data, handlers) {
     }
   }
 
+  // 名牌疊在一起時，只留離鏡頭近的（選中、滑過的優先），其他先藏起來，拉近就會出現
+  function declutter() {
+    const items = [];
+    for (const [id, o] of storeObjs) {
+      if (!o.label.visible) continue;
+      const rect = o.label.element.getBoundingClientRect();
+      if (!rect.width) continue;
+      const pri = id === selectedId ? 0 : id === hoverId ? 1 : 2;
+      items.push({ el: o.label.element, rect, pri, d: camera.position.distanceToSquared(o.group.position) });
+    }
+    items.sort((a, b) => a.pri - b.pri || a.d - b.d);
+    const kept = [];
+    for (const it of items) {
+      const r = it.rect;
+      const hit = kept.some((k) => r.left < k.right + 2 && r.right > k.left - 2 && r.top < k.bottom + 1 && r.bottom > k.top - 1);
+      it.el.classList.toggle('is-hidden', hit);
+      if (!hit) kept.push(r);
+    }
+  }
+
   // 鏡頭拉近時，自動顯示正在看的那一區的門市名稱
   function detectNear() {
     const dist = camera.position.distanceTo(controls.target);
@@ -346,11 +369,12 @@ export function createWorld(container, data, handlers) {
         a.obj.scale.setScalar(Math.sin(k * Math.PI) * 1.1 + 0.01);
       }
     }
-    greeters.update(t);
+    people.update(t, dt);
     clouds.update(dt);
 
     renderer.render(scene, camera);
     labelRenderer.render(scene, camera);
+    if (frame % 6 === 0) declutter();
     requestAnimationFrame(loop);
   }
 
@@ -369,14 +393,15 @@ export function createWorld(container, data, handlers) {
     focusRegion(id) {
       const ri = layout.regions.get(id);
       if (!ri) return;
-      const w = ri.box.maxX - ri.box.minX + 6;
-      const d = ri.box.maxZ - ri.box.minZ + 6;
-      flyTo(ri.center, Math.max(fitDistance(w, d), 16));
+      const w = ri.box.maxX - ri.box.minX + 3;
+      const d = ri.box.maxZ - ri.box.minZ + 3;
+      flyTo(ri.center, Math.max(fitDistance(w, d) * 0.85, 14));
     },
+    // 進店前：鏡頭降到店門口、正對招牌
     focusStore(id) {
       const o = storeObjs.get(id);
       if (!o) return;
-      flyTo(new THREE.Vector3(o.tile.x, o.tile.h + 0.3, o.tile.z), W < 600 ? 13 : 10.5, 0.95);
+      flyTo(new THREE.Vector3(o.tile.x, o.tile.h + 0.35, o.tile.z), 3.8, 1.18, 1000, o.group.rotation.y);
     },
     setFocus(regionId) {
       focusId = regionId;
@@ -394,7 +419,7 @@ export function createWorld(container, data, handlers) {
     },
     setShoe(storeId, color) {
       const o = storeObjs.get(storeId);
-      if (o) greeters.setShoe(o.spot, color);
+      if (o) people.setShoe(o.spot, color);
     },
   };
 }
