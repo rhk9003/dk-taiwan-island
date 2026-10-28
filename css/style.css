@@ -1687,19 +1687,65 @@ a { color: var(--wine); }
 .q-option.wrong { border-color: #e2b3b3; opacity: 0.5; animation: q-shake 0.35s; }
 .q-option.right { border-color: #3e9a6a; box-shadow: 0 0 0 3px rgba(62, 154, 106, 0.2); }
 @keyframes q-shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
-.q-feedback:empty { display: none; }
-.q-feedback { margin-top: 12px; padding: 12px 14px; border-radius: 14px; font-size: 14px; line-height: 1.6; animation: fade-in 0.3s ease-out both; }
-.q-feedback.no { background: #fdeeee; }
-.q-feedback.yes { background: #eaf6ef; }
-.q-feedback p { margin: 0 0 6px; }
-.q-say { font-weight: 700; }
 .q-actions { display: grid; gap: 8px; margin-top: 10px; }
 .q-actions .cta { height: 42px; }
-.q-next { --c: #fff; border: 2px solid var(--wine) !important; color: var(--wine) !important; }
+.q-next { --c: #8b2332; }
 .q-count { margin: 10px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
-.q-prompt { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
-.q-offer { padding: 3px 10px; border-radius: 999px; background: #fff0c2; color: #9a5b0f; font-size: 12px; font-weight: 700; }
-.q-reward-left { margin: 8px 0 0; color: #9a5b0f; font-weight: 700; }
+/* 路人的反應：選錯變紅、搖頭；選對變綠 */
+.q-bubble b { margin-right: 2px; }
+.q-bubble small { display: block; margin-top: 4px; font-size: 13px; font-weight: 700; }
+.q-bubble.no { background: #fdeeee; color: var(--wine); }
+.q-bubble.yes { background: #eaf6ef; color: #23593d; font-weight: 700; }
+.q-bubble.shake { animation: q-shake 0.4s; }
+/* 優惠券進度條：卡片最上面 */
+.q-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 12px;
+  padding: 8px 12px;
+  border: 2px solid #f0c661;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fff4d1, #ffe7a8);
+  color: #7a4a0c;
+}
+.q-strip-gift { font-size: 22px; line-height: 1; }
+.q-strip-text { flex: 1; min-width: 0; }
+.q-strip-text b { display: block; font-size: 14px; }
+.q-strip-text small { display: block; margin-top: 1px; color: var(--wine); font-size: 13px; font-weight: 900; }
+.q-pips { display: flex; gap: 6px; }
+.q-pips i { width: 18px; height: 18px; border: 2px solid #e0a92e; border-radius: 50%; background: #fff; }
+.q-pips i.on { border-color: #d98a0f; background: #f5a524; }
+.q-pips i.new { animation: q-pop 0.6s 0.2s ease-out both; }
+/* 挑對了的成功畫面 */
+.q-success { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; color: #2f7a52; font-size: 22px; font-weight: 900; }
+.q-check {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #3e9a6a;
+  color: #fff;
+  font-size: 20px;
+  animation: q-pop 0.5s ease-out both;
+}
+.q-chosen {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 12px;
+  align-items: center;
+  margin: 10px 0 12px;
+  padding: 10px;
+  border: 2px solid #3e9a6a;
+  border-radius: 14px;
+  background: #fff;
+}
+.q-chosen .q-img { height: 80px; margin: 0; }
+.q-chosen small { color: var(--wine); font-size: 11px; font-weight: 700; }
+.q-chosen b { display: block; font-size: 15px; line-height: 1.35; }
+.q-chosen p { margin: 4px 0 0; color: #5b4c46; font-size: 13px; line-height: 1.55; }
+.q-link { display: inline-block; margin: 6px 10px 0 0; color: var(--wine); font-size: 13px; font-weight: 900; text-decoration: underline; text-underline-offset: 3px; }
 /* 幫到了就送的優惠券：金色卡片 */
 .q-reward {
   margin: 10px 0 4px;

@@ -794,10 +794,12 @@ export function createWorld(container, data, handlers) {
         o.label.element.classList.toggle('is-open', o === s);
         if (!o.label.element.classList.contains('happy')) o.label.element.querySelector('.q-text').textContent = o === s ? '選哪雙好？' : '幫我挑鞋';
       }
-      const p = people.positionOf(s.walker);
+      // 記住這一位：幫完之後「!」會換到別人頭上，鏡頭還是跟著剛剛幫到的人
+      const walker = s.walker;
+      const p = people.positionOf(walker);
       flyTo(new THREE.Vector3(p.x, p.y + 0.4, p.z), W < 600 ? 9 : 7, 1.05);
       follow = () => {
-        const q = people.positionOf(s.walker);
+        const q = people.positionOf(walker);
         return followAt.set(q.x, q.y + 0.4, q.z);
       };
     },

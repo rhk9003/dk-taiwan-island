@@ -256,16 +256,13 @@ export function createUI(data, handlers) {
     closeShop();
     const others = shuffle([...shoes.keys()].filter((id) => !c.answer.includes(id)));
     const options = shuffle([c.answer[0], ...others.slice(0, 3)]);
-    const feedback = h('div', { class: 'q-feedback', role: 'status' });
-    let solved = false;
+    // 路人的話放在卡片最上面：選錯時他的反應也寫在這裡，眼睛不用往下找
+    const bubble = h('div', { class: 'q-bubble', role: 'status', text: `「${c.says}」` });
 
     const buttons = options.map((id) => {
       const s = shoes.get(id);
       const btn = h('button', { type: 'button', class: 'q-option' },
-        h('span', { class: 'q-img' },
-          s.image
-            ? h('img', { src: s.image, alt: '', loading: 'lazy', onerror: (e) => e.target.replaceWith(h('span', { class: 'shoe-box', text: 'DK' })) })
-            : h('span', { class: 'shoe-box', text: 'DK' })),
+        shoeImage(s),
         h('small', { text: s.tag }),
         h('b', { text: s.name }),
         s.points.length ? h('ul', {}, s.points.slice(0, 2).map((pt) => h('li', { text: pt }))) : null);
@@ -274,83 +271,101 @@ export function createUI(data, handlers) {
     });
 
     function pick(id, btn) {
-      if (solved) return;
-      const s = shoes.get(id);
       const right = c.answer.includes(id);
       const also = !right && (c.also || []).includes(id);
-      if (!right && !also) {
-        btn.disabled = true;
-        btn.classList.add('wrong');
-        feedback.className = 'q-feedback no';
-        feedback.replaceChildren(
-          h('p', { class: 'q-say', text: `${c.who}：「這雙很好，可是我最在意的是${c.need}……」` }),
-          h('p', { text: '再挑一次看看吧！' }));
+      if (right || also) {
+        showShopperResult(c, slot, shoes.get(id), also, handlers.onShopperSolved(slot, c));
         return;
       }
-      solved = true;
-      buttons.forEach((b) => { b.disabled = true; });
-      btn.classList.add('right');
-      const count = handlers.onShopperSolved(slot, c);
-      const best = shoes.get(c.answer[0]);
-      const shoeLink = (shoe, label) => (shoe.url
-        ? h('a', { class: 'cta', style: '--c:#8B2332', href: shoe.url, target: '_blank', rel: 'noopener' }, label)
-        : null);
-      feedback.className = 'q-feedback yes';
-      feedback.replaceChildren(...[
-        h('p', { class: 'q-say', text: `${c.who}：「${right ? c.thanks || '就是這雙，謝謝你！' : '這雙也不錯耶！'}」` }),
-        h('p', { text: also ? c.alsoNote || c.why : c.why }),
-        helpReward(count),
-        h('div', { class: 'q-actions' },
-          shoeLink(s, `看${s.name} ↗`),
-          also ? shoeLink(best, `看${best.name} ↗`) : null,
-          h('button', { type: 'button', class: 'cta q-next', onclick: () => handlers.onNextShopper(slot) }, '去幫下一位路人 →')),
-        h('p', { class: 'q-count', text: `你已經幫 ${count} 位路人挑到鞋` }),
-      ].filter(Boolean));
-    }
-
-    // 幫到第 reward.after 位就送優惠券；每台裝置領一次
-    function rewardOffer() {
-      const after = data.shoppers.reward.after;
-      return after > 1
-        ? `🎁 幫 ${after} 位就送優惠券（已幫 ${Math.min(handlers.helped.size, after)}/${after}）`
-        : '🎁 挑對了就送優惠券！';
-    }
-    function helpReward(count) {
-      const reward = data.shoppers.reward;
-      if (!reward) return null;
-      if (handlers.helpCoupon.claimedAt) return h('p', { class: 'q-count', text: '你已經領過優惠券囉，謝謝你繼續幫忙！' });
-      if (count < reward.after) return h('p', { class: 'q-reward-left', text: `再幫 ${reward.after - count} 位路人挑到鞋，就能領優惠券！` });
-      const status = h('p', { class: 'note-status', role: 'status' });
-      return h('section', { class: 'q-reward' },
-        h('span', { class: 'q-gift', 'aria-hidden': 'true', text: '🎁' }),
-        h('b', { text: reward.title || '謝謝你幫忙挑鞋！' }),
-        reward.desc ? h('p', { text: reward.desc }) : null,
-        reward.code ? h('div', { class: 'reward-code' },
-          h('code', { text: reward.code }),
-          h('button', {
-            type: 'button',
-            onclick: async () => {
-              try {
-                await navigator.clipboard.writeText(reward.code);
-                status.textContent = '優惠碼複製好了！';
-              } catch {
-                status.textContent = '複製不了，請長按優惠碼自己複製。';
-              }
-              handlers.onClaimHelpCoupon();
-            },
-          }, '複製')) : null,
-        reward.url ? h('a', { class: 'cta coupon-cta', href: reward.url, target: '_blank', rel: 'noopener', onclick: () => handlers.onClaimHelpCoupon() }, `${reward.cta || '領取優惠券'} →`) : null,
-        status);
+      btn.disabled = true;
+      btn.classList.add('wrong');
+      bubble.className = 'q-bubble no';
+      void bubble.offsetWidth; // 重新觸發搖頭動畫
+      bubble.classList.add('shake');
+      bubble.replaceChildren(
+        h('b', { text: `${c.who}：` }),
+        `「這雙很好，可是我最在意的是${c.need}……」`,
+        h('small', { text: '再挑一次看看吧！' }));
+      card.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     fillCard(
       head('SHOE HELP・路人的買鞋煩惱', c.who),
-      h('div', { class: 'q-bubble', text: `「${c.says}」` }),
-      h('p', { class: 'q-prompt' }, '你會推薦哪一雙？',
-        data.shoppers.reward && !handlers.helpCoupon.claimedAt ? h('span', { class: 'q-offer', text: rewardOffer() }) : null),
-      h('div', { class: 'q-options' }, buttons),
-      feedback,
-      handlers.helped.size ? h('p', { class: 'q-count', text: `你已經幫 ${handlers.helped.size} 位路人挑到鞋` }) : null);
+      rewardStrip(handlers.helped.size),
+      bubble,
+      h('p', { class: 'q-prompt', text: '你會推薦哪一雙？' }),
+      h('div', { class: 'q-options' }, buttons));
+  }
+
+  const shoeImage = (s) => h('span', { class: 'q-img' },
+    s.image
+      ? h('img', { src: s.image, alt: '', loading: 'lazy', onerror: (e) => e.target.replaceWith(h('span', { class: 'shoe-box', text: 'DK' })) })
+      : h('span', { class: 'shoe-box', text: 'DK' }));
+
+  // 挑對了：整張卡片換成成功畫面，最重要的（道謝、優惠券進度）都在最上面
+  function showShopperResult(c, slot, s, also, count) {
+    const best = data.shoppers.shoes.get(c.answer[0]);
+    const shoeLink = (shoe, label) => (shoe.url ? h('a', { class: 'q-link', href: shoe.url, target: '_blank', rel: 'noopener' }, label) : null);
+    fillCard(
+      head('SHOE HELP・推薦成功', c.who),
+      h('div', { class: 'q-success' }, h('span', { class: 'q-check', 'aria-hidden': 'true', text: '✓' }), also ? '這雙也可以！' : '推薦成功！'),
+      h('div', { class: 'q-bubble yes', text: `「${also ? '這雙也不錯耶！' : c.thanks || '就是這雙，謝謝你！'}」` }),
+      helpReward(count),
+      h('div', { class: 'q-actions' },
+        h('button', { type: 'button', class: 'cta q-next', onclick: () => handlers.onNextShopper(slot) }, '去幫下一位路人 →')),
+      h('div', { class: 'q-chosen' },
+        shoeImage(s),
+        h('div', {},
+          h('small', { text: s.tag }),
+          h('b', { text: s.name }),
+          h('p', { text: also ? c.alsoNote || c.why : c.why }),
+          shoeLink(s, '看商品頁 ↗'),
+          also ? shoeLink(best, `也看看${best.name} ↗`) : null)),
+      h('p', { class: 'q-count', text: `你已經幫 ${count} 位路人挑到鞋` }));
+  }
+
+  // 優惠券進度：幫 3 位送優惠券 ●●○（還沒領過才顯示）
+  function rewardStrip(count, justFilled = false) {
+    const reward = data.shoppers.reward;
+    if (!reward || handlers.helpCoupon.claimedAt) return null;
+    const after = reward.after;
+    const done = Math.min(count, after);
+    return h('div', { class: 'q-strip' },
+      h('span', { class: 'q-strip-gift', 'aria-hidden': 'true', text: '🎁' }),
+      h('span', { class: 'q-strip-text' },
+        h('b', { text: after > 1 ? `幫 ${after} 位路人送優惠券` : '挑對就送優惠券' }),
+        justFilled && done < after ? h('small', { text: `再幫 ${after - done} 位就能領！` }) : null),
+      after > 1 ? h('span', { class: 'q-pips', 'aria-label': `已幫 ${done} 位，共 ${after} 位` },
+        Array.from({ length: after }, (_, i) => h('i', { class: i < done ? (justFilled && i === done - 1 ? 'on new' : 'on') : '' }))) : null);
+  }
+
+  // 幫到第 reward.after 位就送優惠券；每台裝置領一次
+  function helpReward(count) {
+    const reward = data.shoppers.reward;
+    if (!reward) return null;
+    if (handlers.helpCoupon.claimedAt) return h('p', { class: 'q-count', text: '你已經領過優惠券囉，謝謝你繼續幫忙！' });
+    if (count < reward.after) return rewardStrip(count, true);
+    const status = h('p', { class: 'note-status', role: 'status' });
+    return h('section', { class: 'q-reward' },
+      h('span', { class: 'q-gift', 'aria-hidden': 'true', text: '🎁' }),
+      h('b', { text: reward.title || '謝謝你幫忙挑鞋！' }),
+      reward.desc ? h('p', { text: reward.desc }) : null,
+      reward.code ? h('div', { class: 'reward-code' },
+        h('code', { text: reward.code }),
+        h('button', {
+          type: 'button',
+          onclick: async () => {
+            try {
+              await navigator.clipboard.writeText(reward.code);
+              status.textContent = '優惠碼複製好了！';
+            } catch {
+              status.textContent = '複製不了，請長按優惠碼自己複製。';
+            }
+            handlers.onClaimHelpCoupon();
+          },
+        }, '複製')) : null,
+      reward.url ? h('a', { class: 'cta coupon-cta', href: reward.url, target: '_blank', rel: 'noopener', onclick: () => handlers.onClaimHelpCoupon() }, `${reward.cta || '領取優惠券'} →`) : null,
+      status);
   }
 
   // ---- 門市集章：櫃台旁的蓋章台 ----
