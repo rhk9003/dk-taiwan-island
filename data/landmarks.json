@@ -1,6 +1,17 @@
 {
-  "_說明": "島上的台灣景點、機場與公廟。latlng 是位置 [緯度, 經度]；model 是造型（tower101、tower85、lanterns、queen、lake、train、peak、gorge、lighthouse、pavilion、airport、shrine），造型不認得時會用一般小紀念碑；footprint 填 1 會連旁邊一圈都整平（機場跑道用）。type 填 temple 的是公廟，deity 是主祀神明。點了會出現 desc 和離它最近的 DK 門市。公廟的 id 之後做遶境路線會用到（路線＝依序經過的廟宇／門市 id），請不要隨意改。",
+  "_說明": "島上的台灣景點、機場與公廟。latlng 是位置 [緯度, 經度]；model 是造型（tower101、tower85、lanterns、queen、lake、train、peak、gorge、lighthouse、pavilion、airport、shrine、cinema），造型不認得時會用一般小紀念碑；footprint 填 1 會連旁邊一圈都整平（機場跑道用）。type 填 temple 的是公廟，deity 是主祀神明。有 url 的景點（例如 DK 電影院）卡片上會多一顆 cta 按鈕，在島上的視窗裡打開那個網頁。點了會出現 desc 和離它最近的 DK 門市。公廟的 id 之後做遶境路線會用到（路線＝依序經過的廟宇／門市 id），請不要隨意改。",
   "landmarks": [
+    {
+      "id": "dk-cinema",
+      "name": "DK 電影院",
+      "type": "cinema",
+      "latlng": [
+        25.0422,
+        121.5078
+      ],
+      "model": "cinema",
+      "desc": "DK 新品影片即將在這裡上映，敬請期待！"
+    },
     {
       "id": "taipei101",
       "name": "台北 101",

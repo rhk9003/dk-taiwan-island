@@ -1,7 +1,9 @@
 import { h, shortName } from './util.js';
 import { mascotIndex } from './buildings.js';
+import { shippingStation, returnsStation, comingSoonStation } from './service.js';
 
 const INTRO_KEY = 'dk-island-intro-v1';
+const MISSION_KEY = 'dk-island-missions'; // 這台裝置完成過哪些客服任務
 const MASCOT_LETTERS = ['d', 'k', 'e', 'c']; // assets/mascot-?.png，順序跟島上氣球人的顏色一樣
 
 /** 介面：右側門市清單、門市／區域卡、遊戲視窗、開場導覽 */
@@ -217,7 +219,7 @@ export function createUI(data, handlers) {
       return;
     }
     shop.hidden = false;
-    shop.classList.remove('opening');
+    shop.classList.remove('opening', 'is-station');
     void shop.offsetWidth; // 重新觸發開門動畫
     shop.classList.add('opening');
     shopInner.scrollTop = 0;
@@ -226,7 +228,7 @@ export function createUI(data, handlers) {
 
   function closeShop() {
     shop.hidden = true;
-    shop.classList.remove('opening');
+    shop.classList.remove('opening', 'is-station');
   }
 
   // 玩法角落的按鈕：有遊戲就開遊戲；留言板玩法就捲到留言牆；一般門市就導去 Google 地圖
@@ -358,19 +360,83 @@ export function createUI(data, handlers) {
     closeShop();
     const airport = lm.model === 'airport';
     const temple = lm.type === 'temple';
+    const cinema = lm.type === 'cinema';
     const near = data.stores
       .filter((s) => Array.isArray(s.latlng))
       .map((s) => ({ s, km: distanceKm(lm.latlng, s.latlng) }))
       .sort((a, b) => a.km - b.km)
       .slice(0, 3);
     fillCard(
-      head(airport ? 'AIRPORT・機場' : temple ? 'TEMPLE・在地公廟' : 'SPOT・台灣景點', lm.name),
+      head(airport ? 'AIRPORT・機場' : temple ? 'TEMPLE・在地公廟' : cinema ? 'CINEMA・DK 電影院' : 'SPOT・台灣景點', lm.name),
       lm.deity ? h('p', { class: 'deity', text: `主祀　${lm.deity}` }) : null,
       lm.desc ? h('p', { class: 'lead', text: lm.desc }) : null,
+      lm.url ? h('button', { type: 'button', class: 'cta', style: '--c:#8B2332', onclick: () => openModule({ name: lm.name, url: lm.url, aspect: lm.aspect }) }, `${lm.cta || '打開'} →`) : null,
       near.length ? h('p', { class: 'hint', text: airport ? '下了飛機，最近的 DK 在這裡：' : temple ? '拜拜完，順路逛逛附近的 DK：' : '逛完順路去最近的 DK：' }) : null,
       near.length ? h('ul', { class: 'card-stores' }, near.map(({ s, km }) =>
         h('li', {}, storeRow(s, km < 1.5 ? '就在附近' : `約 ${Math.round(km)} 公里`)))) : null,
     );
+  }
+
+  // ---- 客服任務島 ----
+  const readStamps = () => {
+    try { return JSON.parse(localStorage.getItem(MISSION_KEY) || '{}'); } catch { return {}; }
+  };
+  const stamp = (id) => {
+    const all = readStamps();
+    all[id] = new Date().toISOString().slice(0, 10);
+    try { localStorage.setItem(MISSION_KEY, JSON.stringify(all)); } catch { /* 存不了就只是這次看不到打勾 */ }
+  };
+
+  function showServiceMenu() {
+    const svc = data.service;
+    const done = readStamps();
+    current = { region: 'service', store: null };
+    renderList();
+    closeShop();
+    fillCard(
+      head('SERVICE・客服任務島', '你今天想解決什麼？'),
+      svc.npc?.greeting ? h('p', { class: 'lead', text: svc.npc.greeting }) : null,
+      h('ul', { class: 'missions' }, svc.missions.map((m) => h('li', {},
+        h('button', { type: 'button', class: 'mission', style: `--c:${m.color || '#8B2332'}`, onclick: () => handlers.onMission(m.id) },
+          h('i'),
+          h('span', {}, h('b', { text: m.question }), h('small', { text: `前往${m.station}` })),
+          m.comingSoon ? h('em', { class: 'soon', text: '即將開放' }) : done[m.id] ? h('em', { class: 'stamped', text: '已完成' }) : h('em', { text: '›' }))))),
+    );
+  }
+
+  function openStation(id) {
+    const svc = data.service;
+    const m = svc.missions.find((x) => x.id === id);
+    const onDone = (mid) => {
+      stamp(mid);
+      handlers.onServiceBack();
+    };
+    let body;
+    if (m.comingSoon) body = comingSoonStation(m);
+    else if (id === 'shipping') body = shippingStation(svc, onDone);
+    else if (id === 'returns') body = returnsStation(svc, onDone);
+    else body = comingSoonStation(m);
+
+    current = { region: 'service', store: null };
+    renderList();
+    hideCard();
+    shopInner.replaceChildren(
+      h('header', { class: 'shop-sign station-sign', style: `--c:${m.color || '#8B2332'}` },
+        h('div', { class: 'shop-title' },
+          h('p', { class: 'eyebrow', text: `客服任務・${m.station}` }),
+          h('h2', { id: 'shop-name', text: m.question })),
+        h('button', { type: 'button', class: 'shop-exit', onclick: () => handlers.onServiceBack() }, '← 回任務選單')),
+      h('div', { class: 'station-body' }, body),
+      svc.source ? h('footer', { class: 'shop-info' },
+        h('span', { text: `內容整理自${svc.source.title}（${svc.source.checkedAt} 確認）` }),
+        h('a', { href: svc.source.url, target: '_blank', rel: 'noopener', text: '看原文 ↗' })) : null,
+    );
+    shop.hidden = false;
+    shop.classList.add('is-station');
+    shop.classList.remove('opening');
+    void shop.offsetWidth;
+    shop.classList.add('opening');
+    shopInner.focus({ preventScroll: true });
   }
 
   function showNone() {
@@ -460,5 +526,5 @@ export function createUI(data, handlers) {
     else if (!card.hidden) handlers.onCloseCard();
   });
 
-  return { showRegion, showLandmark, showCoupon, selectStore, openShop, showNone, maybeShowIntro, refresh };
+  return { showRegion, showLandmark, showCoupon, showServiceMenu, openStation, selectStore, openShop, showNone, maybeShowIntro, refresh };
 }

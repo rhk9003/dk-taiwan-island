@@ -822,6 +822,142 @@ a { color: var(--wine); }
 }
 .shop-info a { font-weight: 700; text-decoration: none; }
 
+/* ---------- 客服任務島 ---------- */
+.toolbar .btn-service { background: var(--wine); color: #fff; }
+.toolbar .btn-service:hover { background: #a3364a; color: #fff; }
+.llabel.service { background: rgba(80, 31, 127, 0.9); }
+.llabel.service i { border-bottom-color: #f2b134; }
+.llabel.service-ask { background: rgba(139, 35, 50, 0.92); }
+.llabel.cinema { background: rgba(94, 21, 32, 0.92); }
+.llabel.cinema i { border-bottom-color: #ffd36b; }
+
+.missions { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.mission {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--c);
+  border-radius: 14px;
+  background: #fff;
+  text-align: left;
+}
+.mission:hover { background: var(--cream); }
+.mission i { width: 12px; height: 12px; border-radius: 50%; background: var(--c); }
+.mission b { display: block; font-size: 15px; }
+.mission small { font-size: 12px; color: var(--muted); }
+.mission em { font-style: normal; font-size: 12px; font-weight: 700; color: var(--muted); }
+.mission em.soon { padding: 2px 8px; border-radius: 999px; background: #eee6df; }
+.mission em.stamped { padding: 2px 8px; border-radius: 999px; background: #dff2e6; color: #2f7a4f; }
+
+.shop.is-station .door { display: none; }
+.shop.is-station .shop-inner { grid-template-rows: auto 1fr auto; }
+.shop.is-station.opening .shop-inner { animation: station-in 0.45s ease-out both; }
+@keyframes station-in { from { opacity: 0; transform: translateY(14px); } }
+.station-sign { background: var(--c); }
+.station-sign .eyebrow { color: rgba(255, 255, 255, 0.8); }
+.station-body { min-height: 0; overflow: auto; padding: 18px 22px 24px; background: #fbf7f1; }
+
+.st-lead { margin: 0 0 14px; font-size: 15px; line-height: 1.7; font-weight: 700; color: var(--ink); }
+.st-text { margin: 0 0 12px; font-size: 14px; line-height: 1.7; color: #5b4c46; }
+.st-section { margin-bottom: 16px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 16px; background: #fff; }
+.st-section h3 { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; font-size: 17px; }
+.st-section h3 b {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  font: italic 600 14px var(--num);
+}
+.st-list, .st-steps { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.75; color: #4a3b35; }
+.st-steps li { margin-bottom: 4px; }
+.st-field { display: grid; gap: 6px; margin-bottom: 12px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.st-field input { height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; font: inherit; font-size: 16px; }
+.st-result { margin: 0 0 12px; font-size: 18px; font-weight: 900; color: #2f6f84; }
+.st-result.warn { color: #a35b12; font-size: 15px; }
+.st-note { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+.st-note.warn { color: #a33a2a; font-weight: 700; }
+.st-contact { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 12px 0 0; font-size: 13px; color: var(--muted); }
+.st-contact a { font-weight: 700; text-decoration: none; }
+.st-icon { display: inline-grid; width: 24px; height: 24px; flex: none; }
+.st-icon svg { width: 100%; height: 100%; }
+.st-done {
+  width: 100%;
+  height: 50px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--wine);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 900;
+}
+.st-done:disabled { background: #e6dcd3; color: var(--muted); cursor: default; }
+.st-soon { padding: 30px 10px; text-align: center; }
+
+/* 物流港口：付款完成 → 送達 的航線，貨輪照工作天往前開 */
+.st-track { position: relative; margin: 6px 4px 4px; padding-top: 34px; }
+.st-track ol { display: flex; justify-content: space-between; margin: 0; padding: 0; list-style: none; border-top: 3px dashed #bcd7e4; }
+.st-track li { position: relative; display: grid; justify-items: center; gap: 6px; width: 25%; margin-top: -9px; font-size: 12px; color: var(--muted); }
+.st-track li:first-child { justify-items: start; }
+.st-track li:last-child { justify-items: end; }
+.st-track li i { width: 15px; height: 15px; border-radius: 50%; background: #d9e7ee; border: 3px solid #fff; box-shadow: 0 0 0 1px #bcd7e4; }
+.st-track li.on { color: #2f6f84; font-weight: 700; }
+.st-track li.on i { background: #3F7FBF; }
+.st-ship { position: absolute; top: 0; width: 30px; height: 30px; margin-left: -15px; color: #3F7FBF; transition: left 0.6s ease; }
+.st-ship .st-icon { width: 30px; height: 30px; }
+
+/* 退換貨中心 */
+.st-checks { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
+.st-checks label { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.6; cursor: pointer; }
+.st-checks input { width: 20px; height: 20px; margin-top: 2px; accent-color: #3E9A6A; flex: none; }
+.st-tabs { display: flex; gap: 8px; margin: 6px 0 10px; }
+.st-tab { flex: 1; height: 40px; border: 1px solid var(--line); border-radius: 12px; background: #fff; font-weight: 700; }
+.st-tab.on { background: #E07A2E; border-color: #E07A2E; color: #fff; }
+.st-rules { padding: 12px 14px; border-radius: 12px; background: #fff7ee; }
+
+.pack-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.pack-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 10px 12px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
+  color: #4a3b35;
+}
+.pack-card:hover:not(:disabled) { border-color: #E07A2E; }
+.pack-card.done { border-color: #3E9A6A; background: #eef8f1; color: #2f7a4f; opacity: 0.75; }
+.pack-card.shake { animation: shake 0.4s; border-color: #c0392b; }
+@keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+.pack-status { margin: 0 0 10px; font-size: 14px; font-weight: 700; color: #2f6f84; }
+.pack-status.warn { color: #a33a2a; }
+.pack-stage {
+  display: grid;
+  gap: 6px;
+  min-height: 56px;
+  margin: 0;
+  padding: 12px 12px 12px 34px;
+  border: 2px dashed #e0c9ae;
+  border-radius: 14px;
+  background: #fffaf2;
+  font-size: 13px;
+  color: #6b5a53;
+}
+.pack-stage li span { margin-left: 6px; }
+.pack-stage li { display: flex; align-items: center; animation: note-in 0.3s ease-out both; }
+.pack-stage.sealed { border-style: solid; border-color: #c89a64; background: #f6e7d2; box-shadow: inset 0 -6px 0 rgba(139, 35, 50, 0.85); }
+
 /* ---------- 遊戲視窗 ---------- */
 .modal {
   position: fixed;
@@ -924,6 +1060,13 @@ a { color: var(--wine); }
   .mascot { width: 136px; margin-bottom: -66px; }
   .counter { height: 78px; }
   .shop-info { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+  .station-body { padding: 14px 12px 20px; }
+  .st-section { padding: 14px; }
+  .pack-cards { grid-template-columns: 1fr 1fr; }
+  .toolbar .btn-service { padding: 0 11px; }
+  .hide-mobile { display: none; }
+  .brand-eyebrow { display: none; }
+  .toolbar button { padding: 0 10px; }
   .door b { font-size: 40px; }
   .door small { font-size: 13px; }
   .door.left { padding-right: 18px; }

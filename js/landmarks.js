@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { kit, mat } from './buildings.js';
 
 // 台灣景點、機場、離島地標的低多邊形造型。原點在格子頂面中央，正面朝南（+z）
-const { box, cyl, cone, ball, prism, place, geo } = kit;
+const { box, cyl, cone, ball, prism, place, geo, sign } = kit;
 const WINE = '#8B2332';
 
 const glow = (color, emissive, intensity = 0.7) =>
@@ -233,6 +233,122 @@ const MODELS = {
     return g;
   },
 
+  // DK 電影院：酒紅色外牆、會閃的跑馬燈招牌、正面的大銀幕和兩張海報
+  cinema(anims) {
+    const g = new THREE.Group();
+    g.add(box(1.1, 0.7, 0.8, '#5e1520'));
+    g.add(box(1.16, 0.06, 0.86, '#e9a23b', 0, 0.7, 0));
+    // 正面的大銀幕
+    g.add(box(0.7, 0.36, 0.02, '#1d1f24', 0, 0.26, 0.405));
+    g.add(place(geo('cinemaScreen', () => new THREE.PlaneGeometry(0.62, 0.3)), glow('#bfe3f0', '#7fc1e3', 0.6), 0, 0.44, 0.418));
+    // 海報
+    g.add(box(0.14, 0.22, 0.02, '#E07A2E', -0.46, 0.1, 0.405), box(0.14, 0.22, 0.02, '#3F7FBF', 0.46, 0.1, 0.405));
+    // 跑馬燈招牌：DK 招牌兩邊一圈燈泡，輪流亮
+    g.add(box(0.8, 0.26, 0.06, WINE, 0, 0.76, 0.3));
+    g.add(sign(0.36, 0.22, 0, 0.89, 0.335));
+    for (let i = 0; i < 10; i++) {
+      const bulb = place(geo('cinemaBulb', () => new THREE.SphereGeometry(0.025, 8, 6)), glow('#fff3c4', '#ffd36b', 0.9), -0.36 + i * 0.08, 0.78, 0.34);
+      anims.push({ obj: bulb, kind: 'blink', phase: i % 2 });
+      g.add(bulb);
+    }
+    // 屋頂的膠卷
+    const reel = place(geo('cinemaReel', () => new THREE.CylinderGeometry(0.18, 0.18, 0.05, 14).rotateX(Math.PI / 2)), mat('#2b2b2b'), 0.3, 0.98, -0.1);
+    anims.push({ obj: reel, kind: 'spin', speed: 1.2 });
+    g.add(reel);
+    return g;
+  },
+
+  // ---- 客服任務島的四座站和中央看板 ----
+
+  // 物流港口：碼頭、黃色吊車、疊起來的貨櫃、靠港的貨輪
+  port(anims) {
+    const g = new THREE.Group();
+    g.add(box(1.5, 0.08, 1.1, '#9aa3a8'));
+    const colors = ['#c0392b', '#3F7FBF', '#e9a23b', '#3E9A6A', '#7A5BA6', '#E07A2E'];
+    [[-0.45, 0, -0.25], [-0.45, 0.16, -0.25], [-0.1, 0, -0.25], [-0.45, 0, 0.05], [-0.1, 0, 0.05], [-0.1, 0.16, -0.25]].forEach(([x, y, z], i) => {
+      g.add(box(0.32, 0.16, 0.18, colors[i % colors.length], x, 0.08 + y, z));
+    });
+    // 吊車
+    g.add(box(0.06, 1.1, 0.06, '#f2b134', 0.35, 0.08, -0.35), box(0.06, 1.1, 0.06, '#f2b134', 0.55, 0.08, -0.35));
+    g.add(box(0.06, 0.06, 1.2, '#f2b134', 0.45, 1.12, 0.1));
+    g.add(box(0.26, 0.06, 0.08, '#f2b134', 0.45, 1.12, -0.35));
+    g.add(cyl(0.006, 0.006, 0.55, 3, '#333333', 0.45, 0.58, 0.5));
+    g.add(box(0.3, 0.14, 0.17, '#c0392b', 0.45, 0.44, 0.5));
+    // 貨輪
+    const ship = new THREE.Group();
+    ship.add(box(1.3, 0.18, 0.36, '#2f4a6d'));
+    ship.add(box(1.3, 0.04, 0.37, '#c0392b', 0, 0.02, 0));
+    ship.add(box(0.26, 0.26, 0.28, '#ffffff', -0.45, 0.18, 0));
+    ship.add(box(0.3, 0.14, 0.26, '#3F7FBF', 0.05, 0.18, 0), box(0.3, 0.14, 0.26, '#e9a23b', 0.4, 0.18, 0));
+    ship.position.set(0.05, 0, 0.85);
+    anims.push({ obj: ship, kind: 'bob', base: -0.02, phase: 0.3, amp: 0.03 });
+    g.add(ship);
+    return g;
+  },
+
+  // 退換貨中心：郵局風的建築、屋頂上的大紙箱、門口輸送帶上的箱子
+  returnCenter(anims) {
+    const g = new THREE.Group();
+    g.add(box(1.0, 0.5, 0.66, '#fbf5ec'));
+    g.add(prism(1.1, 0.26, 0.76, '#E07A2E', 0, 0.5, 0));
+    g.add(box(0.3, 0.32, 0.02, '#5b3a2e', -0.2, 0, 0.335));
+    g.add(box(0.26, 0.16, 0.02, '#bfe3f0', 0.25, 0.16, 0.335));
+    // 屋頂的大紙箱（封著 DK 膠帶）
+    g.add(box(0.42, 0.3, 0.36, '#c89a64', 0.05, 0.66, -0.05));
+    g.add(box(0.43, 0.04, 0.08, WINE, 0.05, 0.94, -0.05));
+    // 輸送帶和在上面跑的小箱子
+    g.add(box(0.9, 0.06, 0.18, '#4a4f55', 0, 0.08, 0.52));
+    for (let i = 0; i < 3; i++) {
+      const parcel = box(0.14, 0.1, 0.12, '#c89a64', 0, 0.14, 0.52);
+      anims.push({ obj: parcel, kind: 'belt', from: -0.38, to: 0.38, speed: 0.25, phase: i / 3 });
+      g.add(parcel);
+    }
+    return g;
+  },
+
+  // 選鞋研究所：白色圓頂實驗室、彩色燒瓶、望遠鏡
+  lab() {
+    const g = new THREE.Group();
+    g.add(cyl(0.5, 0.52, 0.32, 14, '#f4f6f8'));
+    g.add(place(geo('labDome', () => new THREE.SphereGeometry(0.5, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2).translate(0, 0.32, 0)), mat('#e6edf2')));
+    g.add(box(0.26, 0.26, 0.02, '#3E9A6A', 0, 0, 0.5));
+    [['#7fd3a8', -0.62, 0.25], ['#f7a99a', -0.58, 0.48], ['#9cd0f2', 0.62, 0.35]].forEach(([c, x, z]) => {
+      g.add(place(geo('flask', () => new THREE.SphereGeometry(0.12, 12, 8).translate(0, 0.12, 0)), glow(c, c, 0.25), x, 0, z));
+      g.add(cyl(0.035, 0.035, 0.16, 8, '#e6edf2', x, 0.2, z));
+    });
+    const scope = cyl(0.04, 0.06, 0.5, 8, '#3a3f45', 0.18, 0.62, 0.05);
+    scope.rotation.z = -0.7;
+    g.add(scope);
+    return g;
+  },
+
+  // 鞋子高度探索站：紅白刻度的高塔、塔頂觀景台
+  heightTower() {
+    const g = new THREE.Group();
+    g.add(cyl(0.45, 0.5, 0.1, 10, '#d9d2c3'));
+    for (let i = 0; i < 8; i++) g.add(cyl(0.16, 0.16, 0.2, 10, i % 2 ? '#ffffff' : '#7A5BA6', 0, 0.1 + i * 0.2, 0));
+    g.add(cyl(0.34, 0.3, 0.1, 12, '#ffffff', 0, 1.7, 0));
+    g.add(cyl(0.34, 0.34, 0.16, 12, '#bfe3f0', 0, 1.8, 0));
+    g.add(cone(0.38, 0.26, 12, '#7A5BA6', 0, 1.96, 0));
+    // 塔旁邊一把大尺
+    g.add(box(0.08, 1.2, 0.03, '#f2b134', 0.4, 0.1, 0.25));
+    for (let i = 0; i < 6; i++) g.add(box(0.1, 0.02, 0.035, '#3a3f45', 0.39, 0.25 + i * 0.18, 0.25));
+    return g;
+  },
+
+  // 島中央的任務看板
+  kiosk() {
+    const g = new THREE.Group();
+    g.add(cyl(0.55, 0.6, 0.08, 12, '#f3e7d2'));
+    g.add(box(0.05, 0.9, 0.05, WINE, -0.3, 0.08, -0.2), box(0.05, 0.9, 0.05, WINE, 0.3, 0.08, -0.2));
+    g.add(box(0.72, 0.46, 0.05, '#fffaf2', 0, 0.5, -0.2));
+    g.add(box(0.8, 0.1, 0.08, WINE, 0, 0.96, -0.2));
+    ['#3F7FBF', '#E07A2E', '#3E9A6A', '#7A5BA6'].forEach((c, i) => {
+      g.add(box(0.14, 0.14, 0.02, c, -0.24 + i * 0.16, 0.66, -0.17));
+    });
+    return g;
+  },
+
   // 認不得的造型：一座小紀念碑
   monument() {
     const g = new THREE.Group();
@@ -371,6 +487,62 @@ export function createCouponMascot() {
   }
   anims.push({ obj: body, kind: 'sway', speed: 0.6, amp: 0.35 });
   return { group: g, anims };
+}
+
+// 客服任務島的客服小氣球：比一般氣球人大一點，戴耳機麥克風、穿紫色 polo
+export function createServiceNpc() {
+  const anims = [];
+  const g = new THREE.Group();
+  const body = new THREE.Group();
+  const skin = new THREE.MeshStandardMaterial({ color: '#9cd0f2', roughness: 0.45 });
+  const polo = new THREE.MeshStandardMaterial({ color: '#501f7f', roughness: 0.7 });
+  body.add(place(geo('npcBody', () => new THREE.CapsuleGeometry(0.1, 0.08, 3, 12).translate(0, 0.14, 0)), skin));
+  body.add(place(geo('npcHead', () => new THREE.SphereGeometry(0.1, 16, 12).translate(0, 0.37, 0)), skin));
+  body.add(place(geo('npcShirt', () => new THREE.CylinderGeometry(0.104, 0.11, 0.15, 14).translate(0, 0.145, 0)), polo));
+  // 耳機：頭頂一圈＋兩邊耳罩＋麥克風
+  const band = place(geo('npcBand', () => new THREE.TorusGeometry(0.105, 0.012, 6, 18, Math.PI)), '#2b2b2b', 0, 0.37, 0);
+  body.add(band);
+  for (const side of [-1, 1]) body.add(place(geo('npcCup', () => new THREE.CylinderGeometry(0.035, 0.035, 0.03, 10).rotateZ(Math.PI / 2)), mat('#2b2b2b'), side * 0.1, 0.37, 0));
+  const mic = cyl(0.006, 0.006, 0.1, 4, '#2b2b2b', 0.09, 0.3, 0.04);
+  mic.rotation.set(0.9, 0, 0.6);
+  body.add(mic);
+  body.add(ball(0.014, '#2b2b2b', 0.06, 0.31, 0.1, 0));
+  body.scale.setScalar(2.2);
+  anims.push({ obj: body, kind: 'bob', base: 0, phase: 0.8, amp: 0.04 });
+  g.add(body);
+  return { group: g, anims };
+}
+
+// 中央山脈上爬山的氣球人：登山帽、酒紅色背包、登山杖、DK 鞋；沿 +z 方向走
+export function createHiker(color) {
+  const g = new THREE.Group();
+  const body = new THREE.Group();
+  const skin = new THREE.MeshStandardMaterial({ color, roughness: 0.45 });
+  body.add(place(geo('hikerBody', () => new THREE.CapsuleGeometry(0.1, 0.08, 3, 12).translate(0, 0.19, 0)), skin));
+  body.add(place(geo('hikerHead', () => new THREE.SphereGeometry(0.1, 16, 12).translate(0, 0.42, 0)), skin));
+  body.add(box(0.15, 0.17, 0.09, WINE, 0, 0.12, -0.13));
+  body.add(box(0.15, 0.03, 0.09, '#f2b134', 0, 0.25, -0.13));
+  body.add(cyl(0.13, 0.13, 0.012, 14, '#e9a23b', 0, 0.48, 0));
+  body.add(cyl(0.07, 0.085, 0.07, 12, '#e9a23b', 0, 0.48, 0));
+  const stick = cyl(0.007, 0.007, 0.42, 4, '#7a5236', 0.14, 0, 0.08);
+  stick.rotation.x = 0.25;
+  body.add(stick);
+  for (const x of [-0.055, 0.055]) {
+    body.add(box(0.08, 0.025, 0.15, '#fbfaf6', x, 0, 0.02));
+    body.add(box(0.075, 0.04, 0.1, '#2e2b2a', x, 0.025, 0));
+  }
+  body.scale.setScalar(1.6);
+  g.add(body);
+  g.userData.body = body;
+  return g;
+}
+
+// 山頂的小旗子
+export function createSummitFlag(color = WINE) {
+  const g = new THREE.Group();
+  g.add(cyl(0.015, 0.015, 0.7, 5, '#e6e6e6'));
+  g.add(box(0.26, 0.16, 0.01, color, 0.13, 0.52, 0));
+  return g;
 }
 
 // DK 航空（白色機身、酒紅色尾翼），沿 +z 方向飛

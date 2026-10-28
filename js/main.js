@@ -4,8 +4,8 @@ import { BUILDING_TYPES, shoeColorOf } from './buildings.js';
 import { LANDMARK_MODELS } from './landmarks.js';
 import { h } from './util.js';
 
-const FILES = ['site', 'regions', 'modules', 'stores', 'products', 'landmarks'];
-const OPTIONAL = new Set(['landmarks']); // 沒有這個檔也能跑
+const FILES = ['site', 'regions', 'modules', 'stores', 'products', 'landmarks', 'service'];
+const OPTIONAL = new Set(['landmarks', 'service']); // 沒有這些檔也能跑
 const $ = (id) => document.getElementById(id);
 
 async function loadData() {
@@ -92,6 +92,7 @@ function normalize(raw) {
     site: raw.site,
     regions,
     landmarks,
+    service: raw.service?.missions?.length ? raw.service : null,
     modules,
     products,
     stores,
@@ -207,7 +208,7 @@ async function boot() {
     return;
   }
 
-  const state = { region: null, store: null };
+  const state = { region: null, store: null, mission: null };
   let world = null;
 
   const setHash = (value) => history.replaceState(null, '', value ? `#${value}` : location.pathname + location.search);
@@ -215,7 +216,7 @@ async function boot() {
   const app = {
     overview() {
       clearTimeout(enterTimer);
-      Object.assign(state, { region: null, store: null });
+      Object.assign(state, { region: null, store: null, mission: null });
       ui.showNone();
       world.setFocus(null);
       world.setSelected(null);
@@ -224,8 +225,9 @@ async function boot() {
     },
     region(id) {
       if (!data.regions.some((r) => r.id === id)) return app.overview();
+      if (data.regions.find((r) => r.id === id).role === 'service' && data.service) return app.service();
       clearTimeout(enterTimer);
-      Object.assign(state, { region: id, store: null });
+      Object.assign(state, { region: id, store: null, mission: null });
       ui.showRegion(id);
       world.setFocus(id);
       world.setSelected(null);
@@ -233,10 +235,32 @@ async function boot() {
       setHash(`region/${id}`);
     },
     // 進店：鏡頭先降到店門口，到了再開門
+    // 客服任務島：任務選單
+    service() {
+      if (!data.service) return app.overview();
+      clearTimeout(enterTimer);
+      Object.assign(state, { region: 'service', store: null, mission: null });
+      ui.showServiceMenu();
+      world.setFocus(data.regions.some((r) => r.id === 'service') ? 'service' : null);
+      world.setSelected(null);
+      world.focusService();
+      setHash('service');
+    },
+    // 客服任務：鏡頭先飛到那一站，到了再打開站點畫面
+    mission(id) {
+      const m = data.service?.missions.find((x) => x.id === id);
+      if (!m) return app.service();
+      clearTimeout(enterTimer);
+      Object.assign(state, { region: 'service', store: null, mission: id });
+      world.setSelected(null);
+      world.focusMission(id);
+      enterTimer = setTimeout(() => { if (state.mission === id) ui.openStation(id); }, 900);
+      setHash(`mission/${id}`);
+    },
     coupon() {
       if (!data.site.coupon) return app.overview();
       clearTimeout(enterTimer);
-      Object.assign(state, { region: null, store: null });
+      Object.assign(state, { region: null, store: null, mission: null });
       ui.showCoupon();
       world.setFocus(null);
       world.setSelected(null);
@@ -246,7 +270,7 @@ async function boot() {
     landmark(id) {
       if (!data.landmarks.some((l) => l.id === id)) return app.overview();
       clearTimeout(enterTimer);
-      Object.assign(state, { region: null, store: null });
+      Object.assign(state, { region: null, store: null, mission: null });
       ui.showLandmark(id);
       world.setFocus(null);
       world.setSelected(null);
@@ -256,7 +280,7 @@ async function boot() {
     store(id) {
       const s = data.storeById.get(id);
       if (!s) return app.overview();
-      Object.assign(state, { region: s.region, store: id });
+      Object.assign(state, { region: s.region, store: id, mission: null });
       ui.selectStore(id);
       world.setFocus(s.region);
       world.setSelected(id);
@@ -273,7 +297,9 @@ async function boot() {
     onStore: app.store,
     onOverview: app.overview,
     onCloseCard: () => (state.store ? app.region(state.region) : app.overview()),
-    onCloseShop: () => app.region(state.region),
+    onCloseShop: () => (state.mission ? app.service() : app.region(state.region)),
+    onMission: (id) => app.mission(id),
+    onServiceBack: () => app.service(),
     onPostMessage: data.site.managerPicksUrl && data.site.messageBoard
       ? (storeId, nickname, text, website) => sendNote(data.site.managerPicksUrl, storeId, nickname, text, website)
       : null,
@@ -281,13 +307,16 @@ async function boot() {
   });
 
   try {
-    world = createWorld($('stage'), data, { onRegion: app.region, onStore: app.store, onLandmark: app.landmark, onCoupon: app.coupon });
+    world = createWorld($('stage'), data, { onRegion: app.region, onStore: app.store, onLandmark: app.landmark, onCoupon: app.coupon, onMission: app.mission, onService: app.service });
   } catch (e) {
     console.error(e);
     showError(`這個瀏覽器沒辦法顯示 3D 畫面（${e.message}）`);
     return;
   }
   $('loading').hidden = true;
+  const serviceBtn = $('btn-service');
+  if (data.service) serviceBtn.addEventListener('click', () => app.service());
+  else serviceBtn.hidden = true;
 
   if (data.site.managerPicksUrl) {
     loadManagerPicks(data.site.managerPicksUrl)
@@ -309,6 +338,8 @@ async function boot() {
   if (m?.[1] === 'store') app.store(m[2]);
   else if (m?.[1] === 'spot') app.landmark(m[2]);
   else if (location.hash === '#coupon') app.coupon();
+  else if (location.hash === '#service') app.service();
+  else if (decodeURIComponent(location.hash).startsWith('#mission/')) app.mission(decodeURIComponent(location.hash).slice(9));
   else if (m?.[1] === 'region') app.region(m[2]);
   else {
     app.overview();

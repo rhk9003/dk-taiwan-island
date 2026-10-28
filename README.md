@@ -19,12 +19,14 @@ js/               程式（平常不用動）
   town.js         商圈裡的店面、夜市小攤、路燈
   landmarks.js    台灣景點、機場、離島地標的造型和 DK 航空的飛機
   people.js       門口的店長氣球人、街上逛街的氣球人和他們的鞋
-  ui.js           右側清單、分區卡、進店畫面、遊戲視窗、開場導覽
+  ui.js           右側清單、分區卡、進店畫面、遊戲視窗、開場導覽、客服任務選單
+  service.js      客服任務島各站的內容（到貨推算、退換貨檢查、打包小遊戲）
 assets/           店長氣球人的圖
 data/             ← 平常只改這裡
   site.json       網站標題、開場導覽文字
   regions.json    八個分區（含離島）
-  landmarks.json  台灣景點與機場
+  landmarks.json  台灣景點、機場、公廟、DK 電影院
+  service.json    客服任務島：四個任務、到貨與退換貨規則、國定假日
   stores.json     61 間門市
   modules.json    玩法（每種玩法的名稱、建築造型、遊戲網址）
   products.json   店長推薦可以選的商品
@@ -48,6 +50,8 @@ data/             ← 平常只改這裡
 | 換飛機拖的活動彩帶 | `site.json` 的 `banners`：每一項是 `text`（彩帶上的字）、`url`（點彩帶開的活動頁）、`color`（底色），可以放好幾個，飛機每飛一趟換下一個 |
 | 換領優惠券氣球人的連結 | `site.json` 的 `coupon`：`url` 是領券網址，`title`／`desc`／`cta` 是卡片文字，`lapSeconds` 是繞台灣一圈幾秒，`route` 可以自訂巡迴路線。點它鏡頭會一路跟著飛；網址 `…/#coupon` 可以直接打開領券卡片 |
 | 審核留言 | 到「店長的話蒐集」試算表的「門市留言」分頁，勾「上牆」才會貼到那間店的留言牆 |
+| 改客服任務島的規則 | `service.json`：`shipping`（幾個工作天到貨、配送提醒、`holidays` 國定假日）、`returns`（檢查清單、退換貨規則、打包步驟、申請步驟）。官網購物說明改了要一起改；`holidays` 每年依人事行政總處行事曆更新。網址 `…/#service` 打開任務選單，`…/#mission/shipping`、`…/#mission/returns` 直達某一站 |
+| 開放選鞋研究所、高度探索站 | 內容還沒做；`service.json` 那個任務的 `comingSoon` 目前是 true |
 | 改分區名稱、介紹、名牌位置 | `regions.json` |
 | 改標題、開場導覽 | `site.json` |
 

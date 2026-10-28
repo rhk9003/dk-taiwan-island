@@ -117,9 +117,13 @@ function mountainAt(x, z) {
 }
 
 /** 排出整座台灣島：格子、山、離島、景點、門市位置、商圈、分區（只算資料，不建 3D 物件） */
-export function layoutTaiwan(regions, stores, landmarks, warn) {
+export function layoutTaiwan(regions, stores, landmarks, service, warn) {
   const coast = COAST.map(project);
-  const islets = ISLETS.map((il) => {
+  // 客服任務島也當成一座離島來鋪格子
+  const isletDefs = service?.center
+    ? [...ISLETS, { name: service.name, parts: [[...service.center, service.radiusKm || 9]], service: true }]
+    : ISLETS;
+  const islets = isletDefs.map((il) => {
     const base = project(il.parts[0]);
     const center = il.show ? project(il.show) : base;
     const circles = il.parts.map(([lat, lng, r]) => {
@@ -172,6 +176,7 @@ export function layoutTaiwan(regions, stores, landmarks, warn) {
     plazaTile: null,
   }]));
   const islandsRegion = regions.find((r) => r.role === 'islands')?.id ?? null;
+  const serviceRegion = regions.find((r) => r.role === 'service')?.id ?? null;
 
   // 活動廣場：把 anchor 附近一圈整平鋪地
   for (const ri of info.values()) {
@@ -197,6 +202,26 @@ export function layoutTaiwan(regions, stores, landmarks, warn) {
     if (lm.model === 'lake') t.h = Math.max(LAND_H, t.h - 0.5); // 湖在山谷裡，比周圍低一點
     spots.push({ landmark: lm, tile: t });
   }
+  // 客服任務島：中央放任務看板和客服氣球人，四個站照 offset 排在四周
+  let serviceLayout = null;
+  const serviceIslet = islets.find((il) => il.service);
+  if (serviceIslet) {
+    const onIsland = (c) => c.islet === serviceIslet && !c.edge && !c.reserved;
+    const centerTile = nearest(serviceIslet.center, onIsland);
+    if (centerTile) {
+      centerTile.reserved = 'service-center';
+      const stations = [];
+      for (const mission of service.missions || []) {
+        const [ox, oz] = mission.offset || [0, 0];
+        const t = nearest({ x: centerTile.x + ox * 2.6, z: centerTile.z + oz * 2.6 }, onIsland);
+        if (!t) continue;
+        t.reserved = `mission-${mission.id}`;
+        stations.push({ mission, tile: t });
+      }
+      serviceLayout = { centerTile, stations };
+    }
+  }
+
   for (const il of islets) {
     if (!il.landmark) continue;
     const t = nearest(il.center, (c) => c.islet === il && !c.edge) ?? nearest(il.center, (c) => c.islet === il);
@@ -257,6 +282,10 @@ export function layoutTaiwan(regions, stores, landmarks, warn) {
   for (const t of all) if (t.store) seeds.push({ x: t.x, z: t.z, id: t.store.region });
   for (const ri of info.values()) if (ri.region.role !== 'islands') seeds.push({ x: ri.anchor.x, z: ri.anchor.z, id: ri.region.id });
   for (const t of all) {
+    if (t.islet?.service && serviceRegion) {
+      t.regionId = serviceRegion;
+      continue;
+    }
     if (t.islet && islandsRegion) {
       t.regionId = islandsRegion;
       continue;
@@ -269,9 +298,10 @@ export function layoutTaiwan(regions, stores, landmarks, warn) {
   }
 
   for (const ri of info.values()) {
-    const pts = ri.region.role === 'islands'
-      ? all.filter((t) => t.islet)
-      : [...ri.tiles, ri.plazaTile, ri.anchor].filter(Boolean);
+    let pts = [...ri.tiles, ri.plazaTile, ri.anchor].filter(Boolean);
+    if (ri.region.role === 'islands') pts = all.filter((t) => t.islet && !t.islet.service);
+    if (ri.region.role === 'service') pts = all.filter((t) => t.islet?.service);
+    if (!pts.length) pts = [ri.anchor];
     const px = pts.map((p) => p.x);
     const pz = pts.map((p) => p.z);
     ri.box = { minX: Math.min(...px), maxX: Math.max(...px), minZ: Math.min(...pz), maxZ: Math.max(...pz) };
@@ -290,7 +320,7 @@ export function layoutTaiwan(regions, stores, landmarks, warn) {
     new THREE.Vector3(Math.min(...coast.map((p) => p.x)), 0, Math.min(...coast.map((p) => p.z))),
     new THREE.Vector3(Math.max(...coast.map((p) => p.x)), 0, Math.max(...coast.map((p) => p.z))),
   );
-  return { tiles: all, regions: info, bounds, mainBounds, streets, landmarks: spots, islets };
+  return { tiles: all, regions: info, bounds, mainBounds, streets, landmarks: spots, islets, service: serviceLayout };
 }
 
 /** 把整座島建成 3D 物件（同類物件用 InstancedMesh，手機也跑得動） */

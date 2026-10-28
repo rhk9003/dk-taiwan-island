@@ -5,7 +5,7 @@ import { layoutTaiwan, buildIsland, LAND_H, project } from './islands.js';
 import { createBuilding, createPlaza, createClouds, createRing, MASCOT, SHOE_FALLBACK, shoeColorOf, mascotIndex } from './buildings.js';
 import { buildTown } from './town.js';
 import { createPeople } from './people.js';
-import { createLandmark, createPlane, createBanner, createCouponMascot } from './landmarks.js';
+import { createLandmark, createPlane, createBanner, createCouponMascot, createServiceNpc, createHiker, createSummitFlag } from './landmarks.js';
 import { easeInOutCubic, clamp, h, rng, shortName } from './util.js';
 
 const VIEW_POLAR = 0.9; // 鏡頭和正上方的夾角（弧度），越大越斜
@@ -32,7 +32,7 @@ export function createWorld(container, data, handlers) {
   container.appendChild(labelRenderer.domElement);
 
   // ---- 島 ----
-  const layout = layoutTaiwan(data.regions, data.stores, data.landmarks, data.warn);
+  const layout = layoutTaiwan(data.regions, data.stores, data.landmarks, data.service, data.warn);
   const island = buildIsland(layout);
   const bounds = layout.bounds;
   const maxDim = Math.max(...bounds.getSize(new THREE.Vector3()).toArray());
@@ -127,7 +127,7 @@ export function createWorld(container, data, handlers) {
     pickables.push(g);
     anims.push(...a);
     const top = new THREE.Box3().setFromObject(g).max.y;
-    const kind = lm.model === 'airport' ? ' airport' : lm.type === 'temple' ? ' temple' : '';
+    const kind = lm.model === 'airport' ? ' airport' : lm.type === 'temple' ? ' temple' : lm.type === 'cinema' ? ' cinema' : '';
     const label = smallLabel(`llabel${kind}`, lm.name, () => handlers.onLandmark?.(lm.id));
     label.position.set(t.x, top + 0.35, t.z);
     scene.add(label);
@@ -135,6 +135,7 @@ export function createWorld(container, data, handlers) {
   }
 
   for (const il of layout.islets) {
+    if (il.service) continue; // 客服任務島另外處理
     const toIslands = () => islandsRegion && handlers.onRegion(islandsRegion);
     if (il.landmarkTile) {
       const { group: g, anims: a } = createLandmark(il.landmark);
@@ -159,6 +160,84 @@ export function createWorld(container, data, handlers) {
       frame.computeLineDistances();
       scene.add(frame);
     }
+  }
+
+  // ---- 客服任務島：中央任務看板＋客服小氣球，四周四個站 ----
+  const missionObjs = new Map();
+  if (layout.service) {
+    const { centerTile: c, stations } = layout.service;
+    const { group: kiosk, anims: ka } = createLandmark('kiosk');
+    kiosk.position.set(c.x, c.h, c.z);
+    kiosk.userData.service = true;
+    const npc = createServiceNpc();
+    npc.group.position.set(c.x + 0.45, c.h, c.z + 0.45);
+    npc.group.userData.service = true;
+    scene.add(kiosk, npc.group);
+    pickables.push(kiosk, npc.group);
+    anims.push(...ka, ...npc.anims);
+    const askLabel = smallLabel('llabel service-ask', data.service.npc?.name ? `問${data.service.npc.name}` : '客服任務', () => handlers.onService?.());
+    askLabel.position.set(c.x + 0.45, c.h + 1.5, c.z + 0.45);
+    scene.add(askLabel);
+    for (const { mission, tile } of stations) {
+      const { group: g, anims: a } = createLandmark(mission.model);
+      g.position.set(tile.x, tile.h, tile.z);
+      g.userData.missionId = mission.id;
+      scene.add(g);
+      pickables.push(g);
+      anims.push(...a);
+      const top = new THREE.Box3().setFromObject(g).max.y;
+      const label = smallLabel('llabel service', mission.station, () => handlers.onMission?.(mission.id));
+      label.position.set(tile.x, top + 0.35, tile.z);
+      scene.add(label);
+      missionObjs.set(mission.id, { group: g, tile, height: top - tile.h });
+    }
+  }
+
+  // ---- 中央山脈：三條登山步道，各有一位氣球人一直爬上爬下 ----
+  const TRAILS = [
+    { name: '玉山', from: [23.488, 120.885], to: [23.47, 120.957], color: MASCOT[0] },
+    { name: '雪山', from: [24.398, 121.315], to: [24.383, 121.232], color: MASCOT[3] },
+    { name: '合歡山', from: [24.105, 121.205], to: [24.142, 121.272], color: MASCOT[2] },
+  ];
+  const nearestTile = (p) => {
+    let best = null;
+    let bd = Infinity;
+    for (const t of layout.tiles) {
+      const d = (t.x - p.x) ** 2 + (t.z - p.z) ** 2;
+      if (d < bd) { bd = d; best = t; }
+    }
+    return best;
+  };
+  const hikers = TRAILS.map((trail, i) => {
+    const a = project(trail.from);
+    const b = project(trail.to);
+    const steps = Math.max(2, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.5));
+    const pts = [];
+    for (let k = 0; k <= steps; k++) {
+      const t = nearestTile({ x: a.x + ((b.x - a.x) * k) / steps, z: a.z + ((b.z - a.z) * k) / steps });
+      if (t && pts[pts.length - 1] !== t) pts.push(t);
+    }
+    const path = pts.map((t) => new THREE.Vector3(t.x, t.h, t.z));
+    // 山頂那格如果有景點（玉山的岩峰），就爬到造型的尖頂上，不要走進岩石裡
+    const peak = [...landmarkObjs.values()].find((o) => o.tile === pts[pts.length - 1]);
+    if (peak) path[path.length - 1].y += peak.height - 0.05;
+    const dist = [0];
+    for (let k = 1; k < path.length; k++) dist.push(dist[k - 1] + path[k].distanceTo(path[k - 1]));
+    const hiker = createHiker(trail.color);
+    scene.add(hiker);
+    const summit = path[path.length - 1];
+    const flag = createSummitFlag();
+    flag.position.set(summit.x + (peak ? 0.08 : 0.35), summit.y, summit.z - (peak ? 0.05 : 0.2));
+    scene.add(flag);
+    return { hiker, path, dist, length: dist[dist.length - 1], speed: 0.35, phase: i * 7 };
+  });
+  const hikePos = new THREE.Vector3();
+  const hikeAhead = new THREE.Vector3();
+  function pointAt(hk, d, out) {
+    let k = 1;
+    while (k < hk.dist.length - 1 && hk.dist[k] < d) k++;
+    const seg = hk.dist[k] - hk.dist[k - 1] || 1;
+    return out.lerpVectors(hk.path[k - 1], hk.path[k], Math.min(1, Math.max(0, (d - hk.dist[k - 1]) / seg)));
   }
 
   // DK 航空：飛機在機場之間來回飛，後面拖著目前活動的彩帶（site.json 的 banners，每飛一趟換下一個）
@@ -363,6 +442,8 @@ export function createWorld(container, data, handlers) {
         if (o.userData.landmarkId) return { landmark: o.userData.landmarkId };
         if (o.userData.bannerUrl !== undefined) return { banner: o.userData.bannerUrl };
         if (o.userData.coupon) return { coupon: true };
+        if (o.userData.missionId) return { mission: o.userData.missionId };
+        if (o.userData.service) return { service: true };
         if (o.userData.regionId) return { region: o.userData.regionId };
       }
       const tileRegion = hit.object.userData.tileRegion;
@@ -386,6 +467,8 @@ export function createWorld(container, data, handlers) {
     else if (hit?.landmark) handlers.onLandmark?.(hit.landmark);
     else if (hit?.banner !== undefined) { if (hit.banner) window.open(hit.banner, '_blank', 'noopener'); }
     else if (hit?.coupon) handlers.onCoupon?.();
+    else if (hit?.mission) handlers.onMission?.(hit.mission);
+    else if (hit?.service) handlers.onService?.();
     else if (hit?.region) handlers.onRegion(hit.region);
   });
   dom.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') pendingMove = e; });
@@ -516,7 +599,30 @@ export function createWorld(container, data, handlers) {
         a.obj.rotation.y = t * 2;
       } else if (a.kind === 'sway') {
         a.obj.rotation.y = Math.sin(t * a.speed) * a.amp;
+      } else if (a.kind === 'blink') {
+        a.obj.material.emissiveIntensity = (Math.floor(t * 3) + a.phase) % 2 ? 1.2 : 0.15;
+      } else if (a.kind === 'belt') {
+        a.obj.position.x = a.from + ((t * a.speed + a.phase) % 1) * (a.to - a.from);
       }
+    }
+    // 爬山：上山 → 山頂開心跳 3 秒 → 下山 → 山腳休息 2 秒，一直循環
+    for (const hk of hikers) {
+      const leg = hk.length / hk.speed;
+      const cycle = leg * 2 + 5;
+      const c = (t + hk.phase) % cycle;
+      const body = hk.hiker.userData.body;
+      let d;
+      let dir = 1;
+      body.position.y = 0;
+      if (c < leg) d = (c / leg) * hk.length;
+      else if (c < leg + 3) { d = hk.length; body.position.y = Math.abs(Math.sin((c - leg) * 6)) * 0.25; }
+      else if (c < leg * 2 + 3) { d = (1 - (c - leg - 3) / leg) * hk.length; dir = -1; }
+      else d = 0;
+      pointAt(hk, d, hikePos);
+      pointAt(hk, Math.min(hk.length, Math.max(0, d + dir * 0.3)), hikeAhead);
+      const walking = (c < leg) || (c >= leg + 3 && c < leg * 2 + 3);
+      hk.hiker.position.set(hikePos.x, hikePos.y + (walking ? Math.abs(Math.sin(t * 7)) * 0.04 : 0), hikePos.z);
+      if (hikeAhead.distanceToSquared(hikePos) > 1e-4) hk.hiker.rotation.y = Math.atan2(hikeAhead.x - hikePos.x, hikeAhead.z - hikePos.z);
     }
     if (coupon) {
       // 沿路線快速巡迴、一路彈跳，身體一直轉向鏡頭讓優惠券被看到
@@ -580,6 +686,15 @@ export function createWorld(container, data, handlers) {
       } else {
         flyTo(mapCenter, fitDistance(mapSize.x, mapSize.z), VIEW_POLAR, 1400, 0); // 全景一律北方朝上
       }
+    },
+    focusService() {
+      const ri = layout.regions.get('service');
+      if (ri) this.focusRegion('service');
+    },
+    focusMission(id) {
+      const o = missionObjs.get(id);
+      if (!o) return;
+      flyTo(new THREE.Vector3(o.tile.x, o.tile.h + o.height * 0.4, o.tile.z), W < 600 ? 10 : 8, 1.05);
     },
     focusCoupon() {
       if (!coupon) return;
