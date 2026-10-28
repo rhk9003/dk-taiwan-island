@@ -1,7 +1,7 @@
 {
-  "_說明": "網站標題與開場導覽。intro 每一項是導覽的一頁。managerPicksUrl 是「店長的話蒐集」試算表的讀取網址（Apps Script 網頁應用程式的 /exec 網址）：店長填了的店，一句話和推薦商品以試算表為準；留空就只用 stores.json。有填網址時，stores.json 裡 sample: true 的範例內容不會顯示。messageBoard 是每間店的留言牆能不能留言（true 開放、false 只顯示「即將開放」）；留言會先進試算表「門市留言」分頁，勾了「上牆」才會出現在店裡。",
+  "_說明": "網站標題與開場導覽。intro 每一項是導覽的一頁。managerPicksUrl 是「店長的話蒐集」試算表的讀取網址（Apps Script 網頁應用程式的 /exec 網址）：店長填了的店，一句話和推薦商品以試算表為準；留空就只用 stores.json。有填網址時，stores.json 裡 sample: true 的範例內容不會顯示。messageBoard 是每間店的留言牆能不能留言（true 開放、false 只顯示「即將開放」）；留言送出就直接貼上牆（會先擋網址、程式碼、聯絡方式、洗版和試算表「禁用字」分頁裡的字）；不適當的留言到試算表「門市留言」分頁勾「隱藏」。",
   "messageBoard": true,
-  "_residents說明": "島民角色：訪客可以捏一個氣球人放上島（造型、移動模式是固定選項，暱稱審核通過才公開）。true 開放、false 關閉；需要店長表單的 Apps Script 已部署島民角色的後端。",
+  "_residents說明": "島民角色：訪客可以捏一個氣球人放上島（造型、移動模式是固定選項；暱稱直接公開，一樣會擋網址、程式碼、聯絡方式、官方字樣和禁用字）。true 開放、false 關閉；需要店長表單的 Apps Script 已部署島民角色的後端。",
   "residents": true,
   "_banners說明": "飛機拖的活動彩帶，可以放好幾個，每架飛機每飛一趟換下一個。text 是彩帶上的字（建議 16 字內），url 是點彩帶要開的活動頁，color 是彩帶底色。",
   "banners": [

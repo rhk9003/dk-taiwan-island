@@ -133,7 +133,7 @@ async function loadManagerPicks(url) {
   }
 }
 
-// 店長有填的店，一句話和推薦商品以試算表為準；留言牆放已上牆的留言。回傳要換鞋色的門市
+// 店長有填的店，一句話和推薦商品以試算表為準；留言牆放沒被隱藏的留言。回傳要換鞋色的門市
 function applyPicks(data, picks) {
   const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
   const shoes = new Map();
@@ -191,7 +191,7 @@ async function postSheet(url, payload) {
   }
 }
 
-// 留言（先審再上牆）
+// 留言（後端回 published: true 就直接上牆；舊版後端是先審再上牆）
 const sendNote = (url, storeId, nickname, text, website) => postSheet(url, { role: 'message', storeId, nickname, text, website });
 
 // 自己的島民存在這台裝置，打開網站就看得到，不用等試算表
@@ -252,7 +252,7 @@ async function boot() {
     $('btn-me').textContent = '我的島民';
     placeResidents();
     world.focusResident();
-    return { ok: true };
+    return { ok: true, pending: me.pending };
   }
   let world = null;
 
@@ -434,7 +434,7 @@ async function boot() {
         ui.refresh();
         if (residentsOn) {
           serverResidents = (Array.isArray(picks.residents) ? picks.residents : []).map(cleanResident).filter(Boolean);
-          // 暱稱審核通過了：試算表回傳的暱稱跟自己的一樣，就拿掉「審核中」
+          // 試算表回傳的暱稱跟自己的一樣（審核通過，或後端已改成直接公開），就拿掉「審核中」
           const mine = serverResidents.find((r) => r.id === mineId);
           if (me?.pending && mine?.nickname && mine.nickname === me.nickname) {
             me.pending = false;

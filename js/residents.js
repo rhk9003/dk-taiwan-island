@@ -200,7 +200,7 @@ export function createResidents(list, makeMover, mineId) {
   addWear('hat', HATS, HAT_COLORS);
   addWear('acc', ACCS, ACC_COLORS);
 
-  // 名牌：審核通過的暱稱，和自己的「我」
+  // 名牌：公開的暱稱，和自己的「我」
   const labels = [];
   people.forEach((p) => {
     if (!p.nickname && !p.mine) return;

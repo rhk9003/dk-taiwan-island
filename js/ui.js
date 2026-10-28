@@ -3,6 +3,7 @@ import { mascotIndex } from './buildings.js';
 import { shippingStation, returnsStation, comingSoonStation } from './service.js';
 import { RESIDENT_OPTIONS } from './residents.js';
 import { stampSvg, stampDate, STAMPER_SVG } from './stamps.js';
+import { cleanText, textProblem } from './textrules.js';
 
 const INTRO_KEY = 'dk-island-intro-v1';
 const MISSION_KEY = 'dk-island-missions'; // 這台裝置完成過哪些客服任務
@@ -380,9 +381,9 @@ export function createUI(data, handlers) {
     return h('a', { class: 'cta', href: maps, target: '_blank', rel: 'noopener' }, '來門市試穿 →');
   }
 
-  // ---- 留言牆（先審再上牆）----
+  // ---- 留言牆（不審核、直接貼上牆；不適當的到試算表勾「隱藏」）----
   const NOTE_COLORS = ['#ffe08a', '#ffc2cf', '#bfe0ff', '#c7efd6', '#fff3b0', '#e6d7ff'];
-  const pending = new Map(); // 這次開頁面自己送出、還在審核的留言（只有自己看得到）
+  const pending = new Map(); // 後端還是「先審再上牆」的舊版時，自己送出、還在審核的留言（只有自己看得到）
   let cooldownUntil = 0;
 
   function note(m, i, extra = '') {
@@ -429,10 +430,15 @@ export function createUI(data, handlers) {
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const nickname = form.nickname.value.trim();
-      const text = form.text.value.trim();
-      if (text.length < 2) {
+      const nickname = cleanText(form.nickname.value);
+      const text = cleanText(form.text.value);
+      if ([...text].length < 2) {
         status.textContent = '再多寫幾個字吧！';
+        return;
+      }
+      const problem = textProblem(text) || textProblem(nickname, 'nickname');
+      if (problem) {
+        status.textContent = problem;
         return;
       }
       if (Date.now() < cooldownUntil) {
@@ -448,15 +454,21 @@ export function createUI(data, handlers) {
         return;
       }
       cooldownUntil = Date.now() + 30000;
-      pending.set(s.id, [{ nickname: nickname || '路過的客人', text }, ...(pending.get(s.id) || [])]);
+      const mine = { nickname: nickname || '路過的客人', text };
+      if (res.data?.published) {
+        s.messages = [mine, ...(s.messages || [])].slice(0, 12);
+        status.textContent = '貼上去了！';
+      } else {
+        pending.set(s.id, [mine, ...(pending.get(s.id) || [])]);
+        status.textContent = '收到了！店員看過後就會貼上牆。';
+      }
       form.text.value = '';
       count.textContent = '0/60';
-      status.textContent = '收到了！店員看過後就會貼上牆。';
       renderNotes(s, cork);
     });
 
     return h('section', { class: 'shop-board' },
-      h('p', { class: 'shop-label' }, '留言牆', h('span', { class: 'note-hint', text: '店員看過後會貼上牆' })),
+      h('p', { class: 'shop-label' }, '留言牆', h('span', { class: 'note-hint', text: '請友善留言，不能放網址或聯絡方式' })),
       cork,
       form);
   }
@@ -615,17 +627,22 @@ export function createUI(data, handlers) {
     const status = h('p', { class: 'note-status', role: 'status' });
     const submit = h('button', { type: 'button', class: 'cta', style: '--c:#8B2332' }, me ? '更新我的島民 →' : '放上島 →');
     submit.addEventListener('click', async () => {
+      const problem = textProblem(nickname.value, 'nickname');
+      if (problem) {
+        status.textContent = problem;
+        return;
+      }
       submit.disabled = true;
       status.textContent = '放上島中…';
       const res = await handlers.onSaveResident({
         look: { body: choice.body, hat: choice.hat, acc: choice.acc, shoe: choice.shoe },
         mode: choice.mode,
-        nickname: nickname.value.trim(),
+        nickname: cleanText(nickname.value),
         website: honeypot.value,
       });
       submit.disabled = false;
       status.textContent = res.ok
-        ? (nickname.value.trim() ? '上島了！暱稱審核通過後，大家就看得到你的名字。' : '上島了！快去找找你的島民。')
+        ? (res.pending ? '上島了！暱稱審核通過後，大家就看得到你的名字。' : '上島了！快去找找你的島民。')
         : res.message;
     });
 
@@ -638,7 +655,7 @@ export function createUI(data, handlers) {
       group('acc', '配件', O.acc, (o) => o.label),
       group('shoe', '鞋子顏色', O.shoe, (c) => h('i', { class: 'swatch', style: `background:${c}`, title: c })),
       group('mode', '移動模式', O.mode, (o) => o.label),
-      h('div', { class: 'me-group' }, h('p', { class: 'me-label' }, '暱稱', h('span', { class: 'note-hint', text: '審核通過後才會公開' })), nickname, honeypot),
+      h('div', { class: 'me-group' }, h('p', { class: 'me-label' }, '暱稱', h('span', { class: 'note-hint', text: '不能放網址、聯絡方式或官方字樣' })), nickname, honeypot),
       submit,
       status,
       me ? h('button', { type: 'button', class: 'me-find', onclick: () => handlers.onFindMe() }, '看我的島民走到哪了 →') : null,
