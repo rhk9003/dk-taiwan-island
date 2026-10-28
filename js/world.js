@@ -360,7 +360,7 @@ export function createWorld(container, data, handlers) {
       class: 'qlabel',
       'aria-label': '有買鞋煩惱的路人',
       onclick: (e) => { e.stopPropagation(); handlers.onShopper?.(slot); },
-    }, h('span', { text: '!' }));
+    }, h('span', { class: 'q-pill' }, h('span', { class: 'q-mark', text: '!' }), h('span', { class: 'q-text', text: '幫我挑鞋' })));
     const obj = new CSS2DObject(el);
     scene.add(obj);
     return obj;
@@ -792,6 +792,7 @@ export function createWorld(container, data, handlers) {
       for (const o of shoppers) {
         people.hold(o.walker, o === s);
         o.label.element.classList.toggle('is-open', o === s);
+        if (!o.label.element.classList.contains('happy')) o.label.element.querySelector('.q-text').textContent = o === s ? '選哪雙好？' : '幫我挑鞋';
       }
       const p = people.positionOf(s.walker);
       flyTo(new THREE.Vector3(p.x, p.y + 0.4, p.z), W < 600 ? 9 : 7, 1.05);
@@ -804,6 +805,7 @@ export function createWorld(container, data, handlers) {
       for (const o of shoppers) {
         people.hold(o.walker, false);
         o.label.element.classList.remove('is-open');
+        if (!o.label.element.classList.contains('happy')) o.label.element.querySelector('.q-text').textContent = '幫我挑鞋';
       }
     },
     // 幫他挑到鞋了：頭上換成愛心，過一下「!」跑到另一個路人頭上
@@ -813,12 +815,14 @@ export function createWorld(container, data, handlers) {
       const el = s.label.element;
       el.classList.remove('is-open');
       el.classList.add('happy');
-      el.firstChild.textContent = '♥';
+      el.querySelector('.q-mark').textContent = '♥';
+      el.querySelector('.q-text').textContent = '謝謝你！';
       setTimeout(() => {
         people.hold(s.walker, false);
         s.walker = pickWalker() ?? s.walker;
         el.classList.remove('happy');
-        el.firstChild.textContent = '!';
+        el.querySelector('.q-mark').textContent = '!';
+        el.querySelector('.q-text').textContent = '幫我挑鞋';
       }, 1800);
     },
     // 鏡頭飛到自己的島民，然後一路跟著

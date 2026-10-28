@@ -810,7 +810,9 @@ export function createUI(data, handlers) {
     const pass = visitorPass();
     const postmark = h('span', { class: 'postmark', 'aria-hidden': 'true' });
     postmark.innerHTML = stampSvg({ id: 'invite-postmark', name: inv.postmark || '台灣島郵局' }, '#8B2332', pass.at);
-    const items = (inv.highlights || []).filter((it) => it?.title && (!it.needs || FEATURES[it.needs]?.()));
+    const shown = (inv.highlights || []).filter((it) => it?.title && (!it.needs || FEATURES[it.needs]?.()));
+    const featured = shown.filter((it) => it.featured);
+    const items = shown.filter((it) => !it.featured);
     return h('div', { class: 'invite-wrap' },
       h('div', { class: 'invite-sheet', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'invite-title' },
         h('article', { class: 'letter' },
@@ -822,6 +824,21 @@ export function createUI(data, handlers) {
           h('div', { class: 'letter-body' },
             h('p', { class: 'greet', text: inv.greeting || '親愛的旅人：' }),
             [].concat(inv.body || []).map((t) => h('p', { class: 'para', text: fillIn(t) }))),
+          // 想讓大家一登島就去玩的功能：做成黃色任務單貼在信上
+          featured.map((it) => h('section', { class: 'letter-feature' },
+            h('span', { class: 'lf-mark', 'aria-hidden': 'true', text: it.mark || '!' }),
+            h('div', {},
+              it.kicker ? h('p', { class: 'lf-kicker', text: it.kicker }) : null,
+              h('b', { text: fillIn(it.title) }),
+              it.text ? h('p', { text: fillIn(it.text) }) : null,
+              it.cta ? h('button', {
+                type: 'button',
+                class: 'lf-go',
+                onclick: () => {
+                  closeIntro();
+                  setTimeout(() => handlers.onInviteGo?.(it.needs), 480); // 信收起來之後再飛過去
+                },
+              }, `${it.cta} →`) : null))),
           items.length ? h('ul', { class: 'letter-list' }, items.map((it, i) => h('li', {},
             h('span', { class: 'mark', style: `--c:${MARK_COLORS[i % MARK_COLORS.length]};--r:${((i * 7) % 15) - 9}deg`, 'aria-hidden': 'true', text: it.mark || '★' }),
             h('span', {}, h('b', { text: fillIn(it.title) }), it.text ? h('small', { text: fillIn(it.text) }) : null)))) : null,

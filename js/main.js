@@ -313,7 +313,15 @@ async function boot() {
     try { localStorage.setItem(HELP_KEY, JSON.stringify([...helped])); } catch { /* 存不了就只算這次 */ }
     slotCustomer[slot] = null; // 「!」換到別人頭上時，換一個新的煩惱
     world.cheerShopper(slot);
+    drawShopperBtn();
     return helped.size;
+  }
+  // 右下角「幫路人挑鞋」：輪流飛到每個「!」
+  const shopperBtn = $('btn-shoppers');
+  let shopperCursor = -1;
+  const nextShopperSlot = () => (shopperCursor = (shopperCursor + 1) % data.shoppers.slots);
+  function drawShopperBtn() {
+    shopperBtn.replaceChildren(h('i', { 'aria-hidden': 'true', text: '!' }), '幫路人挑鞋', helped.size ? h('em', { text: `已幫 ${helped.size} 位` }) : null);
   }
 
   // 集點蓋章：蓋章紀錄存在這台裝置
@@ -473,7 +481,8 @@ async function boot() {
     stamps: book,
     helped,
     onShopperSolved: shopperSolved,
-    onNextShopper: (slot) => app.shopper((slot + 1) % data.shoppers.slots),
+    onNextShopper: () => app.shopper(nextShopperSlot()),
+    onInviteGo: (feature) => { if (feature === 'shoppers' && data.shoppers) app.shopper(nextShopperSlot()); },
     onStamp: addStamp,
     onStampBook: () => app.stamps(),
     onClaim: () => { book.claim(); drawStampBtn(); },
@@ -491,7 +500,12 @@ async function boot() {
     return;
   }
   $('loading').hidden = true;
-  if (data.shoppers) world.setShoppers(data.shoppers.slots);
+  if (data.shoppers) {
+    world.setShoppers(data.shoppers.slots);
+    drawShopperBtn();
+    shopperBtn.hidden = false;
+    shopperBtn.addEventListener('click', () => app.shopper(nextShopperSlot()));
+  }
   // 門口店員穿整理過的店長推薦第一雙鞋的顏色
   for (const s of data.stores) {
     const shoe = shoeColorOf({ color: s.picks?.[0]?.color || '' });
