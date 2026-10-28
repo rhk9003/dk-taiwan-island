@@ -321,7 +321,8 @@ async function boot() {
   let shopperCursor = -1;
   const nextShopperSlot = () => (shopperCursor = (shopperCursor + 1) % data.shoppers.slots);
   function drawShopperBtn() {
-    shopperBtn.replaceChildren(h('i', { 'aria-hidden': 'true', text: '!' }), '幫路人挑鞋', helped.size ? h('em', { text: `已幫 ${helped.size} 位` }) : null);
+    const count = helped.size ? [h('em', { text: `已幫 ${helped.size} 位` })] : [];
+    shopperBtn.replaceChildren(h('i', { 'aria-hidden': 'true', text: '!' }), '幫路人挑鞋', ...count);
   }
 
   // 集點蓋章：蓋章紀錄存在這台裝置
