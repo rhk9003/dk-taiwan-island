@@ -338,6 +338,19 @@ export function createUI(data, handlers) {
     return Math.hypot(dx, (lat2 - lat1) * 110.57);
   };
 
+  // 領優惠券的金色氣球人：說明＋領券按鈕
+  function showCoupon() {
+    const c = data.site.coupon;
+    current = { region: null, store: null };
+    renderList();
+    closeShop();
+    fillCard(
+      head('COUPON・領優惠券', c.title || '優惠券氣球人'),
+      c.desc ? h('p', { class: 'lead', text: c.desc }) : null,
+      c.url ? h('a', { class: 'cta coupon-cta', href: c.url, target: '_blank', rel: 'noopener' }, `${c.cta || '去領優惠券'} →`) : null,
+    );
+  }
+
   function showLandmark(id) {
     const lm = data.landmarks.find((l) => l.id === id);
     current = { region: null, store: null };
@@ -447,5 +460,5 @@ export function createUI(data, handlers) {
     else if (!card.hidden) handlers.onCloseCard();
   });
 
-  return { showRegion, showLandmark, selectStore, openShop, showNone, maybeShowIntro, refresh };
+  return { showRegion, showLandmark, showCoupon, selectStore, openShop, showNone, maybeShowIntro, refresh };
 }

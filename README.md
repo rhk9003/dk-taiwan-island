@@ -45,6 +45,8 @@ data/             ← 平常只改這裡
 | 加一個景點或機場 | `landmarks.json` 加一項：`name`、`latlng`、`model`（造型）、`desc`。點景點會顯示簡介和離它最近的三間 DK |
 | 加一間公廟 | `landmarks.json` 加一項，`type` 填 `temple`、`model` 填 `shrine`、`deity` 填主祀神明。公廟的 `id` 之後遶境路線會用到，不要隨意改 |
 | 打開／關掉留言板 | `site.json` 的 `messageBoard`（true／false） |
+| 換飛機拖的活動彩帶 | `site.json` 的 `banners`：每一項是 `text`（彩帶上的字）、`url`（點彩帶開的活動頁）、`color`（底色），可以放好幾個，飛機每飛一趟換下一個 |
+| 換領優惠券氣球人的連結 | `site.json` 的 `coupon`：`url` 是領券網址，`title`／`desc`／`cta` 是卡片文字，`latlng` 是它飄的位置。網址 `…/#coupon` 可以直接打開領券卡片 |
 | 審核留言 | 到「店長的話蒐集」試算表的「門市留言」分頁，勾「上牆」才會貼到那間店的留言牆 |
 | 改分區名稱、介紹、名牌位置 | `regions.json` |
 | 改標題、開場導覽 | `site.json` |

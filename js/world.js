@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { layoutTaiwan, buildIsland, LAND_H } from './islands.js';
+import { layoutTaiwan, buildIsland, LAND_H, project } from './islands.js';
 import { createBuilding, createPlaza, createClouds, createRing, MASCOT, SHOE_FALLBACK, shoeColorOf, mascotIndex } from './buildings.js';
 import { buildTown } from './town.js';
 import { createPeople } from './people.js';
-import { createLandmark, createPlane } from './landmarks.js';
+import { createLandmark, createPlane, createBanner, createCouponMascot } from './landmarks.js';
 import { easeInOutCubic, clamp, h, rng, shortName } from './util.js';
 
 const VIEW_POLAR = 0.9; // 鏡頭和正上方的夾角（弧度），越大越斜
@@ -156,7 +156,8 @@ export function createWorld(container, data, handlers) {
     }
   }
 
-  // DK 航空：飛機在機場之間來回飛
+  // DK 航空：飛機在機場之間來回飛，後面拖著目前活動的彩帶（site.json 的 banners，每飛一趟換下一個）
+  const campaigns = (data.site.banners || []).filter((b) => b?.text);
   const airports = layout.landmarks.filter((s) => s.landmark.model === 'airport').map((s) => s.tile);
   const flights = [];
   for (let i = 0; i < Math.floor(airports.length / 2); i++) {
@@ -165,7 +166,53 @@ export function createWorld(container, data, handlers) {
     const plane = createPlane();
     plane.scale.setScalar(1.6);
     scene.add(plane);
-    flights.push({ plane, a: new THREE.Vector3(a.x, LAND_H, a.z), b: new THREE.Vector3(b.x, LAND_H, b.z), phase: i * 0.37 });
+    const banners = campaigns.map((c) => {
+      const bn = createBanner(c.text, c.color, c.textColor);
+      bn.mesh.visible = false;
+      bn.mesh.userData.bannerUrl = c.url || '';
+      scene.add(bn.mesh);
+      pickables.push(bn.mesh);
+      return bn;
+    });
+    const rope = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]),
+      new THREE.LineBasicMaterial({ color: '#5b5b5b' }),
+    );
+    rope.visible = false;
+    scene.add(rope);
+    flights.push({ plane, banners, rope, index: i, a: new THREE.Vector3(a.x, LAND_H, a.z), b: new THREE.Vector3(b.x, LAND_H, b.z), phase: i * 0.37 });
+  }
+  const flightDir = new THREE.Vector3();
+  const ROPE = 1.4;
+
+  // 領優惠券的金色氣球人：飄在島中央上空，用繩子綁在地上（site.json 的 coupon）
+  let coupon = null;
+  if (data.site.coupon?.latlng) {
+    const p = project(data.site.coupon.latlng);
+    let ground = LAND_H;
+    let bd = Infinity;
+    for (const t of layout.tiles) {
+      const d = (t.x - p.x) ** 2 + (t.z - p.z) ** 2;
+      if (d < bd) { bd = d; ground = t.h; }
+    }
+    const { group: g, anims: a } = createCouponMascot();
+    const floatY = ground + 6;
+    g.position.set(p.x, floatY, p.z);
+    g.userData.coupon = true;
+    scene.add(g);
+    pickables.push(g);
+    anims.push(...a, { obj: g, kind: 'bob', base: floatY, phase: 0, amp: 0.45 });
+    const tether = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1, 5).translate(0, 0.5, 0), new THREE.MeshStandardMaterial({ color: '#8a8a8a' }));
+    tether.position.set(p.x, ground, p.z);
+    scene.add(tether);
+    const label = new CSS2DObject(h('button', {
+      class: 'clabel',
+      type: 'button',
+      onclick: (e) => { e.stopPropagation(); handlers.onCoupon?.(); },
+    }, h('span', {}, h('i'), data.site.coupon.label || '領優惠券'))); // 動畫放在內層，外層的 transform 是 3D 定位用的
+    label.position.set(0, 5.1, 0);
+    g.add(label);
+    coupon = { group: g, tether, ground };
   }
   const flightPos = new THREE.Vector3();
   const flightNext = new THREE.Vector3();
@@ -308,9 +355,12 @@ export function createWorld(container, data, handlers) {
     ndc.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
     raycaster.setFromCamera(ndc, camera);
     for (const hit of raycaster.intersectObjects(pickables, true)) {
+      if (!hit.object.visible) continue; // 收起來的彩帶點不到
       for (let o = hit.object; o; o = o.parent) {
         if (o.userData.storeId) return { store: o.userData.storeId };
         if (o.userData.landmarkId) return { landmark: o.userData.landmarkId };
+        if (o.userData.bannerUrl !== undefined) return { banner: o.userData.bannerUrl };
+        if (o.userData.coupon) return { coupon: true };
         if (o.userData.regionId) return { region: o.userData.regionId };
       }
       const tileRegion = hit.object.userData.tileRegion;
@@ -332,6 +382,8 @@ export function createWorld(container, data, handlers) {
     const hit = pick(e.clientX, e.clientY);
     if (hit?.store) handlers.onStore(hit.store);
     else if (hit?.landmark) handlers.onLandmark?.(hit.landmark);
+    else if (hit?.banner !== undefined) { if (hit.banner) window.open(hit.banner, '_blank', 'noopener'); }
+    else if (hit?.coupon) handlers.onCoupon?.();
     else if (hit?.region) handlers.onRegion(hit.region);
   });
   dom.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') pendingMove = e; });
@@ -456,12 +508,38 @@ export function createWorld(container, data, handlers) {
         a.obj.rotation.z = t * a.speed;
       } else if (a.kind === 'slide') {
         a.obj.position.x = a.base + Math.sin(t * a.speed) * a.amp;
+      } else if (a.kind === 'orbit') {
+        const ang = t * a.speed + a.phase;
+        a.obj.position.set(Math.cos(ang) * a.radius, a.height + Math.sin(t * 2 + a.phase) * 0.2, Math.sin(ang) * a.radius);
+        a.obj.rotation.y = t * 2;
+      } else if (a.kind === 'sway') {
+        a.obj.rotation.y = Math.sin(t * a.speed) * a.amp;
       }
     }
+    if (coupon) coupon.tether.scale.y = Math.max(0.1, coupon.group.position.y - coupon.ground);
     for (const f of flights) {
-      const u = (t * 0.04 + f.phase) % 2;
+      const raw = t * 0.04 + f.phase;
+      const u = raw % 2;
       f.plane.position.copy(flightAt(f, u, flightPos));
       f.plane.lookAt(flightAt(f, (u + 0.01) % 2, flightNext));
+      // 彩帶：起降時收起來，飛高了才拉出來；每飛完一趟換下一個活動
+      if (f.banners.length) {
+        const k = u > 1 ? u - 1 : u;
+        const flying = Math.sin(Math.PI * k) > 0.3;
+        const active = (f.index + Math.floor(raw)) % f.banners.length;
+        f.banners.forEach((bn, i) => { bn.mesh.visible = flying && i === active; });
+        f.rope.visible = flying;
+        if (flying) {
+          flightDir.subVectors(flightNext, flightPos).normalize();
+          const bn = f.banners[active];
+          bn.update(t, f.plane, flightDir, camera.position, ROPE);
+          const pts = f.rope.geometry.attributes.position;
+          pts.setXYZ(0, f.plane.position.x, f.plane.position.y, f.plane.position.z);
+          const end = flightPos.copy(f.plane.position).addScaledVector(flightDir, -ROPE);
+          pts.setXYZ(1, end.x, end.y, end.z);
+          pts.needsUpdate = true;
+        }
+      }
     }
     people.update(t, dt);
     clouds.update(dt);
@@ -489,6 +567,11 @@ export function createWorld(container, data, handlers) {
       } else {
         flyTo(mapCenter, fitDistance(mapSize.x, mapSize.z), VIEW_POLAR, 1400, 0); // 全景一律北方朝上
       }
+    },
+    focusCoupon() {
+      if (!coupon) return;
+      const p = coupon.group.position;
+      flyTo(new THREE.Vector3(p.x, p.y + 1.6, p.z), W < 600 ? 30 : 24, 1.12);
     },
     focusLandmark(id) {
       const o = landmarkObjs.get(id);

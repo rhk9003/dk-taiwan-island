@@ -233,6 +233,16 @@ async function boot() {
       setHash(`region/${id}`);
     },
     // 進店：鏡頭先降到店門口，到了再開門
+    coupon() {
+      if (!data.site.coupon) return app.overview();
+      clearTimeout(enterTimer);
+      Object.assign(state, { region: null, store: null });
+      ui.showCoupon();
+      world.setFocus(null);
+      world.setSelected(null);
+      world.focusCoupon();
+      setHash('coupon');
+    },
     landmark(id) {
       if (!data.landmarks.some((l) => l.id === id)) return app.overview();
       clearTimeout(enterTimer);
@@ -271,7 +281,7 @@ async function boot() {
   });
 
   try {
-    world = createWorld($('stage'), data, { onRegion: app.region, onStore: app.store, onLandmark: app.landmark });
+    world = createWorld($('stage'), data, { onRegion: app.region, onStore: app.store, onLandmark: app.landmark, onCoupon: app.coupon });
   } catch (e) {
     console.error(e);
     showError(`這個瀏覽器沒辦法顯示 3D 畫面（${e.message}）`);
@@ -298,6 +308,7 @@ async function boot() {
   const m = decodeURIComponent(location.hash.slice(1)).match(/^(store|region|spot)\/(.+)$/);
   if (m?.[1] === 'store') app.store(m[2]);
   else if (m?.[1] === 'spot') app.landmark(m[2]);
+  else if (location.hash === '#coupon') app.coupon();
   else if (m?.[1] === 'region') app.region(m[2]);
   else {
     app.overview();

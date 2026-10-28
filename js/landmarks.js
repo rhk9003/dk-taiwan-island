@@ -250,6 +250,128 @@ export function createLandmark(model) {
   return { group: g, anims };
 }
 
+// 飛機拖的活動彩帶：布條會飄，而且會繞著飛行方向轉，盡量正對鏡頭讓字看得到
+export function createBanner(text, color = WINE, textColor = '#ffffff') {
+  const cv = document.createElement('canvas');
+  const ctx = cv.getContext('2d');
+  const font = '900 92px "Noto Sans TC", "Microsoft JhengHei", sans-serif';
+  ctx.font = font;
+  cv.width = Math.ceil(ctx.measureText(text).width + 180);
+  cv.height = 170;
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillRect(0, 10, cv.width, 8);
+  ctx.fillRect(0, cv.height - 18, cv.width, 8);
+  ctx.font = font;
+  ctx.fillStyle = textColor;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, cv.width / 2, cv.height / 2 + 4);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+
+  const h = 1.7;
+  const w = (h * cv.width) / cv.height;
+  const geom = new THREE.PlaneGeometry(w, h, 24, 1);
+  const base = geom.attributes.position.array.slice();
+  const mesh = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }));
+  mesh.userData.length = w;
+
+  const x = new THREE.Vector3();
+  const y = new THREE.Vector3();
+  const z = new THREE.Vector3();
+  const basis = new THREE.Matrix4();
+
+  // plane：拖彩帶的飛機；dir：飛行方向；camPos：鏡頭位置；rope：繩長
+  function update(t, plane, dir, camPos, rope) {
+    x.copy(dir).negate(); // 彩帶往飛機後面拖
+    mesh.position.copy(plane.position).addScaledVector(x, rope + w / 2);
+    z.copy(camPos).sub(mesh.position).normalize();
+    z.addScaledVector(x, -z.dot(x));
+    if (z.lengthSq() < 1e-4) z.set(0, 1, 0);
+    z.normalize();
+    y.crossVectors(z, x);
+    let tailSign = 1;
+    if (y.y < 0) { // 字不要倒過來：讓「上」永遠朝上
+      x.negate();
+      y.crossVectors(z, x);
+      tailSign = -1;
+    }
+    mesh.quaternion.setFromRotationMatrix(basis.makeBasis(x, y, z));
+    // 布條波浪：越靠尾巴飄得越大
+    const pos = geom.attributes.position.array;
+    for (let i = 0; i < pos.length; i += 3) {
+      const lx = base[i];
+      const tail = (lx / w + 0.5) * tailSign + (tailSign < 0 ? 1 : 0);
+      pos[i + 2] = Math.sin(lx * 1.3 - t * 7) * 0.28 * tail;
+    }
+    geom.attributes.position.needsUpdate = true;
+  }
+
+  return { mesh, update, length: w };
+}
+
+// 領優惠券專用的金色氣球人：比一般氣球人大很多，手上拿著優惠券，身邊有閃光繞著轉
+export function createCouponMascot() {
+  const anims = [];
+  const g = new THREE.Group();
+  const body = new THREE.Group();
+  const gold = new THREE.MeshStandardMaterial({ color: '#f6c343', roughness: 0.3, metalness: 0.25 });
+  body.add(place(geo('cmBody', () => new THREE.CapsuleGeometry(0.1, 0.08, 4, 16).translate(0, 0.14, 0)), gold));
+  body.add(place(geo('cmHead', () => new THREE.SphereGeometry(0.1, 24, 16).translate(0, 0.37, 0)), gold));
+  for (const side of [-1, 1]) {
+    const arm = place(geo('cmArm', () => new THREE.CapsuleGeometry(0.03, 0.08, 3, 8)), gold, side * 0.11, 0.2, 0.04);
+    arm.rotation.z = side * 0.9;
+    arm.rotation.x = -0.6;
+    body.add(arm);
+  }
+  // 斜背的酒紅色彩帶
+  const sash = place(geo('cmSash', () => new THREE.TorusGeometry(0.105, 0.012, 6, 24)), WINE, 0, 0.17, 0);
+  sash.rotation.set(Math.PI / 2, 0.55, 0);
+  body.add(sash);
+  // 手上的大票券
+  const cv = document.createElement('canvas');
+  cv.width = 256;
+  cv.height = 150;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#fff8ec';
+  ctx.fillRect(0, 0, 256, 150);
+  ctx.setLineDash([10, 8]);
+  ctx.strokeStyle = WINE;
+  ctx.lineWidth = 6;
+  ctx.strokeRect(10, 10, 236, 130);
+  ctx.fillStyle = WINE;
+  ctx.textAlign = 'center';
+  ctx.font = '700 26px Georgia, serif';
+  ctx.fillText('COUPON', 128, 52);
+  ctx.font = '900 50px "Noto Sans TC", "Microsoft JhengHei", sans-serif';
+  ctx.fillText('優惠券', 128, 112);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const ticket = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.15, 0.012), [
+    mat('#fff8ec'), mat('#fff8ec'), mat('#fff8ec'), mat('#fff8ec'),
+    new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 }), mat('#fff8ec'),
+  ]);
+  ticket.position.set(0, 0.2, 0.15);
+  ticket.rotation.x = -0.15;
+  body.add(ticket);
+  body.scale.setScalar(9);
+  g.add(body);
+
+  // 閃光
+  const sparkle = glow('#fff6c8', '#ffd36b', 1);
+  for (let i = 0; i < 5; i++) {
+    const s = place(geo('spark', () => new THREE.OctahedronGeometry(0.16, 0)), sparkle);
+    s.castShadow = false;
+    anims.push({ obj: s, kind: 'orbit', radius: 1.9 + (i % 2) * 0.4, height: 1 + i * 0.6, speed: 0.8 + i * 0.1, phase: (i * Math.PI * 2) / 5 });
+    g.add(s);
+  }
+  anims.push({ obj: body, kind: 'sway', speed: 0.6, amp: 0.35 });
+  return { group: g, anims };
+}
+
 // DK 航空（白色機身、酒紅色尾翼），沿 +z 方向飛
 export function createPlane() {
   const g = new THREE.Group();
