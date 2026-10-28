@@ -2,6 +2,7 @@ import { h, shortName } from './util.js';
 import { mascotIndex } from './buildings.js';
 import { shippingStation, returnsStation, comingSoonStation } from './service.js';
 import { RESIDENT_OPTIONS } from './residents.js';
+import { stampSvg, stampDate, STAMPER_SVG } from './stamps.js';
 
 const INTRO_KEY = 'dk-island-intro-v1';
 const MISSION_KEY = 'dk-island-missions'; // 這台裝置完成過哪些客服任務
@@ -50,7 +51,7 @@ export function createUI(data, handlers) {
 
   const storeRow = (s, note) => {
     const m = data.modules[s.module];
-    return h('button', { type: 'button', class: 'store-row', style: `--c:${m.color}`, onclick: () => handlers.onStore(s.id) },
+    return h('button', { type: 'button', class: handlers.stamps?.has(s.id) ? 'store-row stamped' : 'store-row', style: `--c:${m.color}`, onclick: () => handlers.onStore(s.id) },
       h('i'), h('b', { text: shortName(s.name) }), h('small', { text: note ?? m.name }));
   };
 
@@ -84,6 +85,7 @@ export function createUI(data, handlers) {
         const li = storeNodes.get(s.id);
         li.hidden = !ok;
         li.firstChild.classList.toggle('active', s.id === current.store);
+        li.firstChild.classList.toggle('stamped', Boolean(handlers.stamps?.has(s.id)));
         if (ok) shown++;
       }
       node.li.hidden = filtering && shown === 0;
@@ -125,7 +127,10 @@ export function createUI(data, handlers) {
     fillCard(
       head(`REGION ${r.no}`, r.name),
       r.tagline ? h('p', { class: 'lead', text: r.tagline }) : null,
-      r.plaza ? h('section', { class: 'plaza' }, h('p', { class: 'label', text: r.plaza.title }), h('p', { text: r.plaza.body })) : null,
+      r.plaza ? h('section', { class: 'plaza' },
+        h('p', { class: 'label', text: r.plaza.title }),
+        h('p', { text: r.plaza.body }),
+        handlers.stamps ? h('button', { type: 'button', class: 'cta', onclick: () => handlers.onStampBook() }, `打開集章冊（${stampCount()}）→`) : null) : null,
       counts.length ? h('div', { class: 'pills' }, counts.map(([m, n]) => h('span', { class: 'pill', style: `--c:${m.color}` }, h('i'), `${m.name} ${n}`))) : null,
       stores.length ? h('p', { class: 'hint', text: '點這一區的建築，看店長的一句話和推薦。' }) : null,
       stores.length && isMobile() ? h('ul', { class: 'card-stores' }, stores.map((s) => h('li', {}, storeRow(s)))) : null,
@@ -188,6 +193,7 @@ export function createUI(data, handlers) {
           h('img', { class: 'mascot', src: `assets/mascot-${MASCOT_LETTERS[mascotIndex(s.id)]}.png`, alt: '' }),
           h('div', { class: 'counter' },
             h('span', { class: 'nameplate', text: s.manager || `${shortName(s.name)}店長` }))),
+        stampDesk(s, m),
         h('section', { class: 'shop-wall' },
           h('p', { class: 'shop-label' }, '店長推薦', s.sample && products.length ? h('span', { class: 'tag', text: '範例' }) : null),
           h('div', { class: 'shelves' },
@@ -230,6 +236,131 @@ export function createUI(data, handlers) {
   function closeShop() {
     shop.hidden = true;
     shop.classList.remove('opening', 'is-station');
+  }
+
+  // ---- 門市集章：櫃台旁的蓋章台 ----
+  const stampCount = () => {
+    const b = handlers.stamps;
+    return b.count >= b.goal ? `${b.count} 章・已集滿` : `${b.count} / ${b.goal} 章`;
+  };
+
+  function stampDesk(s, m) {
+    const book = handlers.stamps;
+    if (!book) return null;
+    const slot = h('span', { class: 'stamp-slot' });
+    const stamper = h('span', { class: 'stamper', style: `color:${m.color}` });
+    stamper.innerHTML = STAMPER_SVG;
+    const msg = h('p', { class: 'stamp-msg' });
+    const btn = h('button', { type: 'button', class: 'cta stamp-btn', style: `--c:${m.color}` });
+    const progress = h('div', { class: 'stamp-progress' });
+
+    const drawSlot = (fresh) => {
+      if (!book.has(s.id)) {
+        slot.replaceChildren(h('span', { class: 'stamp-empty', text: '蓋在這裡' }));
+        return;
+      }
+      slot.innerHTML = stampSvg(s, m.color, book.dateOf(s.id));
+      slot.classList.toggle('fresh', fresh);
+    };
+    const drawText = () => {
+      const has = book.has(s.id);
+      const left = book.goal - book.count;
+      const ready = book.full && !book.claimedAt;
+      btn.disabled = has;
+      btn.textContent = has ? '這間店蓋過了 ✓' : '蓋章！';
+      msg.textContent = !has
+        ? `在${shortName(s.name)}蓋一個章。集滿 ${book.goal} 間不同門市的章，就能領一張優惠券！`
+        : left > 0 ? `再到 ${left} 間不同的 DK 蓋章，就能領優惠券。`
+          : ready ? `集滿 ${book.goal} 章了！打開集章冊領優惠券。` : '你已經集滿、領過優惠券了，謝謝你逛遍 DK！';
+      progress.replaceChildren(
+        h('span', { class: 'stamp-bar', style: `--p:${Math.min(1, book.count / book.goal)}` }, h('i')),
+        h('b', { text: stampCount() }),
+        h('button', { type: 'button', class: ready ? 'stamp-open ready' : 'stamp-open', onclick: () => handlers.onStampBook() },
+          ready ? '領優惠券 →' : '集章冊 →'));
+    };
+
+    btn.addEventListener('click', () => {
+      if (book.has(s.id) || stamper.classList.contains('pressing')) return;
+      handlers.onStamp(s.id); // 先記下來，動畫只是好看
+      btn.disabled = true;
+      stamper.classList.add('pressing');
+      setTimeout(() => drawSlot(true), 560); // 印章抬起來的時候露出印子
+      setTimeout(() => {
+        stamper.classList.remove('pressing');
+        drawText();
+        if (book.full && !book.claimedAt) progress.classList.add('cheer');
+      }, 1000);
+    });
+    drawSlot(false);
+    drawText();
+
+    return h('section', { class: 'shop-stamp', style: `--c:${m.color}` },
+      h('p', { class: 'shop-label', text: data.stamps.title || '門市集章' }),
+      h('div', { class: 'stamp-paper' }, slot, stamper),
+      msg,
+      btn,
+      progress);
+  }
+
+  // ---- 集章冊：蓋過的章依序排好，集滿就能領優惠券 ----
+  function showStampBook() {
+    const book = handlers.stamps;
+    const cfg = data.stamps;
+    const reward = cfg.reward;
+    current = { region: null, store: null };
+    renderList();
+    closeShop();
+    const list = book.list();
+    const cells = Array.from({ length: Math.max(book.goal, list.length) }, (_, i) => {
+      const item = list[i];
+      if (!item) return h('li', { class: 'stamp-cell empty' }, h('span', { text: i + 1 }));
+      const s = data.storeById.get(item.id);
+      const btn = h('button', { type: 'button', title: `${s.name}・${stampDate(item.at)}`, 'aria-label': s.name, onclick: () => handlers.onStore(s.id) });
+      btn.innerHTML = stampSvg(s, data.modules[s.module].color, item.at);
+      return h('li', { class: 'stamp-cell' }, btn);
+    });
+
+    let tail;
+    if (book.full) {
+      const status = h('p', { class: 'note-status', role: 'status' });
+      tail = h('section', { class: 'stamp-reward' },
+        h('p', { class: 'label', text: reward.title || `集滿 ${book.goal} 章！` }),
+        reward.desc ? h('p', { text: reward.desc }) : null,
+        reward.code ? h('div', { class: 'reward-code' },
+          h('code', { text: reward.code }),
+          h('button', {
+            type: 'button',
+            onclick: async () => {
+              try {
+                await navigator.clipboard.writeText(reward.code);
+                status.textContent = '優惠碼複製好了！';
+              } catch {
+                status.textContent = '複製不了，請長按優惠碼自己複製。';
+              }
+              handlers.onClaim();
+            },
+          }, '複製')) : null,
+        reward.url
+          ? h('a', { class: 'cta coupon-cta', href: reward.url, target: '_blank', rel: 'noopener', onclick: () => handlers.onClaim() }, `${reward.cta || '領取優惠券'} →`)
+          : reward.code ? null : h('button', { type: 'button', class: 'cta', disabled: true }, '優惠券準備中'),
+        status,
+        book.claimedAt ? h('small', { class: 'muted', text: `你在 ${stampDate(book.claimedAt)} 領過了。` }) : null);
+    } else {
+      const todo = data.stores.filter((s) => !book.has(s.id));
+      tail = h('div', { class: 'stamp-next' },
+        h('p', { text: `還差 ${book.goal - book.count} 章。走進任何一間 DK，在櫃台旁按「蓋章！」。` }),
+        h('button', { type: 'button', class: 'cta', onclick: () => handlers.onStore(todo[Math.floor(Math.random() * todo.length)].id) }, '帶我去一間還沒蓋的店 →'));
+    }
+
+    fillCard(
+      head('STAMP RALLY・集章冊', cfg.title || 'DK 門市集章'),
+      cfg.desc ? h('p', { class: 'lead', text: cfg.desc }) : null,
+      h('div', { class: 'stamp-progress' },
+        h('span', { class: 'stamp-bar', style: `--p:${Math.min(1, book.count / book.goal)}` }, h('i')),
+        h('b', { text: stampCount() })),
+      h('ol', { class: 'stamp-grid' }, cells),
+      tail,
+    );
   }
 
   // 玩法角落的按鈕：有遊戲就開遊戲；留言板玩法就捲到留言牆；一般門市就導去 Google 地圖
@@ -601,5 +732,5 @@ export function createUI(data, handlers) {
     else if (!card.hidden) handlers.onCloseCard();
   });
 
-  return { showRegion, showLandmark, showCoupon, showServiceMenu, openStation, showResidentEditor, selectStore, openShop, showNone, maybeShowIntro, refresh };
+  return { showRegion, showLandmark, showCoupon, showServiceMenu, openStation, showResidentEditor, showStampBook, markStamps: renderList, selectStore, openShop, showNone, maybeShowIntro, refresh };
 }

@@ -3,6 +3,7 @@ import { createUI } from './ui.js';
 import { BUILDING_TYPES, shoeColorOf } from './buildings.js';
 import { LANDMARK_MODELS } from './landmarks.js';
 import { cleanResident, residentIdOf } from './residents.js';
+import { createStampBook } from './stamps.js';
 import { h } from './util.js';
 
 const FILES = ['site', 'regions', 'modules', 'stores', 'products', 'landmarks', 'service'];
@@ -89,8 +90,22 @@ function normalize(raw) {
     }
   }
 
+  // 集點蓋章：集滿幾間不同門市的章才能領獎（不能比門市還多）
+  let stamps = null;
+  if (raw.site.stamps?.enabled) {
+    let goal = Math.round(Number(raw.site.stamps.goal));
+    if (!(goal >= 1 && goal <= stores.length)) {
+      warn(`site.json 的 stamps.goal「${raw.site.stamps.goal}」要是 1～${stores.length} 的整數，先用 ${Math.min(10, stores.length)}`);
+      goal = Math.min(10, stores.length);
+    }
+    const reward = raw.site.stamps.reward || {};
+    if (!reward.url && !reward.code) warn('site.json 的 stamps.reward 沒有 url 也沒有 code，集滿了會顯示「優惠券準備中」');
+    stamps = { ...raw.site.stamps, goal, reward };
+  }
+
   return {
     site: raw.site,
+    stamps,
     regions,
     landmarks,
     service: raw.service?.missions?.length ? raw.service : null,
@@ -241,6 +256,23 @@ async function boot() {
   }
   let world = null;
 
+  // 集點蓋章：蓋章紀錄存在這台裝置
+  const book = data.stamps ? createStampBook(new Set(data.stores.map((s) => s.id)), data.stamps.goal) : null;
+  const stampBtn = $('btn-stamps');
+  const drawStampBtn = () => {
+    if (!book) return;
+    const ready = book.full && !book.claimedAt;
+    stampBtn.classList.toggle('ready', ready);
+    stampBtn.replaceChildren(h('i', { 'aria-hidden': 'true', text: '章' }), ready ? '集滿了！領優惠券' : `集章 ${Math.min(book.count, book.goal)}/${book.goal}`);
+  };
+  function addStamp(id) {
+    if (!book?.add(id)) return false;
+    world.setStamped(book.ids());
+    ui.markStamps();
+    drawStampBtn();
+    return true;
+  }
+
   const setHash = (value) => history.replaceState(null, '', value ? `#${value}` : location.pathname + location.search);
 
   const app = {
@@ -298,6 +330,20 @@ async function boot() {
       if (me) world.focusResident();
       setHash('me');
     },
+    // 集章冊：看蓋了哪些店、集滿領優惠券
+    stamps() {
+      if (!book) return app.overview();
+      clearTimeout(enterTimer);
+      Object.assign(state, { region: null, store: null, mission: null });
+      ui.showStampBook();
+      world.setFocus(null);
+      world.setSelected(null);
+      // 鏡頭飛到花東的集章兌獎廣場
+      const plaza = data.regions.find((r) => r.role === 'plaza');
+      if (plaza) world.focusRegion(plaza.id);
+      else world.overview();
+      setHash('stamps');
+    },
     coupon() {
       if (!data.site.coupon) return app.overview();
       clearTimeout(enterTimer);
@@ -343,6 +389,10 @@ async function boot() {
     onServiceBack: () => app.service(),
     onSaveResident: (choice) => saveResident(choice),
     onFindMe: () => world.focusResident(),
+    stamps: book,
+    onStamp: addStamp,
+    onStampBook: () => app.stamps(),
+    onClaim: () => { book.claim(); drawStampBtn(); },
     onPostMessage: data.site.managerPicksUrl && data.site.messageBoard
       ? (storeId, nickname, text, website) => sendNote(data.site.managerPicksUrl, storeId, nickname, text, website)
       : null,
@@ -357,6 +407,12 @@ async function boot() {
     return;
   }
   $('loading').hidden = true;
+  if (book) {
+    world.setStamped(book.ids());
+    drawStampBtn();
+    stampBtn.hidden = false;
+    stampBtn.addEventListener('click', () => app.stamps());
+  }
   // ---- 島民角色 ----
   const meBtn = $('btn-me');
   if (residentsOn) {
@@ -390,7 +446,8 @@ async function boot() {
       .catch((e) => console.warn(`[DK 台灣島] 讀不到店長的話試算表，先不顯示：${e.message}`));
   }
 
-  if (data.warnings.length) {
+  // 資料提醒只給改資料的人看：網址加 ?debug 才顯示（Console 一律會印）
+  if (data.warnings.length && new URLSearchParams(location.search).has('debug')) {
     const badge = $('warn-badge');
     badge.textContent = `資料提醒 ${data.warnings.length} 則（按 F12 看 Console）`;
     badge.hidden = false;
@@ -403,6 +460,7 @@ async function boot() {
   else if (location.hash === '#coupon') app.coupon();
   else if (location.hash === '#service') app.service();
   else if (location.hash === '#me') app.me();
+  else if (location.hash === '#stamps') app.stamps();
   else if (decodeURIComponent(location.hash).startsWith('#mission/')) app.mission(decodeURIComponent(location.hash).slice(9));
   else if (m?.[1] === 'region') app.region(m[2]);
   else {

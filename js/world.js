@@ -808,5 +808,10 @@ export function createWorld(container, data, handlers) {
       const o = storeObjs.get(storeId);
       if (o) people.setShoe(o.spot, color);
     },
+    // 蓋過章的店，名牌上多一個小印章
+    setStamped(ids) {
+      const stamped = new Set(ids);
+      for (const [id, o] of storeObjs) o.label.element.classList.toggle('is-stamped', stamped.has(id));
+    },
   };
 }
