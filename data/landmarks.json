@@ -1,0 +1,107 @@
+{
+  "_說明": "島上的台灣景點與機場。latlng 是位置 [緯度, 經度]；model 是造型（tower101、tower85、lanterns、queen、lake、train、peak、gorge、lighthouse、pavilion、airport），造型不認得時會用一般小紀念碑；footprint 填 1 會連旁邊一圈都整平（機場跑道用）。點景點會出現 desc 和離它最近的 DK 門市。",
+  "landmarks": [
+    {
+      "id": "taipei101",
+      "name": "台北 101",
+      "latlng": [25.0339, 121.5645],
+      "model": "tower101",
+      "desc": "台北的天際線，竹節造型的 508 公尺大樓，跨年煙火就從這裡放。"
+    },
+    {
+      "id": "jiufen",
+      "name": "九份老街",
+      "latlng": [25.1092, 121.8443],
+      "model": "lanterns",
+      "desc": "依山而建的老街，入夜後整條街亮起紅燈籠。"
+    },
+    {
+      "id": "yehliu",
+      "name": "野柳女王頭",
+      "latlng": [25.2063, 121.6905],
+      "model": "queen",
+      "desc": "海風和浪花雕了幾千年的奇岩，遠看像一位女王的側臉。"
+    },
+    {
+      "id": "sunmoonlake",
+      "name": "日月潭",
+      "latlng": [23.8650, 120.9160],
+      "model": "lake",
+      "desc": "台灣最大的天然湖泊，湖邊的慈恩塔可以俯瞰整片湖景。"
+    },
+    {
+      "id": "alishan",
+      "name": "阿里山",
+      "latlng": [23.5100, 120.8050],
+      "model": "train",
+      "desc": "坐森林小火車上山，看神木、雲海和日出。"
+    },
+    {
+      "id": "yushan",
+      "name": "玉山",
+      "latlng": [23.4700, 120.9570],
+      "model": "peak",
+      "desc": "東北亞最高峰，海拔 3952 公尺，冬天山頂會積雪。"
+    },
+    {
+      "id": "taroko",
+      "name": "太魯閣",
+      "latlng": [24.1600, 121.6000],
+      "model": "gorge",
+      "desc": "立霧溪切出來的大理石峽谷，峽谷之間跨著紅色的吊橋。"
+    },
+    {
+      "id": "eluanbi",
+      "name": "鵝鑾鼻燈塔",
+      "latlng": [21.9020, 120.8530],
+      "model": "lighthouse",
+      "desc": "台灣最南端的白色燈塔，旁邊就是墾丁的海。"
+    },
+    {
+      "id": "chihkan",
+      "name": "赤崁樓",
+      "latlng": [22.9975, 120.2025],
+      "model": "pavilion",
+      "desc": "府城台南的古蹟樓閣，紅牆、燕尾屋脊。"
+    },
+    {
+      "id": "kh85",
+      "name": "高雄 85 大樓",
+      "latlng": [22.6117, 120.3000],
+      "model": "tower85",
+      "desc": "高雄港邊最高的大樓，造型像一個「高」字。"
+    },
+    {
+      "id": "tpe",
+      "name": "桃園國際機場",
+      "latlng": [25.0797, 121.2342],
+      "model": "airport",
+      "footprint": 1,
+      "desc": "台灣最大的國際機場，出國回國都從這裡。"
+    },
+    {
+      "id": "tsa",
+      "name": "松山機場",
+      "latlng": [25.0697, 121.5525],
+      "model": "airport",
+      "footprint": 1,
+      "desc": "就在台北市區裡的機場，飛離島和東亞城市。"
+    },
+    {
+      "id": "rmq",
+      "name": "台中清泉崗機場",
+      "latlng": [24.2647, 120.6208],
+      "model": "airport",
+      "footprint": 1,
+      "desc": "中台灣的機場，飛金門、澎湖和鄰近國家。"
+    },
+    {
+      "id": "khh",
+      "name": "高雄小港機場",
+      "latlng": [22.5771, 120.3500],
+      "model": "airport",
+      "footprint": 1,
+      "desc": "南台灣的國際機場。"
+    }
+  ]
+}

@@ -135,7 +135,28 @@ a { color: var(--wine); }
 .slabel i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
 .slabel:hover { color: var(--wine); }
 .slabel.is-active { background: var(--wine); color: #fff; }
-.slabel.is-hidden { visibility: hidden; }
+.slabel.is-hidden, .llabel.is-hidden, .ilabel.is-hidden { visibility: hidden; }
+
+/* 景點、機場、離島的名牌 */
+.llabel, .ilabel {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 6px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(43, 78, 70, 0.88);
+  box-shadow: 0 3px 10px rgba(20, 30, 25, 0.25);
+  color: #fff;
+  font: 700 12px var(--font);
+  white-space: nowrap;
+}
+.llabel i, .ilabel i { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 8px solid #ffd36b; }
+.llabel.airport { background: rgba(43, 70, 110, 0.9); }
+.llabel.airport i { border: 0; width: 8px; height: 8px; border-radius: 2px; background: #9fd0f2; }
+.ilabel { background: rgba(255, 253, 248, 0.92); color: #2f6f84; border-radius: 999px; }
+.ilabel i { border-bottom-color: #4fb3d1; }
 .slabel.is-active i { background: #fff; }
 
 /* ---------- 門市／區域卡 ---------- */
@@ -531,13 +552,12 @@ a { color: var(--wine); }
 .shop-room {
   display: grid;
   grid-template-columns: 1.05fr 1.25fr 0.9fr;
-  grid-template-areas: "wall counter corner";
+  grid-template-areas: "wall counter corner" "board board board";
   gap: 18px;
   min-height: 0;
   overflow: auto;
-  padding: 28px 22px 0;
+  padding: 28px 22px 22px;
   background:
-    linear-gradient(to top, #d9b48a 0 64px, #c99f74 64px 70px, transparent 70px),
     repeating-linear-gradient(90deg, rgba(139, 35, 50, 0.035) 0 2px, transparent 2px 44px),
     #fbf3e6;
 }
@@ -560,6 +580,8 @@ a { color: var(--wine); }
   align-items: center;
   justify-content: flex-end;
   min-height: 380px;
+  border-radius: 0 0 14px 14px;
+  background: linear-gradient(to top, #d9b48a 0 40px, #c99f74 40px 45px, transparent 45px);
 }
 .bubble {
   position: relative;
@@ -671,6 +693,93 @@ a { color: var(--wine); }
 .shop-corner h3 { margin: 0 0 6px; font-size: 20px; }
 .shop-corner p:not(.shop-label) { margin: 0 0 14px; font-size: 14px; line-height: 1.6; color: #5b4c46; }
 
+/* 留言牆：木框軟木塞板，留言是便利貼 */
+.shop-board { grid-area: board; }
+.note-hint { font-weight: 500; letter-spacing: 0; color: #a08f87; }
+.cork {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 18px 16px;
+  min-height: 150px;
+  padding: 22px 18px;
+  border: 10px solid #8a5a3b;
+  border-radius: 10px;
+  background:
+    radial-gradient(rgba(90, 55, 25, 0.25) 1px, transparent 1.5px) 0 0 / 9px 9px,
+    radial-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1.5px) 4px 5px / 11px 11px,
+    #c9a27a;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.note {
+  position: relative;
+  margin: 0;
+  padding: 16px 14px 12px;
+  background: var(--n);
+  box-shadow: 0 6px 10px rgba(60, 30, 10, 0.25);
+  transform: rotate(var(--r));
+  animation: note-in 0.4s ease-out both;
+}
+.note::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ff8a7a, #c8452f);
+  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.3);
+  transform: translateX(-50%);
+}
+.note blockquote { margin: 0; font-size: 15px; font-weight: 700; line-height: 1.55; color: #3d2b25; overflow-wrap: anywhere; }
+.note figcaption { margin-top: 8px; font-size: 12px; color: #7a6258; text-align: right; }
+.note.pending { opacity: 0.8; outline: 2px dashed rgba(139, 35, 50, 0.45); outline-offset: 3px; }
+.note.ghost blockquote { font-weight: 500; color: var(--muted); }
+.note-flag {
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--wine);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+@keyframes note-in { from { opacity: 0; transform: rotate(var(--r)) translateY(-8px) scale(0.95); } }
+
+.note-form {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.note-form input, .note-form textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  font: inherit;
+  font-size: 15px;
+  resize: none;
+}
+.note-form input:focus, .note-form textarea:focus { outline: 2px solid var(--wine); outline-offset: 1px; }
+.note-form .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.note-actions { grid-column: 1 / -1; display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+.note-count { font-size: 12px; color: var(--muted); }
+.note-submit {
+  height: 42px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--wine);
+  color: #fff;
+  font-weight: 700;
+}
+.note-submit:disabled { opacity: 0.6; cursor: default; }
+.note-status { grid-column: 1 / -1; margin: 0; min-height: 1.2em; font-size: 13px; color: var(--wine); }
+
 .shop-info {
   display: flex;
   flex-wrap: wrap;
@@ -769,11 +878,13 @@ a { color: var(--wine); }
   .shop-exit { height: 36px; padding: 0 12px; font-size: 13px; }
   .shop-room {
     grid-template-columns: 1fr;
-    grid-template-areas: "counter" "wall" "corner";
+    grid-template-areas: "counter" "wall" "corner" "board";
     padding: 26px 14px 20px;
-    background: repeating-linear-gradient(90deg, rgba(139, 35, 50, 0.035) 0 2px, transparent 2px 44px), #fbf3e6;
   }
-  .shop-counter { min-height: 300px; background: linear-gradient(to top, #d9b48a 0 34px, transparent 34px); border-radius: 0 0 14px 14px; }
+  .shop-counter { min-height: 300px; }
+  .cork { grid-template-columns: 1fr 1fr; gap: 14px 10px; padding: 18px 12px; border-width: 8px; }
+  .note blockquote { font-size: 14px; }
+  .note-form { grid-template-columns: 1fr; }
   .mascot { width: 136px; margin-bottom: -66px; }
   .counter { height: 78px; }
   .shop-info { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }

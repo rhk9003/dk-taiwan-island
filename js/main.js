@@ -1,14 +1,17 @@
 import { createWorld } from './world.js';
 import { createUI } from './ui.js';
 import { BUILDING_TYPES, shoeColorOf } from './buildings.js';
+import { LANDMARK_MODELS } from './landmarks.js';
 import { h } from './util.js';
 
-const FILES = ['site', 'regions', 'modules', 'stores', 'products'];
+const FILES = ['site', 'regions', 'modules', 'stores', 'products', 'landmarks'];
+const OPTIONAL = new Set(['landmarks']); // 沒有這個檔也能跑
 const $ = (id) => document.getElementById(id);
 
 async function loadData() {
   const entries = await Promise.all(FILES.map(async (name) => {
     const res = await fetch(`data/${name}.json`, { cache: 'no-cache' });
+    if (!res.ok && OPTIONAL.has(name)) return [name, {}];
     if (!res.ok) throw new Error(`讀不到 data/${name}.json（${res.status}）`);
     const text = await res.text();
     try {
@@ -35,6 +38,15 @@ function normalize(raw) {
     if (!BUILDING_TYPES.includes(m.building)) warn(`模組 ${id} 的 building「${m.building}」不存在，先用一般門市造型`);
   }
   const products = new Map((raw.products.products || []).map((p) => [String(p.id), p]));
+  const landmarks = [];
+  for (const lm of raw.landmarks.landmarks || []) {
+    if (!lm.id || landmarks.some((l) => l.id === lm.id) || !Array.isArray(lm.latlng) || lm.latlng.length !== 2) {
+      warn(`景點「${lm.name || lm.id}」缺少 id 或 latlng（或 id 重複），已略過`);
+      continue;
+    }
+    if (lm.model && !LANDMARK_MODELS.includes(lm.model)) warn(`景點「${lm.name}」的 model「${lm.model}」不存在，先用紀念碑造型`);
+    landmarks.push(lm);
+  }
   const regionIds = new Set(regions.map((r) => r.id));
   const cityToRegion = new Map(regions.flatMap((r) => (r.cities || []).map((c) => [c, r.id])));
 
@@ -79,6 +91,7 @@ function normalize(raw) {
   return {
     site: raw.site,
     regions,
+    landmarks,
     modules,
     products,
     stores,
@@ -103,12 +116,16 @@ async function loadManagerPicks(url) {
   }
 }
 
-// 店長有填的店，一句話和推薦商品以試算表為準；回傳要換鞋色的門市
+// 店長有填的店，一句話和推薦商品以試算表為準；留言牆放已上牆的留言。回傳要換鞋色的門市
 function applyPicks(data, picks) {
   const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
   const shoes = new Map();
   for (const s of data.stores) {
     const p = picks.stores[s.id];
+    s.messages = (Array.isArray(p?.messages) ? p.messages : [])
+      .slice(0, 12)
+      .map((m) => ({ nickname: text(m?.nickname, 12) || '路過的客人', text: text(m?.text, 60) }))
+      .filter((m) => m.text);
     if (!p?.filled) continue;
     s.quote = text(p.quote, 80) || s.quote;
     s.manager = text(p.managerName, 30) || s.manager;
@@ -128,6 +145,42 @@ function applyPicks(data, picks) {
     if (shoe) shoes.set(s.id, shoe);
   }
   return shoes;
+}
+
+// 這台裝置的代號，給後端擋「同一個人連續狂留言」用；存不了就每次開頁面換一個
+function deviceId() {
+  const fresh = () => crypto.randomUUID().replace(/-/g, '');
+  try {
+    let id = localStorage.getItem('dk-island-device');
+    if (!id) localStorage.setItem('dk-island-device', (id = fresh()));
+    return id;
+  } catch {
+    return fresh();
+  }
+}
+
+// 留言送到試算表（先審再上牆），回傳 { ok, message }
+async function sendNote(url, storeId, nickname, text, website) {
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        role: 'message',
+        submissionId: crypto.randomUUID(),
+        storeId,
+        nickname,
+        text,
+        deviceId: deviceId(),
+        website,
+        version: 'island-1',
+      }),
+    });
+    const json = await res.json();
+    return json?.ok ? { ok: true } : { ok: false, message: json?.message || '暫時送不出去，請稍後再試。' };
+  } catch {
+    return { ok: false, message: '網路好像不太穩，請稍後再試。' };
+  }
 }
 
 function showError(message) {
@@ -180,6 +233,16 @@ async function boot() {
       setHash(`region/${id}`);
     },
     // 進店：鏡頭先降到店門口，到了再開門
+    landmark(id) {
+      if (!data.landmarks.some((l) => l.id === id)) return app.overview();
+      clearTimeout(enterTimer);
+      Object.assign(state, { region: null, store: null });
+      ui.showLandmark(id);
+      world.setFocus(null);
+      world.setSelected(null);
+      world.focusLandmark(id);
+      setHash(`spot/${id}`);
+    },
     store(id) {
       const s = data.storeById.get(id);
       if (!s) return app.overview();
@@ -201,11 +264,14 @@ async function boot() {
     onOverview: app.overview,
     onCloseCard: () => (state.store ? app.region(state.region) : app.overview()),
     onCloseShop: () => app.region(state.region),
+    onPostMessage: data.site.managerPicksUrl && data.site.messageBoard
+      ? (storeId, nickname, text, website) => sendNote(data.site.managerPicksUrl, storeId, nickname, text, website)
+      : null,
     onInsets: (ins) => world?.setInsets(ins),
   });
 
   try {
-    world = createWorld($('stage'), data, { onRegion: app.region, onStore: app.store });
+    world = createWorld($('stage'), data, { onRegion: app.region, onStore: app.store, onLandmark: app.landmark });
   } catch (e) {
     console.error(e);
     showError(`這個瀏覽器沒辦法顯示 3D 畫面（${e.message}）`);
@@ -229,8 +295,9 @@ async function boot() {
   }
 
   // 網址可以直接指到某間店，例如 …/#store/頂好
-  const m = decodeURIComponent(location.hash.slice(1)).match(/^(store|region)\/(.+)$/);
+  const m = decodeURIComponent(location.hash.slice(1)).match(/^(store|region|spot)\/(.+)$/);
   if (m?.[1] === 'store') app.store(m[2]);
+  else if (m?.[1] === 'spot') app.landmark(m[2]);
   else if (m?.[1] === 'region') app.region(m[2]);
   else {
     app.overview();

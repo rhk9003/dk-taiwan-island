@@ -17,12 +17,14 @@ js/               程式（平常不用動）
   islands.js      台灣島的形狀、山、門市排位置、商圈範圍
   buildings.js    各種門市建築與 DK 招牌、熱氣球廣場
   town.js         商圈裡的店面、夜市小攤、路燈
+  landmarks.js    台灣景點、機場、離島地標的造型和 DK 航空的飛機
   people.js       門口的店長氣球人、街上逛街的氣球人和他們的鞋
   ui.js           右側清單、分區卡、進店畫面、遊戲視窗、開場導覽
 assets/           店長氣球人的圖
 data/             ← 平常只改這裡
   site.json       網站標題、開場導覽文字
-  regions.json    七個分區
+  regions.json    八個分區（含離島）
+  landmarks.json  台灣景點與機場
   stores.json     61 間門市
   modules.json    玩法（每種玩法的名稱、建築造型、遊戲網址）
   products.json   店長推薦可以選的商品
@@ -40,6 +42,9 @@ data/             ← 平常只改這裡
 | 加一個新玩法 | `modules.json` 加一項：`name`、`building`（用哪種建築造型）、`color`、`desc`、`url`（遊戲網址）、`cta`（按鈕文字）。`url` 留 `null` 會顯示「即將開放」 |
 | 新增門市 | `stores.json` 複製一間店改內容。`id` 不能重複；`region` 填分區代號；`latlng` 填經緯度 |
 | 調整門市在島上的位置 | 改 `latlng`。在 Google 地圖對門市按右鍵，點第一行的數字就會複製經緯度。位置跟別間店撞到時，會自動挪到旁邊最近的空地 |
+| 加一個景點或機場 | `landmarks.json` 加一項：`name`、`latlng`、`model`（造型）、`desc`。點景點會顯示簡介和離它最近的三間 DK |
+| 打開／關掉留言板 | `site.json` 的 `messageBoard`（true／false） |
+| 審核留言 | 到「店長的話蒐集」試算表的「門市留言」分頁，勾「上牆」才會貼到那間店的留言牆 |
 | 改分區名稱、介紹、名牌位置 | `regions.json` |
 | 改標題、開場導覽 | `site.json` |
 

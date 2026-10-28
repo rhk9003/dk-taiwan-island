@@ -45,10 +45,10 @@ export function createUI(data, handlers) {
     }, h('i'), m.name, h('em', { text: n })));
   }
 
-  const storeRow = (s) => {
+  const storeRow = (s, note) => {
     const m = data.modules[s.module];
     return h('button', { type: 'button', class: 'store-row', style: `--c:${m.color}`, onclick: () => handlers.onStore(s.id) },
-      h('i'), h('b', { text: shortName(s.name) }), h('small', { text: m.name }));
+      h('i'), h('b', { text: shortName(s.name) }), h('small', { text: note ?? m.name }));
   };
 
   const regionNodes = new Map();
@@ -63,7 +63,7 @@ export function createUI(data, handlers) {
     const li = h('li', { class: 'region' },
       h('button', { type: 'button', class: 'region-row', onclick: () => handlers.onRegion(r.id) },
         h('i', { text: r.no }), h('span', { text: r.name }),
-        h('em', { text: r.role === 'plaza' ? '廣場' : `${stores.length} 間` })),
+        h('em', { text: r.badge || (r.role === 'plaza' ? '廣場' : `${stores.length} 間`) })),
       ul);
     regionNodes.set(r.id, { li, stores });
     list.append(li);
@@ -163,7 +163,11 @@ export function createUI(data, handlers) {
     const products = s.products.map((pid) => data.products.get(pid)).filter(Boolean);
     const picks = s.pick ? [s.pick, ...products] : products;
     const sampleTag = s.sample ? h('span', { class: 'tag', text: '範例' }) : null;
-    const scroll = shopInner.scrollTop;
+    // 試算表資料晚到而重畫時，保留捲動位置和正在打的留言
+    const oldRoom = shopInner.querySelector('.shop-room');
+    const scroll = oldRoom?.scrollTop ?? 0;
+    const oldForm = oldRoom?.querySelector('.note-form');
+    const draft = oldForm ? { nickname: oldForm.nickname.value, text: oldForm.text.value } : null;
 
     shopInner.replaceChildren(
       h('header', { class: 'shop-sign' },
@@ -193,9 +197,8 @@ export function createUI(data, handlers) {
           h('p', { class: 'shop-label', text: '店內玩法' }),
           h('h3', { text: m.name }),
           m.desc ? h('p', { text: m.desc }) : null,
-          m.cta
-            ? h('button', { type: 'button', class: 'cta', disabled: !m.url, onclick: () => openModule(m) }, m.url ? `${m.cta} →` : m.cta)
-            : h('a', { class: 'cta', href: maps, target: '_blank', rel: 'noopener' }, '來門市試穿 →'))),
+          cornerAction(m, maps)),
+        noteBoard(s)),
       h('footer', { class: 'shop-info' },
         h('span', { text: s.address }),
         tel ? h('a', { href: `tel:${tel}`, text: s.phone }) : null,
@@ -203,7 +206,14 @@ export function createUI(data, handlers) {
     );
 
     if (refresh) {
-      shopInner.scrollTop = scroll;
+      const room = shopInner.querySelector('.shop-room');
+      room.scrollTop = scroll;
+      const form = room.querySelector('.note-form');
+      if (form && draft) {
+        form.nickname.value = draft.nickname;
+        form.text.value = draft.text;
+        form.text.dispatchEvent(new Event('input'));
+      }
       return;
     }
     shop.hidden = false;
@@ -219,9 +229,133 @@ export function createUI(data, handlers) {
     shop.classList.remove('opening');
   }
 
+  // 玩法角落的按鈕：有遊戲就開遊戲；留言板玩法就捲到留言牆；一般門市就導去 Google 地圖
+  function cornerAction(m, maps) {
+    if (m.scrollTo === 'board') {
+      return h('button', {
+        type: 'button',
+        class: 'cta',
+        onclick: () => {
+          const board = shopInner.querySelector('.shop-board');
+          board?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          board?.querySelector('textarea')?.focus({ preventScroll: true });
+        },
+      }, `${m.cta} ↓`);
+    }
+    if (m.cta) return h('button', { type: 'button', class: 'cta', disabled: !m.url, onclick: () => openModule(m) }, m.url ? `${m.cta} →` : m.cta);
+    return h('a', { class: 'cta', href: maps, target: '_blank', rel: 'noopener' }, '來門市試穿 →');
+  }
+
+  // ---- 留言牆（先審再上牆）----
+  const NOTE_COLORS = ['#ffe08a', '#ffc2cf', '#bfe0ff', '#c7efd6', '#fff3b0', '#e6d7ff'];
+  const pending = new Map(); // 這次開頁面自己送出、還在審核的留言（只有自己看得到）
+  let cooldownUntil = 0;
+
+  function note(m, i, extra = '') {
+    const rot = ((i * 37) % 7) - 3;
+    return h('figure', { class: `note ${extra}`, style: `--r:${rot}deg;--n:${NOTE_COLORS[i % NOTE_COLORS.length]}` },
+      extra === 'pending' ? h('span', { class: 'note-flag', text: '審核中' }) : null,
+      h('blockquote', { text: m.text }),
+      h('figcaption', { text: `— ${m.nickname}` }));
+  }
+
+  function renderNotes(s, cork) {
+    const mine = pending.get(s.id) || [];
+    const list = s.messages || [];
+    const notes = [...mine.map((m, i) => note(m, i + 3, 'pending')), ...list.map((m, i) => note(m, i))];
+    if (!notes.length) {
+      notes.push(h('figure', { class: 'note ghost', style: '--r:-2deg;--n:#fffdf6' }, h('blockquote', { text: '還沒有人留言，當第一個吧！' })));
+    }
+    cork.replaceChildren(...notes);
+  }
+
+  function noteBoard(s) {
+    const cork = h('div', { class: 'cork' });
+    renderNotes(s, cork);
+    if (!handlers.onPostMessage) {
+      return h('section', { class: 'shop-board' }, h('p', { class: 'shop-label', text: '留言牆' }), cork, h('p', { class: 'note-status', text: '留言板即將開放。' }));
+    }
+
+    const count = h('span', { class: 'note-count', text: '0/60' });
+    const status = h('p', { class: 'note-status', role: 'status' });
+    const submit = h('button', { type: 'submit', class: 'note-submit' }, '貼上去');
+    const form = h('form', { class: 'note-form', novalidate: true },
+      h('input', { name: 'nickname', maxlength: '12', placeholder: '你的暱稱（選填）', autocomplete: 'nickname' }),
+      h('textarea', {
+        name: 'text',
+        maxlength: '60',
+        rows: '2',
+        placeholder: `想對${shortName(s.name)}說什麼？`,
+        oninput: (e) => { count.textContent = `${e.target.value.length}/60`; },
+      }),
+      // 機器人才會填的隱藏欄位
+      h('input', { name: 'website', class: 'hp', tabindex: '-1', autocomplete: 'off', 'aria-hidden': 'true' }),
+      h('div', { class: 'note-actions' }, count, submit),
+      status);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nickname = form.nickname.value.trim();
+      const text = form.text.value.trim();
+      if (text.length < 2) {
+        status.textContent = '再多寫幾個字吧！';
+        return;
+      }
+      if (Date.now() < cooldownUntil) {
+        status.textContent = '留言太快了，休息一下再留吧！';
+        return;
+      }
+      submit.disabled = true;
+      status.textContent = '貼上去中…';
+      const res = await handlers.onPostMessage(s.id, nickname, text, form.website.value);
+      submit.disabled = false;
+      if (!res.ok) {
+        status.textContent = res.message;
+        return;
+      }
+      cooldownUntil = Date.now() + 30000;
+      pending.set(s.id, [{ nickname: nickname || '路過的客人', text }, ...(pending.get(s.id) || [])]);
+      form.text.value = '';
+      count.textContent = '0/60';
+      status.textContent = '收到了！店員看過後就會貼上牆。';
+      renderNotes(s, cork);
+    });
+
+    return h('section', { class: 'shop-board' },
+      h('p', { class: 'shop-label' }, '留言牆', h('span', { class: 'note-hint', text: '店員看過後會貼上牆' })),
+      cork,
+      form);
+  }
+
   // 試算表的資料晚一點才到：店裡正開著就重畫
   function refresh() {
     if (current.store && !shop.hidden) openShop(current.store, { refresh: true });
+  }
+
+  // 景點／機場卡：簡介＋離它最近的三間門市
+  const distanceKm = ([lat1, lng1], [lat2, lng2]) => {
+    const dx = (lng2 - lng1) * 111.32 * Math.cos((((lat1 + lat2) / 2) * Math.PI) / 180);
+    return Math.hypot(dx, (lat2 - lat1) * 110.57);
+  };
+
+  function showLandmark(id) {
+    const lm = data.landmarks.find((l) => l.id === id);
+    current = { region: null, store: null };
+    renderList();
+    closeShop();
+    const airport = lm.model === 'airport';
+    const near = data.stores
+      .filter((s) => Array.isArray(s.latlng))
+      .map((s) => ({ s, km: distanceKm(lm.latlng, s.latlng) }))
+      .sort((a, b) => a.km - b.km)
+      .slice(0, 3);
+    fillCard(
+      head(airport ? 'AIRPORT・機場' : 'SPOT・台灣景點', lm.name),
+      lm.desc ? h('p', { class: 'lead', text: lm.desc }) : null,
+      near.length ? h('p', { class: 'hint', text: airport ? '下了飛機，最近的 DK 在這裡：' : '逛完順路去最近的 DK：' }) : null,
+      near.length ? h('ul', { class: 'card-stores' }, near.map(({ s, km }) =>
+        h('li', {}, storeRow(s, km < 1.5 ? '就在附近' : `約 ${Math.round(km)} 公里`)))) : null,
+    );
   }
 
   function showNone() {
@@ -307,5 +441,5 @@ export function createUI(data, handlers) {
     else if (!card.hidden) handlers.onCloseCard();
   });
 
-  return { showRegion, selectStore, openShop, showNone, maybeShowIntro, refresh };
+  return { showRegion, showLandmark, selectStore, openShop, showNone, maybeShowIntro, refresh };
 }

@@ -53,6 +53,9 @@ function prism(w, h, d, c, x, y, z, right = false) {
   return place(g, c, x, y, z);
 }
 
+// 景點造型（landmarks.js）也用同一組積木
+export const kit = { box, cyl, cone, ball, prism, place, geo };
+
 // DK DR.KAO 招牌（酒紅底白字，比例 1.6:1）。拿到官方 logo 圖檔後可以改成貼圖
 let signMat = null;
 function sign(w, h, x, y, z) {

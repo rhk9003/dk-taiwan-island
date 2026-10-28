@@ -8,8 +8,8 @@ const BEACH_H = 0.42;
 const SQ3 = Math.sqrt(3);
 const DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
 
-// ---- 經緯度 → 島上座標：1 格約 2.5 公里，北方是 -z ----
-const KM_PER_UNIT = 2.5;
+// ---- 經緯度 → 島上座標：1 格約 2 公里，北方是 -z ----
+const KM_PER_UNIT = 2;
 const LAT0 = 23.7;
 const LNG0 = 120.95;
 const KX = (111.32 * Math.cos((LAT0 * Math.PI) / 180)) / KM_PER_UNIT;
@@ -28,11 +28,19 @@ const COAST = [
   [25.17, 121.40], [25.25, 121.47],
 ];
 
-// 外海小島；r 是半徑（公里）
+// 離島。parts 是組成小島的圓 [緯度, 經度, 半徑公里]；金門、馬祖實際離太遠，整組搬到 show 的位置並加虛線框（地圖常見的「示意位置」）
 const ISLETS = [
-  { at: [24.843, 121.951], r: 2.2 }, // 龜山島
-  { at: [22.660, 121.490], r: 3.2 }, // 綠島
-  { at: [22.045, 121.548], r: 4.6 }, // 蘭嶼
+  { name: '龜山島', parts: [[24.843, 121.951, 2.2]] },
+  { name: '綠島', parts: [[22.660, 121.490, 3.2]], landmark: 'lighthouse' },
+  { name: '蘭嶼', parts: [[22.045, 121.548, 4.6]], landmark: 'lighthouse' },
+  { name: '小琉球', parts: [[22.340, 120.370, 2.4]], landmark: 'lighthouse' },
+  {
+    name: '澎湖',
+    parts: [[23.57, 119.60, 6.5], [23.64, 119.55, 4], [23.62, 119.49, 3.2], [23.70, 119.62, 3], [23.36, 119.50, 2.4], [23.24, 119.43, 2.2]],
+    landmark: 'windmill',
+  },
+  { name: '金門', parts: [[24.45, 118.38, 5.5], [24.44, 118.30, 4], [24.43, 118.23, 2.6]], show: [24.30, 119.50], landmark: 'house' },
+  { name: '馬祖', parts: [[26.16, 119.95, 3], [26.23, 119.99, 2.4], [26.29, 120.10, 1.6]], show: [25.42, 120.42], landmark: 'lighthouse' },
 ];
 
 // 山脈沿折線隆起；width 是半寬（公里），height 是最高點高出平地多少
@@ -66,6 +74,7 @@ const PAVE = '#ece3cf';
 const PLAZA = '#f3e7d2';
 const STREET = ['#d8d1c4', '#ddd6c9'];
 const TOWN = '#e7e0d1';
+const APRON = '#cfd5d3';
 const SAND = '#f2e0b4';
 const EARTH = '#c49466';
 const ROCK_SIDE = '#a88a6a';
@@ -107,20 +116,31 @@ function mountainAt(x, z) {
   return m;
 }
 
-/** 排出整座台灣島：格子、山、門市位置、分區（只算資料，不建 3D 物件） */
-export function layoutTaiwan(regions, stores, warn) {
+/** 排出整座台灣島：格子、山、離島、景點、門市位置、商圈、分區（只算資料，不建 3D 物件） */
+export function layoutTaiwan(regions, stores, landmarks, warn) {
   const coast = COAST.map(project);
-  const islets = ISLETS.map((i) => ({ ...project(i.at), r: i.r / KM_PER_UNIT }));
-  const xs = [...coast, ...islets].map((p) => p.x);
-  const zs = [...coast, ...islets].map((p) => p.z);
+  const islets = ISLETS.map((il) => {
+    const base = project(il.parts[0]);
+    const center = il.show ? project(il.show) : base;
+    const circles = il.parts.map(([lat, lng, r]) => {
+      const p = project([lat, lng]);
+      return { x: p.x + center.x - base.x, z: p.z + center.z - base.z, r: r / KM_PER_UNIT };
+    });
+    return { ...il, center, circles, inset: Boolean(il.show), tiles: [] };
+  });
+  const xs = [...coast.map((p) => p.x), ...islets.flatMap((i) => i.circles.flatMap((c) => [c.x - c.r, c.x + c.r]))];
+  const zs = [...coast.map((p) => p.z), ...islets.flatMap((i) => i.circles.flatMap((c) => [c.z - c.r, c.z + c.r]))];
   const [minX, maxX, minZ, maxZ] = [Math.min(...xs) - 2, Math.max(...xs) + 2, Math.min(...zs) - 2, Math.max(...zs) + 2];
 
   const tiles = new Map();
   for (let r = Math.floor(minZ / 1.5); r <= Math.ceil(maxZ / 1.5); r++) {
     for (let q = Math.floor(minX / SQ3 - r / 2) - 1; q <= Math.ceil(maxX / SQ3 - r / 2) + 1; q++) {
       const { x, z } = axialToXZ(q, r);
-      const inside = pointInPoly(x, z, coast) || islets.some((i) => Math.hypot(x - i.x, z - i.z) <= i.r);
-      if (inside) tiles.set(key(q, r), { q, r, x, z, store: null, plaza: false, regionId: null });
+      const islet = pointInPoly(x, z, coast) ? null : islets.find((i) => i.circles.some((c) => Math.hypot(x - c.x, z - c.z) <= c.r));
+      if (islet === undefined) continue;
+      const t = { q, r, x, z, store: null, plaza: false, regionId: null, islet };
+      tiles.set(key(q, r), t);
+      islet?.tiles.push(t);
     }
   }
   const all = [...tiles.values()];
@@ -129,7 +149,7 @@ export function layoutTaiwan(regions, stores, warn) {
   for (const t of all) {
     const rand = rng(`tile-${t.q},${t.r}`);
     t.edge = neighbors(t).length < 6;
-    t.m = t.edge ? 0 : mountainAt(t.x, t.z);
+    t.m = t.edge || t.islet ? 0 : mountainAt(t.x, t.z);
     t.kind = t.edge ? 'beach' : t.m > 0.3 ? 'mountain' : 'land';
     t.h = t.kind === 'beach' ? BEACH_H : LAND_H + (t.kind === 'mountain' ? t.m * (0.75 + rand() * 0.45) : 0);
   }
@@ -151,11 +171,12 @@ export function layoutTaiwan(regions, stores, warn) {
     tiles: [],
     plazaTile: null,
   }]));
+  const islandsRegion = regions.find((r) => r.role === 'islands')?.id ?? null;
 
   // 活動廣場：把 anchor 附近一圈整平鋪地
   for (const ri of info.values()) {
     if (ri.region.role !== 'plaza') continue;
-    const c = nearest(ri.anchor, (t) => t.kind !== 'beach');
+    const c = nearest(ri.anchor, (t) => t.kind !== 'beach' && !t.islet);
     if (!c) continue;
     for (const t of [c, ...neighbors(c)]) {
       if (t.kind !== 'beach') Object.assign(t, { kind: 'land', h: LAND_H, m: 0, plaza: true });
@@ -163,8 +184,31 @@ export function layoutTaiwan(regions, stores, warn) {
     ri.plazaTile = c;
   }
 
-  // 門市：照經緯度放到最近、還沒被占用的平地；緊貼別間店要多付一點代價，讓店和店之間盡量隔一條街
-  const SPACING_PENALTY = 6;
+  // 景點、機場：先占好位置，門市和商圈會避開。footprint 1 = 連旁邊一圈都整平（機場跑道）
+  const spots = [];
+  for (const lm of landmarks) {
+    const t = nearest(project(lm.latlng), (c) => !c.plaza && !c.reserved && !c.islet);
+    if (!t) continue;
+    const area = lm.footprint ? [t, ...neighbors(t)] : [t];
+    for (const c of area) {
+      c.reserved = lm.id;
+      if (lm.footprint) Object.assign(c, { kind: 'land', h: LAND_H, m: 0, apron: true });
+    }
+    if (lm.model === 'lake') t.h = Math.max(LAND_H, t.h - 0.5); // 湖在山谷裡，比周圍低一點
+    spots.push({ landmark: lm, tile: t });
+  }
+  for (const il of islets) {
+    if (!il.landmark) continue;
+    const t = nearest(il.center, (c) => c.islet === il && !c.edge) ?? nearest(il.center, (c) => c.islet === il);
+    if (t) {
+      t.reserved = `islet-${il.name}`;
+      il.landmarkTile = t;
+    }
+  }
+
+  // 門市：照經緯度放到最近、還沒被占用的平地；和別間門市至少隔一條街
+  const BESIDE = 100; // 緊貼別間店：幾乎不可能
+  const NEAR = 6; // 只隔一條街：可以，但能再遠一點更好
   for (const s of stores) {
     let ll = s.latlng;
     if (!Array.isArray(ll) || ll.length !== 2) {
@@ -176,8 +220,8 @@ export function layoutTaiwan(regions, stores, warn) {
     let t = null;
     let best = Infinity;
     for (const c of all) {
-      if (c.kind !== 'land' || c.store || c.plaza) continue;
-      const cost = (c.x - p.x) ** 2 + (c.z - p.z) ** 2 + (c.besideStore ? SPACING_PENALTY : 0);
+      if (c.kind !== 'land' || c.store || c.plaza || c.reserved || c.islet) continue;
+      const cost = (c.x - p.x) ** 2 + (c.z - p.z) ** 2 + (c.besideStore ? BESIDE : c.nearStore ? NEAR : 0);
       if (cost < best) { best = cost; t = c; }
     }
     if (!t) {
@@ -186,12 +230,15 @@ export function layoutTaiwan(regions, stores, warn) {
     }
     t.store = s;
     t.h = LAND_H;
-    for (const n of neighbors(t)) n.besideStore = true;
+    for (const n of neighbors(t)) {
+      n.besideStore = true;
+      for (const n2 of neighbors(n)) n2.nearStore = true;
+    }
     info.get(s.region)?.tiles.push(t);
   }
 
   // 商圈：門市旁邊一圈是街道（氣球人走的路），再外一圈蓋店面和房子
-  const open = (t) => t.kind === 'land' && !t.store && !t.plaza;
+  const open = (t) => t.kind === 'land' && !t.store && !t.plaza && !t.reserved;
   for (const t of all) if (t.store) for (const n of neighbors(t)) if (open(n)) n.street = true;
   for (const t of all) {
     if (!t.street) continue;
@@ -205,11 +252,15 @@ export function layoutTaiwan(regions, stores, warn) {
   const streets = all.filter((t) => t.street);
   for (const t of streets) t.links = neighbors(t).filter((n) => n.street);
 
-  // 分區：每一格歸給最近的門市（或分區名牌）所屬的區
+  // 分區：每一格歸給最近的門市（或分區名牌）所屬的區；離島另外歸一區
   const seeds = [];
   for (const t of all) if (t.store) seeds.push({ x: t.x, z: t.z, id: t.store.region });
-  for (const ri of info.values()) seeds.push({ x: ri.anchor.x, z: ri.anchor.z, id: ri.region.id });
+  for (const ri of info.values()) if (ri.region.role !== 'islands') seeds.push({ x: ri.anchor.x, z: ri.anchor.z, id: ri.region.id });
   for (const t of all) {
+    if (t.islet && islandsRegion) {
+      t.regionId = islandsRegion;
+      continue;
+    }
     let bd = Infinity;
     for (const s of seeds) {
       const d = (t.x - s.x) ** 2 + (t.z - s.z) ** 2;
@@ -218,7 +269,9 @@ export function layoutTaiwan(regions, stores, warn) {
   }
 
   for (const ri of info.values()) {
-    const pts = [...ri.tiles, ri.plazaTile, ri.anchor].filter(Boolean);
+    const pts = ri.region.role === 'islands'
+      ? all.filter((t) => t.islet)
+      : [...ri.tiles, ri.plazaTile, ri.anchor].filter(Boolean);
     const px = pts.map((p) => p.x);
     const pz = pts.map((p) => p.z);
     ri.box = { minX: Math.min(...px), maxX: Math.max(...px), minZ: Math.min(...pz), maxZ: Math.max(...pz) };
@@ -232,12 +285,12 @@ export function layoutTaiwan(regions, stores, warn) {
     new THREE.Vector3(Math.min(...all.map((t) => t.x)) - 1, 0, Math.min(...all.map((t) => t.z)) - 1),
     new THREE.Vector3(Math.max(...all.map((t) => t.x)) + 1, 0, Math.max(...all.map((t) => t.z)) + 1),
   );
-  // 本島範圍（不含外海小島），全景置中用
+  // 本島範圍（不含離島），手機直式的全景用
   const mainBounds = new THREE.Box3(
     new THREE.Vector3(Math.min(...coast.map((p) => p.x)), 0, Math.min(...coast.map((p) => p.z))),
     new THREE.Vector3(Math.max(...coast.map((p) => p.x)), 0, Math.max(...coast.map((p) => p.z))),
   );
-  return { tiles: all, regions: info, bounds, mainBounds, streets };
+  return { tiles: all, regions: info, bounds, mainBounds, streets, landmarks: spots, islets };
 }
 
 /** 把整座島建成 3D 物件（同類物件用 InstancedMesh，手機也跑得動） */
@@ -269,6 +322,7 @@ export function buildIsland(layout) {
     let color;
     if (t.plaza) color = PLAZA;
     else if (t.store) color = PAVE;
+    else if (t.apron) color = APRON;
     else if (t.street) color = pick(STREET, rand);
     else if (t.town && t.houses) color = TOWN;
     else if (t.kind === 'beach') color = SAND;
@@ -319,7 +373,7 @@ const SOUTH_Z = project([23.5, 121]).z;
 function buildTrees(tiles) {
   const trees = [];
   for (const t of tiles) {
-    if (t.store || t.plaza || t.street || t.houses) continue;
+    if (t.store || t.plaza || t.street || t.houses || t.reserved) continue;
     const rand = rng(`trees-${t.q},${t.r}`);
     let count = 0;
     let kind = 'lowland';

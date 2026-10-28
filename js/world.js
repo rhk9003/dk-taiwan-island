@@ -5,6 +5,7 @@ import { layoutTaiwan, buildIsland, LAND_H } from './islands.js';
 import { createBuilding, createPlaza, createClouds, createRing, MASCOT, SHOE_FALLBACK, shoeColorOf, mascotIndex } from './buildings.js';
 import { buildTown } from './town.js';
 import { createPeople } from './people.js';
+import { createLandmark, createPlane } from './landmarks.js';
 import { easeInOutCubic, clamp, h, rng, shortName } from './util.js';
 
 const VIEW_POLAR = 0.9; // 鏡頭和正上方的夾角（弧度），越大越斜
@@ -26,14 +27,15 @@ export function createWorld(container, data, handlers) {
   container.appendChild(labelRenderer.domElement);
 
   // ---- 島 ----
-  const layout = layoutTaiwan(data.regions, data.stores, data.warn);
+  const layout = layoutTaiwan(data.regions, data.stores, data.landmarks, data.warn);
   const island = buildIsland(layout);
   const bounds = layout.bounds;
   const maxDim = Math.max(...bounds.getSize(new THREE.Vector3()).toArray());
-  // 全景以台灣本島置中；看的點往南（靠鏡頭那側）偏一點，抵銷透視讓近處變大的效果
-  const mapSize = layout.mainBounds.getSize(new THREE.Vector3());
-  const mapCenter = layout.mainBounds.getCenter(new THREE.Vector3()).setY(LAND_H);
+  // 全景含離島；看的點往南（靠鏡頭那側）偏一點，抵銷透視讓近處變大的效果
+  const mapSize = bounds.getSize(new THREE.Vector3());
+  const mapCenter = bounds.getCenter(new THREE.Vector3()).setY(LAND_H);
   mapCenter.z += mapSize.z * 0.06;
+  const islandsRegion = data.regions.find((r) => r.role === 'islands')?.id ?? null;
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(SKY);
@@ -102,6 +104,79 @@ export function createWorld(container, data, handlers) {
     for (const sp of p.spots) spots.push({ ...sp, x: sp.x + ri.plazaTile.x, y: LAND_H, z: sp.z + ri.plazaTile.z });
   }
 
+  // ---- 景點、機場、離島 ----
+  const landmarkObjs = new Map();
+  const extraLabels = []; // 景點和離島的名牌：拉近才顯示
+  const smallLabel = (cls, text, onclick) => {
+    const obj = new CSS2DObject(h('button', { class: cls, type: 'button', onclick: (e) => { e.stopPropagation(); onclick(); } }, h('i'), text));
+    obj.visible = false;
+    extraLabels.push(obj);
+    return obj;
+  };
+
+  for (const { landmark: lm, tile: t } of layout.landmarks) {
+    const { group: g, anims: a } = createLandmark(lm.model);
+    g.position.set(t.x, t.h, t.z);
+    g.userData.landmarkId = lm.id;
+    scene.add(g);
+    pickables.push(g);
+    anims.push(...a);
+    const top = new THREE.Box3().setFromObject(g).max.y;
+    const label = smallLabel(lm.model === 'airport' ? 'llabel airport' : 'llabel', lm.name, () => handlers.onLandmark?.(lm.id));
+    label.position.set(t.x, top + 0.35, t.z);
+    scene.add(label);
+    landmarkObjs.set(lm.id, { group: g, tile: t, landmark: lm, height: top - t.h });
+  }
+
+  for (const il of layout.islets) {
+    const toIslands = () => islandsRegion && handlers.onRegion(islandsRegion);
+    if (il.landmarkTile) {
+      const { group: g, anims: a } = createLandmark(il.landmark);
+      g.position.set(il.landmarkTile.x, il.landmarkTile.h, il.landmarkTile.z);
+      if (islandsRegion) g.userData.regionId = islandsRegion;
+      scene.add(g);
+      pickables.push(g);
+      anims.push(...a);
+    }
+    const label = smallLabel('ilabel', il.name, toIslands);
+    label.position.set(il.center.x, LAND_H + 1.8, il.center.z + 1.2);
+    scene.add(label);
+    // 金門、馬祖不在真實位置：用虛線框標成「示意位置」
+    if (il.inset) {
+      const xs = il.tiles.map((t) => t.x);
+      const zs = il.tiles.map((t) => t.z);
+      const [x0, x1, z0, z1] = [Math.min(...xs) - 2, Math.max(...xs) + 2, Math.min(...zs) - 2, Math.max(...zs) + 2];
+      const frame = new THREE.LineLoop(
+        new THREE.BufferGeometry().setFromPoints([[x0, z0], [x1, z0], [x1, z1], [x0, z1]].map(([x, z]) => new THREE.Vector3(x, 0.06, z))),
+        new THREE.LineDashedMaterial({ color: '#ffffff', dashSize: 0.8, gapSize: 0.5, transparent: true, opacity: 0.8 }),
+      );
+      frame.computeLineDistances();
+      scene.add(frame);
+    }
+  }
+
+  // DK 航空：飛機在機場之間來回飛
+  const airports = layout.landmarks.filter((s) => s.landmark.model === 'airport').map((s) => s.tile);
+  const flights = [];
+  for (let i = 0; i < Math.floor(airports.length / 2); i++) {
+    const a = airports[i];
+    const b = airports[airports.length - 1 - i]; // 頭尾配對：桃園↔小港、松山↔清泉崗
+    const plane = createPlane();
+    plane.scale.setScalar(1.6);
+    scene.add(plane);
+    flights.push({ plane, a: new THREE.Vector3(a.x, LAND_H, a.z), b: new THREE.Vector3(b.x, LAND_H, b.z), phase: i * 0.37 });
+  }
+  const flightPos = new THREE.Vector3();
+  const flightNext = new THREE.Vector3();
+  function flightAt(f, u, out) {
+    // u 0→1 去程、1→2 回程；中段飛高，兩端貼近跑道
+    const back = u > 1;
+    const k = back ? u - 1 : u;
+    out.lerpVectors(back ? f.b : f.a, back ? f.a : f.b, k);
+    out.y = LAND_H + 0.3 + Math.sin(Math.PI * k) * 9;
+    return out;
+  }
+
   const people = createPeople(spots, layout.streets);
   scene.add(people.group);
   const clouds = createClouds(bounds, 14);
@@ -119,7 +194,7 @@ export function createWorld(container, data, handlers) {
     },
     h('b', { text: r.no }),
     h('span', { text: r.name }),
-    h('em', { text: r.role === 'plaza' ? '廣場' : `${ri.tiles.length} 間` }));
+    h('em', { text: r.badge || (r.role === 'plaza' ? '廣場' : `${ri.tiles.length} 間`) }));
     const obj = new CSS2DObject(el);
     obj.position.copy(ri.labelPos);
     scene.add(obj);
@@ -234,6 +309,7 @@ export function createWorld(container, data, handlers) {
     for (const hit of raycaster.intersectObjects(pickables, true)) {
       for (let o = hit.object; o; o = o.parent) {
         if (o.userData.storeId) return { store: o.userData.storeId };
+        if (o.userData.landmarkId) return { landmark: o.userData.landmarkId };
         if (o.userData.regionId) return { region: o.userData.regionId };
       }
       const tileRegion = hit.object.userData.tileRegion;
@@ -254,6 +330,7 @@ export function createWorld(container, data, handlers) {
     if (moved > 6 || !quick) return;
     const hit = pick(e.clientX, e.clientY);
     if (hit?.store) handlers.onStore(hit.store);
+    else if (hit?.landmark) handlers.onLandmark?.(hit.landmark);
     else if (hit?.region) handlers.onRegion(hit.region);
   });
   dom.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') pendingMove = e; });
@@ -283,6 +360,11 @@ export function createWorld(container, data, handlers) {
       const pri = id === selectedId ? 0 : id === hoverId ? 1 : 2;
       items.push({ el: o.label.element, rect, pri, d: camera.position.distanceToSquared(o.group.position) });
     }
+    for (const obj of extraLabels) {
+      if (!obj.visible) continue;
+      const rect = obj.element.getBoundingClientRect();
+      if (rect.width) items.push({ el: obj.element, rect, pri: 3, d: camera.position.distanceToSquared(obj.position) });
+    }
     items.sort((a, b) => a.pri - b.pri || a.d - b.d);
     const kept = [];
     for (const it of items) {
@@ -296,6 +378,8 @@ export function createWorld(container, data, handlers) {
   // 鏡頭拉近時，自動顯示正在看的那一區的門市名稱
   function detectNear() {
     const dist = camera.position.distanceTo(controls.target);
+    const showExtra = dist < 95; // 景點、離島名牌：全景時太擠，拉近一點才出現
+    for (const obj of extraLabels) obj.visible = showExtra;
     let best = null;
     if (dist < 40) {
       let bestD = Infinity;
@@ -367,7 +451,16 @@ export function createWorld(container, data, handlers) {
         const k = (t * 0.35 + a.phase) % 1;
         a.obj.position.y = a.base + k * 0.55;
         a.obj.scale.setScalar(Math.sin(k * Math.PI) * 1.1 + 0.01);
+      } else if (a.kind === 'spin') {
+        a.obj.rotation.z = t * a.speed;
+      } else if (a.kind === 'slide') {
+        a.obj.position.x = a.base + Math.sin(t * a.speed) * a.amp;
       }
+    }
+    for (const f of flights) {
+      const u = (t * 0.04 + f.phase) % 2;
+      f.plane.position.copy(flightAt(f, u, flightPos));
+      f.plane.lookAt(flightAt(f, (u + 0.01) % 2, flightNext));
     }
     people.update(t, dt);
     clouds.update(dt);
@@ -385,10 +478,23 @@ export function createWorld(container, data, handlers) {
 
   return {
     overview() {
-      // 直式手機螢幕寬度不夠：允許切到一點東北角外海，並往西南（離鏡頭近、看起來比較大）挪一點
-      const portrait = W < H;
-      const target = portrait ? mapCenter.clone().add(new THREE.Vector3(-mapSize.x * 0.06, 0, 0)) : mapCenter;
-      flyTo(target, fitDistance(portrait ? mapSize.x * 0.88 : mapSize.x, mapSize.z), VIEW_POLAR, 1400, 0); // 全景一律北方朝上
+      // 橫式螢幕連離島一起放進來；直式手機寬度不夠，只框台灣本島，往西南（離鏡頭近、看起來比較大）挪一點
+      if (W < H) {
+        const size = layout.mainBounds.getSize(new THREE.Vector3());
+        const target = layout.mainBounds.getCenter(new THREE.Vector3()).setY(LAND_H);
+        target.z += size.z * 0.06;
+        target.x -= size.x * 0.06;
+        flyTo(target, fitDistance(size.x * 0.88, size.z), VIEW_POLAR, 1400, 0);
+      } else {
+        flyTo(mapCenter, fitDistance(mapSize.x, mapSize.z), VIEW_POLAR, 1400, 0); // 全景一律北方朝上
+      }
+    },
+    focusLandmark(id) {
+      const o = landmarkObjs.get(id);
+      if (!o) return;
+      // 越高的景點（101、85 大樓）鏡頭退越遠，整棟才看得到
+      const far = o.landmark.footprint ? 12 : clamp(o.height * 3.4, 8, 15);
+      flyTo(new THREE.Vector3(o.tile.x, o.tile.h + o.height * 0.4, o.tile.z), W < 600 ? far + 3 : far, 1.0);
     },
     focusRegion(id) {
       const ri = layout.regions.get(id);

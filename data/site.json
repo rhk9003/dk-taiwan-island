@@ -1,5 +1,6 @@
 {
-  "_說明": "網站標題與開場導覽。intro 每一項是導覽的一頁。managerPicksUrl 是「店長的話蒐集」試算表的讀取網址（Apps Script 網頁應用程式的 /exec 網址）：店長填了的店，一句話和推薦商品以試算表為準；留空就只用 stores.json。有填網址時，stores.json 裡 sample: true 的範例內容不會顯示。",
+  "_說明": "網站標題與開場導覽。intro 每一項是導覽的一頁。managerPicksUrl 是「店長的話蒐集」試算表的讀取網址（Apps Script 網頁應用程式的 /exec 網址）：店長填了的店，一句話和推薦商品以試算表為準；留空就只用 stores.json。有填網址時，stores.json 裡 sample: true 的範例內容不會顯示。messageBoard 是每間店的留言牆能不能留言（true 開放、false 只顯示「即將開放」）；留言會先進試算表「門市留言」分頁，勾了「上牆」才會出現在店裡。",
+  "messageBoard": false,
   "managerPicksUrl": "https://script.google.com/macros/s/AKfycbzl42xiYJxbyZuppz3eXXOS-HdI-zcd5Tk-JKGgmem8In0yup2w286KAfIkG4rbDNPF/exec",
   "title": "DK 台灣島",
   "subtitle": "全台門市地圖",
