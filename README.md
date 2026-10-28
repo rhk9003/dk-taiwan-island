@@ -22,11 +22,11 @@ js/               程式（平常不用動）
   residents.js    島民角色：造型選項、帽子配件、各種移動模式
   textrules.js    留言和暱稱的文字限制（擋網址、程式碼、聯絡方式）
   stamps.js       集點蓋章：蓋章紀錄、印章圖案
-  ui.js           右側清單、分區卡、進店畫面（含蓋章台）、集章冊、遊戲視窗、開場導覽、客服任務選單
+  ui.js           右側清單、分區卡、進店畫面（含蓋章台）、集章冊、遊戲視窗、登島邀請函、客服任務選單
   service.js      客服任務島各站的內容（到貨推算與物流車送貨畫面、退換貨檢查、打包小遊戲）
 assets/           店長氣球人的圖
 data/             ← 平常只改這裡
-  site.json       網站標題、開場導覽文字
+  site.json       網站標題、登島邀請函、集章、彩帶等設定
   regions.json    八個分區（含離島）
   landmarks.json  台灣景點、機場、公廟、DK 電影院
   service.json    客服任務島：四個任務、到貨與退換貨規則、國定假日
@@ -60,7 +60,8 @@ data/             ← 平常只改這裡
 | 改客服任務島的規則 | `service.json`：`shipping`（幾個工作天到貨、配送提醒、`holidays` 國定假日）、`returns`（檢查清單、退換貨規則、打包步驟、申請步驟）。官網購物說明改了要一起改；`holidays` 每年依人事行政總處行事曆更新。網址 `…/#service` 打開任務選單，`…/#mission/shipping`、`…/#mission/returns` 直達某一站 |
 | 開放選鞋研究所、高度探索站 | 內容還沒做；`service.json` 那個任務的 `comingSoon` 目前是 true |
 | 改分區名稱、介紹、名牌位置 | `regions.json` |
-| 改標題、開場導覽 | `site.json` |
+| 改標題 | `site.json` 的 `title`、`subtitle` |
+| 改開場的登島邀請函 | `site.json` 的 `invite`：信封上的字、信的內容、亮點清單（`mark` 是圓章裡的字）、署名、登島按鈕。每台裝置第一次來會先看到信封，右上角「?」可以再看一次 |
 
 **改完用 `?debug` 檢查**：在網址後面加 `?debug`（例如 `https://rhk9003.github.io/dk-taiwan-island/?debug`、本機 `http://localhost:8781/?debug`），資料有寫錯（例如玩法代號打錯、商品 id 找不到）時，畫面右下角會出現「資料提醒 N 則」，按 F12 打開 Console 可以看是哪一間店的哪個欄位。一般客人的網址不會看到這個提醒。json 格式錯誤（少逗號、少引號）時整個畫面會顯示錯在哪一個檔案。
 

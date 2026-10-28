@@ -5,7 +5,7 @@ import { RESIDENT_OPTIONS } from './residents.js';
 import { stampSvg, stampDate, STAMPER_SVG } from './stamps.js';
 import { cleanText, textProblem } from './textrules.js';
 
-const INTRO_KEY = 'dk-island-intro-v1';
+const INVITE_KEY = 'dk-island-invite-v1'; // 登島邀請函看過了沒、登島證號碼
 const MISSION_KEY = 'dk-island-missions'; // 這台裝置完成過哪些客服任務
 const MASCOT_LETTERS = ['d', 'k', 'e', 'c']; // assets/mascot-?.png，順序跟島上氣球人的顏色一樣
 
@@ -701,37 +701,113 @@ export function createUI(data, handlers) {
   $('modal-close').addEventListener('click', closeModal);
   modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-  // ---- 開場導覽 ----
-  function showIntro(step = 0) {
-    const steps = data.site.intro || [];
-    if (!steps.length) return;
-    const s = steps[step];
-    const last = step === steps.length - 1;
-    $('intro-box').replaceChildren(
-      h('p', { class: 'eyebrow', text: s.kicker || '' }),
-      h('h2', { text: s.title }),
-      h('p', { text: s.body }),
-      h('div', { class: 'intro-actions' },
-        h('button', { type: 'button', class: 'ghost', onclick: closeIntro }, '略過'),
-        h('span', { class: 'dots' }, steps.map((_, i) => h('i', { class: i === step ? 'on' : '' }))),
-        h('button', { type: 'button', class: 'primary', onclick: () => (last ? closeIntro() : showIntro(step + 1)) },
-          last ? '走進島上 →' : '下一步 →')),
-    );
-    $('intro').hidden = false;
+  // ---- 開場：登島邀請函 ----
+  // 第一次來：信封 → 拆開 → 信紙＋登島證；按「?」直接再看一次信
+  const intro = $('intro');
+  const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const FEATURES = {
+    stamps: () => Boolean(handlers.stamps),
+    residents: () => Boolean(data.site.residents && data.site.managerPicksUrl),
+    service: () => Boolean(data.service),
+  };
+  const MARK_COLORS = ['#8B2332', '#E07A2E', '#3F7FBF', '#3E9A6A', '#7A5BA6', '#d6578c'];
+  const fillIn = (text) => String(text || '').replaceAll('{stores}', data.stores.length).replaceAll('{goal}', data.stamps?.goal ?? 10);
+  const zhDate = (iso) => {
+    const d = new Date(iso);
+    return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日`;
+  };
+
+  // 每台裝置第一次打開時發一張登島證（號碼和日期），之後都用同一張
+  function visitorPass() {
+    let pass = null;
+    try { pass = JSON.parse(localStorage.getItem(INVITE_KEY) || 'null'); } catch { /* 無痕模式存不了，就每次發一張新的 */ }
+    if (!pass?.no) {
+      pass = { no: String(100000 + Math.floor(Math.random() * 900000)), at: new Date().toISOString(), seen: false };
+      try { localStorage.setItem(INVITE_KEY, JSON.stringify(pass)); } catch { /* 同上 */ }
+    }
+    return pass;
   }
+
+  function inviteLetter(again) {
+    const inv = data.site.invite || {};
+    const pass = visitorPass();
+    const postmark = h('span', { class: 'postmark', 'aria-hidden': 'true' });
+    postmark.innerHTML = stampSvg({ id: 'invite-postmark', name: inv.postmark || '台灣島郵局' }, '#8B2332', pass.at);
+    const items = (inv.highlights || []).filter((it) => it?.title && (!it.needs || FEATURES[it.needs]?.()));
+    return h('div', { class: 'invite-wrap' },
+      h('div', { class: 'invite-sheet', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'invite-title' },
+        h('article', { class: 'letter' },
+          h('div', { class: 'postage', 'aria-hidden': 'true' }, h('b', { text: 'DK' }), h('small', { text: '台灣島' }), h('em', { text: 'NT$0' })),
+          postmark,
+          h('header', { class: 'letter-head' },
+            h('p', { class: 'letter-kicker' }, h('i', { text: 'Invitation' }), '登島邀請函'),
+            h('h2', { id: 'invite-title', text: fillIn(inv.title || `歡迎登上 ${data.site.title}`) })),
+          h('div', { class: 'letter-body' },
+            h('p', { class: 'greet', text: inv.greeting || '親愛的旅人：' }),
+            [].concat(inv.body || []).map((t) => h('p', { class: 'para', text: fillIn(t) }))),
+          items.length ? h('ul', { class: 'letter-list' }, items.map((it, i) => h('li', {},
+            h('span', { class: 'mark', style: `--c:${MARK_COLORS[i % MARK_COLORS.length]};--r:${((i * 7) % 15) - 9}deg`, 'aria-hidden': 'true', text: it.mark || '★' }),
+            h('span', {}, h('b', { text: fillIn(it.title) }), it.text ? h('small', { text: fillIn(it.text) }) : null)))) : null,
+          inv.tip ? h('p', { class: 'letter-tip', text: inv.tip }) : null,
+          h('p', { class: 'letter-sign' }, inv.sign || `${data.site.title} 島主　敬邀`, h('small', { text: zhDate(pass.at) }))),
+        h('footer', { class: 'pass' },
+          h('div', {},
+            h('p', { class: 'pass-kicker', text: 'BOARDING PASS・登島證' }),
+            h('div', { class: 'pass-route' }, h('b', { text: inv.from || '你家' }), h('i', { 'aria-hidden': 'true' }), h('b', { text: data.site.title })),
+            h('p', { class: 'pass-meta', text: `No. ${pass.no}・${stampDate(pass.at)}` })),
+          h('button', { type: 'button', class: 'pass-go', onclick: closeIntro }, `${again ? '回到島上' : inv.cta || '收下邀請，登島'} →`))));
+  }
+
+  function showIntro({ envelope = true } = {}) {
+    const inv = data.site.invite;
+    if (!inv) return;
+    intro.classList.remove('leaving');
+    intro.hidden = false;
+    const openLetter = () => {
+      intro.replaceChildren(inviteLetter(!envelope));
+      intro.querySelector('.pass-go').focus({ preventScroll: true });
+    };
+    if (!envelope || reduceMotion()) {
+      openLetter();
+      return;
+    }
+    const env = h('button', { type: 'button', class: 'envelope', 'aria-label': '拆開登島邀請函' },
+      h('span', { class: 'env-back' }),
+      h('span', { class: 'env-paper' }),
+      h('span', { class: 'env-front' }, h('b', { text: inv.to || '致 親愛的旅人' }), h('small', { text: `${data.site.title} 寄` })),
+      h('span', { class: 'env-flap' }),
+      h('span', { class: 'wax-seal', text: 'DK' }));
+    const stage = h('div', { class: 'invite-stage' }, env, h('p', { class: 'invite-hint', text: '點一下，拆開邀請函' }));
+    env.addEventListener('click', () => {
+      if (env.classList.contains('opening')) return;
+      env.classList.add('opening');
+      setTimeout(() => stage.classList.add('done'), 1150); // 信紙抽出來之後，信封退場
+      setTimeout(() => { if (stage.isConnected) openLetter(); }, 1500);
+    });
+    intro.replaceChildren(stage);
+    env.focus({ preventScroll: true });
+  }
+
   function closeIntro() {
-    $('intro').hidden = true;
-    try { localStorage.setItem(INTRO_KEY, '1'); } catch { /* 無痕模式存不了，下次再看一次導覽也無妨 */ }
+    if (intro.hidden || intro.classList.contains('leaving')) return;
+    try { localStorage.setItem(INVITE_KEY, JSON.stringify({ ...visitorPass(), seen: true })); } catch { /* 無痕模式存不了，下次再收一次信也無妨 */ }
+    const done = () => {
+      intro.hidden = true;
+      intro.classList.remove('leaving');
+      intro.replaceChildren();
+    };
+    if (reduceMotion()) return done();
+    intro.classList.add('leaving');
+    setTimeout(done, 450);
   }
+
   function maybeShowIntro() {
-    let seen = false;
-    try { seen = localStorage.getItem(INTRO_KEY) === '1'; } catch { /* 同上 */ }
-    if (!seen) showIntro(0);
+    if (!visitorPass().seen) showIntro();
   }
 
   // ---- 工具列與鍵盤 ----
   $('btn-overview').addEventListener('click', () => handlers.onOverview());
-  $('btn-help').addEventListener('click', () => showIntro(0));
+  $('btn-help').addEventListener('click', () => showIntro({ envelope: false }));
   $('btn-list').addEventListener('click', () => {
     const open = index.classList.toggle('open');
     if (open) card.hidden = true;
