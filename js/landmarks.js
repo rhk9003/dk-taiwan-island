@@ -537,6 +537,27 @@ export function createHiker(color) {
   return g;
 }
 
+// DK 物流車：酒紅色貨箱兩側掛 DK 招牌、白色車頭，沿 +z 方向開
+export function createDeliveryTruck() {
+  const g = new THREE.Group();
+  g.add(box(0.36, 0.3, 0.6, WINE, 0, 0.1, -0.08));
+  for (const side of [-1, 1]) {
+    const s = sign(0.32, 0.2, side * 0.182, 0.26, -0.08);
+    s.rotation.y = side * Math.PI / 2;
+    g.add(s);
+  }
+  g.add(box(0.34, 0.22, 0.2, '#fbf5ec', 0, 0.1, 0.32));
+  g.add(box(0.3, 0.1, 0.02, '#bfe3f0', 0, 0.2, 0.42));
+  for (const [x, z] of [[-0.17, -0.25], [0.17, -0.25], [-0.17, 0.3], [0.17, 0.3]]) {
+    const w = cyl(0.06, 0.06, 0.04, 10, '#2b2b2b', x, 0.06, z);
+    w.rotation.z = Math.PI / 2;
+    w.position.y = 0.06;
+    g.add(w);
+  }
+  g.scale.setScalar(1.6);
+  return g;
+}
+
 // 山頂的小旗子
 export function createSummitFlag(color = WINE) {
   const g = new THREE.Group();

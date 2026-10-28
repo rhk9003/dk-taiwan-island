@@ -909,8 +909,49 @@ a { color: var(--wine); }
 .st-track li i { width: 15px; height: 15px; border-radius: 50%; background: #d9e7ee; border: 3px solid #fff; box-shadow: 0 0 0 1px #bcd7e4; }
 .st-track li.on { color: #2f6f84; font-weight: 700; }
 .st-track li.on i { background: #3F7FBF; }
-.st-ship { position: absolute; top: 0; width: 30px; height: 30px; margin-left: -15px; color: #3F7FBF; transition: left 0.6s ease; }
-.st-ship .st-icon { width: 30px; height: 30px; }
+.st-track:has(.st-road) { padding-top: 0; }
+.st-track:has(.st-road) ol { margin-top: 14px; }
+/* 物流車送貨：倉庫 → 公路 → 你家 */
+.st-road {
+  position: relative;
+  height: 74px;
+  margin-bottom: 4px;
+  border-radius: 14px;
+  background:
+    linear-gradient(#cfe8c4 0 38px, #5b6066 38px 64px, #cfe8c4 64px),
+    #cfe8c4;
+  overflow: hidden;
+}
+.st-road::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50px;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, #fff 0 14px, transparent 14px 26px);
+}
+.st-road-end {
+  position: absolute;
+  top: 7px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4a5a52;
+}
+.st-road-end .st-icon { width: 24px; height: 24px; color: #8B2332; }
+.st-road-end.start { left: 6px; }
+.st-road-end.finish { right: 6px; }
+.st-parcel { position: absolute; left: -22px; top: 10px; color: #b98a56; opacity: 0; transform: translateY(-10px); transition: 0.4s; }
+.st-parcel.show { opacity: 1; transform: none; }
+.st-truck { position: absolute; top: 32px; width: 64px; height: 36px; transition: left 1.2s cubic-bezier(0.4, 0, 0.2, 1); }
+.st-truck svg { width: 100%; height: 100%; }
+.st-truck.driving { animation: truck-bump 0.35s ease-in-out infinite; }
+.st-truck.driving .wheel { transform-box: fill-box; transform-origin: center; animation: wheel-spin 0.5s linear infinite; }
+@keyframes truck-bump { 50% { transform: translateY(-1.5px); } }
+@keyframes wheel-spin { to { transform: rotate(360deg); } }
 
 /* 退換貨中心 */
 .st-checks { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 8px; }
@@ -957,6 +998,73 @@ a { color: var(--wine); }
 .pack-stage li span { margin-left: 6px; }
 .pack-stage li { display: flex; align-items: center; animation: note-in 0.3s ease-out both; }
 .pack-stage.sealed { border-style: solid; border-color: #c89a64; background: #f6e7d2; box-shadow: inset 0 -6px 0 rgba(139, 35, 50, 0.85); }
+
+/* ---------- 島民角色 ---------- */
+.fab-me {
+  position: absolute;
+  z-index: 5;
+  right: 16px;
+  bottom: 16px;
+  height: 48px;
+  padding: 0 20px;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #a3364a, var(--wine));
+  box-shadow: 0 8px 20px rgba(139, 35, 50, 0.4);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 900;
+}
+.fab-me:hover { filter: brightness(1.08); }
+.app:has(.card:not([hidden])) .fab-me { display: none; }
+
+.nlabel {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.92);
+  box-shadow: 0 2px 6px rgba(40, 20, 10, 0.18);
+  color: #4a3b35;
+  font: 700 11px var(--font);
+  white-space: nowrap;
+}
+.nlabel.me { background: var(--wine); color: #fff; font-size: 12px; }
+.nlabel.is-hidden { visibility: hidden; }
+
+.me-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 4px 0 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+}
+.me-preview img { width: 64px; height: auto; }
+.me-preview ul { list-style: none; margin: 0; padding: 0; font-size: 13px; line-height: 1.8; color: #4a3b35; }
+.me-group { margin-bottom: 12px; }
+.me-label { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: var(--muted); }
+.me-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.me-option {
+  min-width: 44px;
+  height: 38px;
+  padding: 0 12px;
+  border: 2px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.me-option[aria-pressed="true"] { border-color: var(--wine); background: #fbeef0; color: var(--wine); }
+.me-body .me-option { height: 64px; padding: 4px 8px; }
+.me-body img { height: 52px; width: auto; }
+.me-shoe .me-option { min-width: 38px; padding: 0; }
+.swatch { display: inline-block; width: 20px; height: 20px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, 0.15); vertical-align: middle; }
+.me-name { width: 100%; height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 12px; font: inherit; font-size: 15px; }
+.me-name:focus { outline: 2px solid var(--wine); outline-offset: 1px; }
+.me-group .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.me-find { width: 100%; margin-top: 8px; height: 40px; border: 1px solid var(--line); border-radius: 12px; background: #fff; font-weight: 700; color: var(--wine); }
 
 /* ---------- 遊戲視窗 ---------- */
 .modal {

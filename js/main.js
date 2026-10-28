@@ -2,6 +2,7 @@ import { createWorld } from './world.js';
 import { createUI } from './ui.js';
 import { BUILDING_TYPES, shoeColorOf } from './buildings.js';
 import { LANDMARK_MODELS } from './landmarks.js';
+import { cleanResident, residentIdOf } from './residents.js';
 import { h } from './util.js';
 
 const FILES = ['site', 'regions', 'modules', 'stores', 'products', 'landmarks', 'service'];
@@ -160,28 +161,36 @@ function deviceId() {
   }
 }
 
-// 留言送到試算表（先審再上牆），回傳 { ok, message }
-async function sendNote(url, storeId, nickname, text, website) {
+// 送資料到試算表（留言、島民角色），回傳 { ok, message, data }
+async function postSheet(url, payload) {
   try {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        role: 'message',
-        submissionId: crypto.randomUUID(),
-        storeId,
-        nickname,
-        text,
-        deviceId: deviceId(),
-        website,
-        version: 'island-1',
-      }),
+      body: JSON.stringify({ submissionId: crypto.randomUUID(), deviceId: deviceId(), version: 'island-1', ...payload }),
     });
     const json = await res.json();
-    return json?.ok ? { ok: true } : { ok: false, message: json?.message || '暫時送不出去，請稍後再試。' };
+    return json?.ok ? { ok: true, data: json } : { ok: false, message: json?.message || '暫時送不出去，請稍後再試。' };
   } catch {
     return { ok: false, message: '網路好像不太穩，請稍後再試。' };
   }
+}
+
+// 留言（先審再上牆）
+const sendNote = (url, storeId, nickname, text, website) => postSheet(url, { role: 'message', storeId, nickname, text, website });
+
+// 自己的島民存在這台裝置，打開網站就看得到，不用等試算表
+const ME_KEY = 'dk-island-me';
+function loadMe() {
+  try {
+    const me = JSON.parse(localStorage.getItem(ME_KEY) || 'null');
+    return me && cleanResident(me) ? me : null;
+  } catch {
+    return null;
+  }
+}
+function saveMe(me) {
+  try { localStorage.setItem(ME_KEY, JSON.stringify(me)); } catch { /* 存不了就只是下次要重捏 */ }
 }
 
 function showError(message) {
@@ -209,6 +218,27 @@ async function boot() {
   }
 
   const state = { region: null, store: null, mission: null };
+
+  // 島民角色：後端（店長表單的 Apps Script）部署好、site.json 的 residents 打開才啟用
+  const residentsOn = Boolean(data.site.residents && data.site.managerPicksUrl);
+  let me = residentsOn ? loadMe() : null;
+  let mineId = null;
+  let serverResidents = [];
+  const placeResidents = () => {
+    const list = serverResidents.filter((r) => r.id !== mineId);
+    if (me && mineId) list.unshift({ ...cleanResident({ ...me, id: mineId }), pending: me.pending });
+    world.setResidents(list, mineId);
+  };
+  async function saveResident(choice) {
+    const res = await postSheet(data.site.managerPicksUrl, { role: 'resident', ...choice });
+    if (!res.ok) return res;
+    me = { id: mineId, look: choice.look, mode: choice.mode, nickname: choice.nickname, pending: Boolean(choice.nickname) && res.data.nicknamePending !== false };
+    saveMe(me);
+    $('btn-me').textContent = '我的島民';
+    placeResidents();
+    world.focusResident();
+    return { ok: true };
+  }
   let world = null;
 
   const setHash = (value) => history.replaceState(null, '', value ? `#${value}` : location.pathname + location.search);
@@ -257,6 +287,17 @@ async function boot() {
       enterTimer = setTimeout(() => { if (state.mission === id) ui.openStation(id); }, 900);
       setHash(`mission/${id}`);
     },
+    // 島民角色：捏一個或修改自己的
+    me() {
+      if (!residentsOn) return app.overview();
+      clearTimeout(enterTimer);
+      Object.assign(state, { region: null, store: null, mission: null });
+      ui.showResidentEditor(me);
+      world.setFocus(null);
+      world.setSelected(null);
+      if (me) world.focusResident();
+      setHash('me');
+    },
     coupon() {
       if (!data.site.coupon) return app.overview();
       clearTimeout(enterTimer);
@@ -300,6 +341,8 @@ async function boot() {
     onCloseShop: () => (state.mission ? app.service() : app.region(state.region)),
     onMission: (id) => app.mission(id),
     onServiceBack: () => app.service(),
+    onSaveResident: (choice) => saveResident(choice),
+    onFindMe: () => world.focusResident(),
     onPostMessage: data.site.managerPicksUrl && data.site.messageBoard
       ? (storeId, nickname, text, website) => sendNote(data.site.managerPicksUrl, storeId, nickname, text, website)
       : null,
@@ -314,6 +357,16 @@ async function boot() {
     return;
   }
   $('loading').hidden = true;
+  // ---- 島民角色 ----
+  const meBtn = $('btn-me');
+  if (residentsOn) {
+    mineId = await residentIdOf(deviceId());
+    if (me) me.id = mineId;
+    meBtn.textContent = me ? '我的島民' : '＋ 成為島民';
+    meBtn.hidden = false;
+    meBtn.addEventListener('click', () => app.me());
+    placeResidents();
+  }
   const serviceBtn = $('btn-service');
   if (data.service) serviceBtn.addEventListener('click', () => app.service());
   else serviceBtn.hidden = true;
@@ -323,6 +376,16 @@ async function boot() {
       .then((picks) => {
         for (const [id, color] of applyPicks(data, picks)) world.setShoe(id, color);
         ui.refresh();
+        if (residentsOn) {
+          serverResidents = (Array.isArray(picks.residents) ? picks.residents : []).map(cleanResident).filter(Boolean);
+          // 暱稱審核通過了：試算表回傳的暱稱跟自己的一樣，就拿掉「審核中」
+          const mine = serverResidents.find((r) => r.id === mineId);
+          if (me?.pending && mine?.nickname && mine.nickname === me.nickname) {
+            me.pending = false;
+            saveMe(me);
+          }
+          placeResidents();
+        }
       })
       .catch((e) => console.warn(`[DK 台灣島] 讀不到店長的話試算表，先不顯示：${e.message}`));
   }
@@ -339,6 +402,7 @@ async function boot() {
   else if (m?.[1] === 'spot') app.landmark(m[2]);
   else if (location.hash === '#coupon') app.coupon();
   else if (location.hash === '#service') app.service();
+  else if (location.hash === '#me') app.me();
   else if (decodeURIComponent(location.hash).startsWith('#mission/')) app.mission(decodeURIComponent(location.hash).slice(9));
   else if (m?.[1] === 'region') app.region(m[2]);
   else {

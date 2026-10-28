@@ -35,6 +35,8 @@ const ICONS = {
   sticker: '<path d="M5 4h14v10l-6 6H5zM13 20v-6h6"/>',
   scissors: '<circle cx="6" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M8.5 7.5L20 18M8.5 16.5L20 6"/>',
   ship: '<path d="M3 15h18l-3 5H6zM6 15V9h9l3 6M9 9V5h3"/>',
+  warehouse: '<path d="M3 21V9l9-5 9 5v12M7 21v-7h10v7M7 17h10"/>',
+  house: '<path d="M4 11l8-7 8 7v9H4zM10 20v-5h4v5"/>',
 };
 function icon(name) {
   const span = document.createElement('span');
@@ -68,10 +70,25 @@ export function shippingStation(svc, onDone) {
   const input = h('input', { type: 'date', value: ymd(today), max: ymd(today) });
   const result = h('p', { class: 'st-result' });
   const note = h('p', { class: 'st-note' });
-  const stages = ['付款完成', '備貨出貨', '配送中', '送達'];
+  // DK 物流車：從倉庫沿著公路開到你家，車子停在包裹現在走到的位置
+  const stages = ['付款完成', '倉庫出貨', '物流車配送中', '送到你家'];
   const dots = stages.map((s) => h('li', {}, h('i'), h('span', { text: s })));
-  const ship = h('div', { class: 'st-ship' }, icon('ship'));
-  const track = h('div', { class: 'st-track' }, h('ol', {}, dots), ship);
+  const truck = document.createElement('div');
+  truck.className = 'st-truck';
+  truck.innerHTML = `<svg viewBox="0 0 64 36" aria-hidden="true">
+    <rect x="2" y="6" width="38" height="20" rx="3" fill="#8B2332"/>
+    <text x="21" y="20.5" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="11" fill="#fff">DK</text>
+    <path d="M40 12h11l7 8v6H40z" fill="#fbf5ec" stroke="#8B2332" stroke-width="1.5"/>
+    <path d="M43 14h7l4 5h-11z" fill="#bfe3f0"/>
+    <g class="wheel"><circle cx="13" cy="28" r="5" fill="#2b2b2b"/><circle cx="13" cy="28" r="1.8" fill="#ddd"/></g>
+    <g class="wheel"><circle cx="49" cy="28" r="5" fill="#2b2b2b"/><circle cx="49" cy="28" r="1.8" fill="#ddd"/></g>
+  </svg>`;
+  const parcel = h('span', { class: 'st-parcel' }, icon('carton'));
+  const road = h('div', { class: 'st-road' },
+    h('span', { class: 'st-road-end start' }, icon('warehouse'), 'DK 倉庫'),
+    h('span', { class: 'st-road-end finish' }, icon('house'), '你家', parcel),
+    truck);
+  const track = h('div', { class: 'st-track' }, road, h('ol', {}, dots));
 
   function update() {
     const [y, m, d] = input.value.split('-').map(Number);
@@ -83,7 +100,11 @@ export function shippingStation(svc, onDone) {
     const elapsed = paid > today ? 0 : workdaysBetween(paid, today, holidays);
     const stage = elapsed <= 0 ? 0 : elapsed < rules.minDays - 3 ? 1 : elapsed < rules.minDays ? 2 : 3;
     dots.forEach((li, i) => li.classList.toggle('on', i <= stage));
-    ship.style.left = `${Math.min(1, elapsed / rules.maxDays) * 100}%`;
+    // 車子位置：付款日在倉庫，出貨後上路，到貨區間開到家門口
+    const progress = stage === 0 ? 0 : Math.min(1, elapsed / rules.minDays);
+    truck.style.left = `calc(${progress} * (100% - 140px) + 44px)`;
+    truck.classList.toggle('driving', stage === 1 || stage === 2);
+    parcel.classList.toggle('show', stage === 3);
     note.classList.toggle('warn', elapsed > rules.maxDays);
     note.textContent = elapsed > rules.maxDays
       ? `已經過了 ${elapsed} 個工作天還沒收到嗎？先到訂單查詢看貨態，或直接聯絡客服。`

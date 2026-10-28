@@ -5,7 +5,8 @@ import { layoutTaiwan, buildIsland, LAND_H, project } from './islands.js';
 import { createBuilding, createPlaza, createClouds, createRing, MASCOT, SHOE_FALLBACK, shoeColorOf, mascotIndex } from './buildings.js';
 import { buildTown } from './town.js';
 import { createPeople } from './people.js';
-import { createLandmark, createPlane, createBanner, createCouponMascot, createServiceNpc, createHiker, createSummitFlag } from './landmarks.js';
+import { createMovers, createResidents } from './residents.js';
+import { createLandmark, createPlane, createBanner, createCouponMascot, createServiceNpc, createHiker, createSummitFlag, createDeliveryTruck } from './landmarks.js';
 import { easeInOutCubic, clamp, h, rng, shortName } from './util.js';
 
 const VIEW_POLAR = 0.9; // 鏡頭和正上方的夾角（弧度），越大越斜
@@ -240,6 +241,35 @@ export function createWorld(container, data, handlers) {
     return out.lerpVectors(hk.path[k - 1], hk.path[k], Math.min(1, Math.max(0, (d - hk.dist[k - 1]) / seg)));
   }
 
+  // ---- 島民角色：訪客自己捏的氣球人（setResidents 換一批）----
+  // 東區只有羅東一圈街道，把花東廣場也連成可以走的路
+  const tileByKey = new Map(layout.tiles.map((t) => [`${t.q},${t.r}`, t]));
+  const AXIAL = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+  const plazaWalk = layout.tiles.filter((t) => t.plaza);
+  for (const t of plazaWalk) t.links = AXIAL.map(([dq, dr]) => tileByKey.get(`${t.q + dq},${t.r + dr}`)).filter((n) => n?.plaza);
+  const loopCurve = new THREE.CatmullRomCurve3(COUPON_ROUTE.map((ll) => {
+    const p = project(ll);
+    return new THREE.Vector3(p.x, 0, p.z);
+  }), true, 'centripetal');
+  const loopPoints = loopCurve.getSpacedPoints(Math.round(loopCurve.getLength() / 0.5)).map((v) => {
+    const t = nearestTile(v);
+    return new THREE.Vector3(v.x, t ? Math.max(t.h, LAND_H) : LAND_H, v.z);
+  });
+  const makeMover = createMovers({
+    streets: [...layout.streets, ...plazaWalk],
+    loop: loopPoints,
+    trails: hikers.map((hk) => ({ path: hk.path, dist: hk.dist, length: hk.length })),
+  });
+  // DK 物流車：沿著環島公路送貨
+  const trucks = [0, 0.25, 0.5, 0.75].map((offset, i) => {
+    const truck = createDeliveryTruck();
+    scene.add(truck);
+    return { truck, i: offset * loopPoints.length, dir: i % 2 ? -1 : 1, speed: 2.6 };
+  });
+  let residents = null;
+  let mineId = null;
+  const followAt = new THREE.Vector3();
+
   // DK 航空：飛機在機場之間來回飛，後面拖著目前活動的彩帶（site.json 的 banners，每飛一趟換下一個）
   const campaigns = (data.site.banners || []).filter((b) => b?.text);
   const airports = layout.landmarks.filter((s) => s.landmark.model === 'airport').map((s) => s.tile);
@@ -293,7 +323,7 @@ export function createWorld(container, data, handlers) {
   }
   const couponPos = new THREE.Vector3();
   const followWant = new THREE.Vector3();
-  let followCoupon = false; // 點了優惠券氣球人：鏡頭跟著它飛
+  let follow = null; // 鏡頭一路跟著飛的對象（回傳位置的函式）：優惠券氣球人、自己的島民
   const flightPos = new THREE.Vector3();
   const flightNext = new THREE.Vector3();
   function flightAt(f, u, out) {
@@ -393,7 +423,7 @@ export function createWorld(container, data, handlers) {
 
   let tween = null;
   function flyTo(target, dist, polar = VIEW_POLAR, duration = 1100, az = controls.getAzimuthalAngle()) {
-    followCoupon = false; // 換去看別的地方就不再跟著優惠券氣球人
+    follow = null; // 換去看別的地方就不再跟著
     tween = {
       fromT: controls.target.clone(),
       fromP: camera.position.clone(),
@@ -403,7 +433,7 @@ export function createWorld(container, data, handlers) {
       duration,
     };
   }
-  controls.addEventListener('start', () => { tween = null; followCoupon = false; });
+  controls.addEventListener('start', () => { tween = null; follow = null; });
 
   function clampTarget() {
     const t = controls.target;
@@ -498,7 +528,7 @@ export function createWorld(container, data, handlers) {
       const pri = id === selectedId ? 0 : id === hoverId ? 1 : 2;
       items.push({ el: o.label.element, rect, pri, d: camera.position.distanceToSquared(o.group.position) });
     }
-    for (const obj of extraLabels) {
+    for (const obj of [...extraLabels, ...(residents?.labels || [])]) {
       if (!obj.visible) continue;
       const rect = obj.element.getBoundingClientRect();
       if (rect.width) items.push({ el: obj.element, rect, pri: 3, d: camera.position.distanceToSquared(obj.position) });
@@ -518,6 +548,7 @@ export function createWorld(container, data, handlers) {
     const dist = camera.position.distanceTo(controls.target);
     const showExtra = dist < 95; // 景點、離島名牌：全景時太擠，拉近一點才出現
     for (const obj of extraLabels) obj.visible = showExtra;
+    for (const obj of residents?.labels || []) obj.visible = obj.userData.mine || dist < 30;
     let best = null;
     if (dist < 40) {
       let bestD = Infinity;
@@ -630,8 +661,25 @@ export function createWorld(container, data, handlers) {
       coupon.curve.getPointAt((t / coupon.lap) % 1, couponPos);
       g.position.set(couponPos.x, LAND_H + 4.5 + Math.abs(Math.sin(t * 3)) * 0.9, couponPos.z);
       g.rotation.y = Math.atan2(camera.position.x - g.position.x, camera.position.z - g.position.z);
-      if (followCoupon && !tween) {
-        followWant.set(g.position.x, g.position.y + 2, g.position.z).sub(controls.target).multiplyScalar(0.12);
+    }
+    residents?.update(t, dt);
+    for (const tr of trucks) {
+      const n = loopPoints.length;
+      tr.i = (tr.i + tr.dir * tr.speed * dt * 2 + n) % n;
+      const a = loopPoints[Math.floor(tr.i)];
+      const b = loopPoints[(Math.floor(tr.i) + 1) % n];
+      const k = tr.i % 1;
+      const dx = (b.x - a.x) * tr.dir; // 車頭朝行進方向
+      const dz = (b.z - a.z) * tr.dir;
+      const len = Math.hypot(dx, dz) || 1;
+      const lane = 0.45; // 靠右開，兩個方向各走一個車道
+      tr.truck.position.set(a.x + (b.x - a.x) * k - (dz / len) * lane, a.y + (b.y - a.y) * k, a.z + (b.z - a.z) * k + (dx / len) * lane);
+      tr.truck.rotation.y = Math.atan2(dx, dz);
+    }
+    if (follow && !tween) {
+      const want = follow();
+      if (want) {
+        followWant.copy(want).sub(controls.target).multiplyScalar(0.12);
         controls.target.add(followWant);
         camera.position.add(followWant);
       }
@@ -687,6 +735,26 @@ export function createWorld(container, data, handlers) {
         flyTo(mapCenter, fitDistance(mapSize.x, mapSize.z), VIEW_POLAR, 1400, 0); // 全景一律北方朝上
       }
     },
+    // 換一批島民（從試算表讀到的，加上自己剛捏好的）
+    setResidents(list, mine) {
+      if (residents) {
+        scene.remove(residents.group);
+        residents.dispose();
+      }
+      mineId = mine;
+      residents = createResidents(list, makeMover, mine);
+      scene.add(residents.group);
+    },
+    // 鏡頭飛到自己的島民，然後一路跟著
+    focusResident(id = mineId) {
+      const p = residents?.positionOf(id);
+      if (!p) return;
+      flyTo(new THREE.Vector3(p.x, p.y + 0.4, p.z), W < 600 ? 9 : 7, 1.05);
+      follow = () => {
+        const q = residents?.positionOf(id);
+        return q ? followAt.set(q.x, q.y + 0.4, q.z) : null;
+      };
+    },
     focusService() {
       const ri = layout.regions.get('service');
       if (ri) this.focusRegion('service');
@@ -700,7 +768,7 @@ export function createWorld(container, data, handlers) {
       if (!coupon) return;
       const p = coupon.group.position;
       flyTo(new THREE.Vector3(p.x, p.y + 2, p.z), W < 600 ? 40 : 32, 1.05);
-      followCoupon = true; // 飛到之後一路跟著它
+      follow = () => followAt.set(coupon.group.position.x, coupon.group.position.y + 2, coupon.group.position.z); // 飛到之後一路跟著它
     },
     focusLandmark(id) {
       const o = landmarkObjs.get(id);

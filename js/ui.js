@@ -1,6 +1,7 @@
 import { h, shortName } from './util.js';
 import { mascotIndex } from './buildings.js';
 import { shippingStation, returnsStation, comingSoonStation } from './service.js';
+import { RESIDENT_OPTIONS } from './residents.js';
 
 const INTRO_KEY = 'dk-island-intro-v1';
 const MISSION_KEY = 'dk-island-missions'; // 這台裝置完成過哪些客服任務
@@ -439,6 +440,80 @@ export function createUI(data, handlers) {
     shopInner.focus({ preventScroll: true });
   }
 
+  // ---- 島民角色：捏一個氣球人放上島 ----
+  function showResidentEditor(me) {
+    current = { region: null, store: null };
+    renderList();
+    closeShop();
+    const O = RESIDENT_OPTIONS;
+    const choice = {
+      body: me?.look.body || 'k',
+      hat: me?.look.hat || 'cap',
+      acc: me?.look.acc || 'none',
+      shoe: me?.look.shoe || O.shoe[0],
+      mode: me?.mode || 'loop',
+    };
+    const labelOf = (key, id) => O[key].find((o) => o.id === id)?.label || '';
+    const preview = h('div', { class: 'me-preview' });
+    const drawPreview = () => preview.replaceChildren(
+      h('img', { src: `assets/mascot-${choice.body}.png`, alt: '' }),
+      h('ul', {},
+        h('li', { text: `帽子：${labelOf('hat', choice.hat)}` }),
+        h('li', { text: `配件：${labelOf('acc', choice.acc)}` }),
+        h('li', {}, '鞋子：', h('i', { class: 'swatch', style: `background:${choice.shoe}` })),
+        h('li', { text: `移動：${labelOf('mode', choice.mode)}` })),
+    );
+    drawPreview();
+
+    const group = (key, title, items, render) => {
+      const buttons = items.map((item) => {
+        const id = item.id ?? item;
+        const btn = h('button', { type: 'button', class: 'me-option', 'aria-pressed': String(choice[key] === id) }, render(item));
+        btn.addEventListener('click', () => {
+          choice[key] = id;
+          buttons.forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+          drawPreview();
+        });
+        return btn;
+      });
+      return h('div', { class: `me-group me-${key}` }, h('p', { class: 'me-label', text: title }), h('div', { class: 'me-options' }, buttons));
+    };
+
+    const nickname = h('input', { class: 'me-name', maxlength: '10', placeholder: '最多 10 個字（選填）', value: me?.nickname || '' });
+    const honeypot = h('input', { class: 'hp', tabindex: '-1', autocomplete: 'off', 'aria-hidden': 'true' });
+    const status = h('p', { class: 'note-status', role: 'status' });
+    const submit = h('button', { type: 'button', class: 'cta', style: '--c:#8B2332' }, me ? '更新我的島民 →' : '放上島 →');
+    submit.addEventListener('click', async () => {
+      submit.disabled = true;
+      status.textContent = '放上島中…';
+      const res = await handlers.onSaveResident({
+        look: { body: choice.body, hat: choice.hat, acc: choice.acc, shoe: choice.shoe },
+        mode: choice.mode,
+        nickname: nickname.value.trim(),
+        website: honeypot.value,
+      });
+      submit.disabled = false;
+      status.textContent = res.ok
+        ? (nickname.value.trim() ? '上島了！暱稱審核通過後，大家就看得到你的名字。' : '上島了！快去找找你的島民。')
+        : res.message;
+    });
+
+    fillCard(
+      head('ISLANDER・島民', me ? '我的島民' : '捏一個你的島民'),
+      h('p', { class: 'lead', text: '選造型和移動方式，放上島之後大家都看得到。一台裝置一個島民，之後可以回來改。' }),
+      preview,
+      group('body', '身體', O.body, (b) => h('img', { src: `assets/mascot-${b.id}.png`, alt: b.label, title: b.label })),
+      group('hat', '帽子', O.hat, (o) => o.label),
+      group('acc', '配件', O.acc, (o) => o.label),
+      group('shoe', '鞋子顏色', O.shoe, (c) => h('i', { class: 'swatch', style: `background:${c}`, title: c })),
+      group('mode', '移動模式', O.mode, (o) => o.label),
+      h('div', { class: 'me-group' }, h('p', { class: 'me-label' }, '暱稱', h('span', { class: 'note-hint', text: '審核通過後才會公開' })), nickname, honeypot),
+      submit,
+      status,
+      me ? h('button', { type: 'button', class: 'me-find', onclick: () => handlers.onFindMe() }, '看我的島民走到哪了 →') : null,
+    );
+  }
+
   function showNone() {
     current = { region: null, store: null };
     renderList();
@@ -526,5 +601,5 @@ export function createUI(data, handlers) {
     else if (!card.hidden) handlers.onCloseCard();
   });
 
-  return { showRegion, showLandmark, showCoupon, showServiceMenu, openStation, selectStore, openShop, showNone, maybeShowIntro, refresh };
+  return { showRegion, showLandmark, showCoupon, showServiceMenu, openStation, showResidentEditor, selectStore, openShop, showNone, maybeShowIntro, refresh };
 }
