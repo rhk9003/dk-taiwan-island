@@ -1,5 +1,5 @@
 {
-  "_說明": "門市的玩法模組。門市在 stores.json 用 module 指定其中一個。building 決定島上的建築造型（shop 商店、carnival 遊樂帳篷、toytower 玩具塔、classroom 教室、temple 廟、board 留言板、workshop 工坊）；aspect 是直式遊戲的畫面比例（例如 \"5 / 7\"），遊戲視窗會照這個比例開；url 留 null 代表還沒做好，按鈕會顯示 cta 的文字並且不能按。scrollTo 設成 board 的玩法，按鈕會捲到店裡的留言牆（每間店都有留言牆）。",
+  "_說明": "門市的玩法模組。門市在 stores.json 用 module 指定其中一個。building 決定島上的建築造型（目前全部統一用 shop：白牆、深紅三角屋頂、DK 招牌，遮雨棚是玩法的顏色；其他可用的造型：shop 商店、carnival 遊樂帳篷、toytower 玩具塔、classroom 教室、temple 廟、board 留言板、workshop 工坊）；aspect 是直式遊戲的畫面比例（例如 \"5 / 7\"），遊戲視窗會照這個比例開；url 留 null 代表還沒做好，按鈕會顯示 cta 的文字並且不能按。scrollTo 設成 board 的玩法，按鈕會捲到店裡的留言牆（每間店都有留言牆）。",
   "modules": {
     "shop": {
       "name": "DK 門市",
@@ -11,7 +11,7 @@
     },
     "balloon": {
       "name": "氣球特攻隊",
-      "building": "carnival",
+      "building": "shop",
       "color": "#E07A2E",
       "desc": "射氣球小遊戲，玩完拿優惠券。",
       "url": "https://sweet294728.github.io/dkec-balloon-game/",
@@ -19,7 +19,7 @@
     },
     "downstairs": {
       "name": "小氣球下樓梯",
-      "building": "toytower",
+      "building": "shop",
       "color": "#d6578c",
       "desc": "選一隻氣球人，左右閃，一路往下踩台階，看你能下幾層！",
       "url": "https://sweet294728.github.io/little-balloon-downstairs/",
@@ -28,7 +28,7 @@
     },
     "quiz": {
       "name": "空氣鞋小教室",
-      "building": "classroom",
+      "building": "shop",
       "color": "#3F7FBF",
       "desc": "跟呼吸小氣球挑戰 5 題，認識 DK 的得獎紀錄與專利。",
       "url": "https://rhk9003.github.io/dk-air-balloon-quiz/",
@@ -36,7 +36,7 @@
     },
     "fortune": {
       "name": "今日鞋籤",
-      "building": "temple",
+      "building": "shop",
       "color": "#C8452F",
       "desc": "洗牌、深呼吸，抽一張今日鞋籤。",
       "url": "https://rhk9003.github.io/dk-shoe-fortune/",
@@ -44,7 +44,7 @@
     },
     "board": {
       "name": "留言板",
-      "building": "board",
+      "building": "shop",
       "color": "#3E9A6A",
       "desc": "這間店的留言牆特別熱鬧！留下你和 DK 空氣鞋的故事，店員看過就會貼上牆。",
       "url": null,
@@ -53,7 +53,7 @@
     },
     "workshop": {
       "name": "手工做鞋工坊",
-      "building": "workshop",
+      "building": "shop",
       "color": "#7A5BA6",
       "desc": "在虛擬工坊挑鞋面、鞋底、鞋帶，配一雙自己的空氣鞋。",
       "url": null,
