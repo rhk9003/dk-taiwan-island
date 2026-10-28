@@ -33,6 +33,7 @@ data/             ← 平常只改這裡
   stores.json     61 間門市
   modules.json    玩法（每種玩法的名稱、建築造型、遊戲網址）
   products.json   店長推薦可以選的商品
+  picks.json      整理過的店長的一句話＋店長推薦（島上只顯示這份）
 ```
 
 每個 json 檔最上面的 `_說明` 寫了各欄位的意思。
@@ -42,7 +43,7 @@ data/             ← 平常只改這裡
 | 想做的事 | 改哪裡 |
 |---|---|
 | 換某間店的玩法 | `stores.json` 那間店的 `module`，填 `shop`、`balloon`、`downstairs`、`quiz`、`fortune`、`board`、`workshop` 其中一個。島上的建築會跟著換 |
-| 店長的一句話、店長推薦 | 請店長用「店長的話蒐集」表單填（見下一節），島會自動讀。要手動修字，直接改那份 Google 試算表 |
+| 店長的一句話、店長推薦 | 店長用「店長的話蒐集」表單填，整理後寫進 `picks.json` 才會上島（見下一節）。要修字，直接改 `picks.json` |
 | 加碼推薦商品 | 先在 `products.json` 加商品，再把商品 id 填進 `stores.json` 的 `products`，會排在店長推薦後面 |
 | 加一個新玩法 | `modules.json` 加一項：`name`、`building`（用哪種建築造型）、`color`、`desc`、`url`（遊戲網址）、`cta`（按鈕文字）。`url` 留 `null` 會顯示「即將開放」 |
 | 新增門市 | `stores.json` 複製一間店改內容。`id` 不能重複；`region` 填分區代號；`latlng` 填經緯度 |
@@ -65,14 +66,22 @@ data/             ← 平常只改這裡
 
 **改完用 `?debug` 檢查**：在網址後面加 `?debug`（例如 `https://rhk9003.github.io/dk-taiwan-island/?debug`、本機 `http://localhost:8781/?debug`），資料有寫錯（例如玩法代號打錯、商品 id 找不到）時，畫面右下角會出現「資料提醒 N 則」，按 F12 打開 Console 可以看是哪一間店的哪個欄位。一般客人的網址不會看到這個提醒。json 格式錯誤（少逗號、少引號）時整個畫面會顯示錯在哪一個檔案。
 
-## 店長的話從試算表自動更新
+## 店長的話：先整理再上島
 
-店長在 https://rhk9003.github.io/dk-store-manager-picks/ 填的「一句話＋推薦商品＋推薦理由」會存進 Google 試算表。島每次打開時會去讀那份試算表（讀取網址設在 `site.json` 的 `managerPicksUrl`）：
+店長在 https://rhk9003.github.io/dk-store-manager-picks/ 填的內容會存進 Google 試算表，但**原文不會直接上島**：店長常常沒照格式填（只寫型號、兩雙寫在一格、名稱和顏色混在一起、說法跟官網規格不一樣），要先整理成 `data/picks.json` 才顯示。
 
-- 店長送出後，下一個打開島的人就看得到；在試算表手動改字或勾「不採用」也一樣。
-- 有填的店，以試算表為準；推薦理由會顯示在商品下面。商品網址有商品編號的話，會自動抓官網的商品圖，門口氣球人也會換上那雙鞋的顏色（依商品名稱裡的顏色字判斷，或 `products.json` 裡同一個商品的顏色）。
-- 試算表暫時讀不到時，島照常運作，店長的話先顯示「蒐集中」。
-- 有設定 `managerPicksUrl` 時，`stores.json` 裡 `"sample": true` 的範例內容不會顯示；把 `managerPicksUrl` 清空，就回到只用 `stores.json`。
+整理的流程：
+
+1. 跑 `python tools/pull_picks.py`：列出新填或重填、還沒整理的店，店長原文存在 `tools/picks_todo.json`（不會上傳）。
+2. 把每一家整理進 `picks.json`：
+   - 名牌統一寫成「店長 名字」；
+   - 一句話修錯字、標點；
+   - 型號到官網搜尋，填正確的商品名、型號、顏色和 `salePageId`（官網商品頁網址最後那串數字，填了就自動有連結和商品圖）；
+   - 推薦理由對照官網規格，不正確的說法要改掉。
+   - 官網查不到的商品（門市限定款）只填名稱和理由，島上會顯示 DK 鞋盒。
+3. `source` 填店長那次的填寫時間。店長之後重填，網址加 `?debug` 會提醒「XX 店長重填了，picks.json 要重新整理」。
+
+試算表暫時讀不到時，島照常運作（只是留言牆讀不到）。
 
 ## 集點蓋章
 

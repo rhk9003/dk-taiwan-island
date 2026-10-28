@@ -12,3 +12,5 @@ venv/
 temp_uploads/
 temp_zips/
 output/
+# 店長原文（整理用，不上傳）
+tools/picks_todo.json

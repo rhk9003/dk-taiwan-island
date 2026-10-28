@@ -822,6 +822,9 @@ a { color: var(--wine); }
   display: grid;
   grid-template-columns: 1.05fr 1.25fr 0.9fr;
   grid-template-areas: "wall counter corner" "wall counter stamp" "board board board";
+  /* 每一列都跟內容一樣高：店裡比畫面高時，瀏覽器不會把櫃台壓扁、把店長的話擠到看不到的上面 */
+  grid-auto-rows: max-content;
+  align-content: start;
   gap: 18px;
   min-height: 0;
   overflow: auto;
@@ -878,6 +881,7 @@ a { color: var(--wine); }
   background: #fff;
   transform: translateX(-50%) rotate(45deg);
 }
+.bubble.long { font-size: 16px; line-height: 1.55; }
 .bubble.empty { color: var(--muted); font-size: 14px; font-weight: 500; }
 .bubble .tag { margin-left: 6px; vertical-align: middle; }
 @keyframes bubble-in { from { opacity: 0; transform: translateY(8px) scale(0.92); } }

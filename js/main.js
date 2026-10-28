@@ -6,8 +6,8 @@ import { cleanResident, residentIdOf } from './residents.js';
 import { createStampBook } from './stamps.js';
 import { h } from './util.js';
 
-const FILES = ['site', 'regions', 'modules', 'stores', 'products', 'landmarks', 'service'];
-const OPTIONAL = new Set(['landmarks', 'service']); // 沒有這些檔也能跑
+const FILES = ['site', 'regions', 'modules', 'stores', 'products', 'landmarks', 'service', 'picks'];
+const OPTIONAL = new Set(['landmarks', 'service', 'picks']); // 沒有這些檔也能跑
 const $ = (id) => document.getElementById(id);
 
 async function loadData() {
@@ -90,6 +90,32 @@ function normalize(raw) {
     }
   }
 
+  // 店長的話和推薦：只用整理過的 picks.json（店長在表單填的原文不直接上島）
+  const curated = raw.picks?.stores || {};
+  const storeIds = new Set(stores.map((s) => s.id));
+  for (const [id, c] of Object.entries(curated)) {
+    if (!storeIds.has(id)) warn(`picks.json 的「${id}」不是門市 id，已略過`);
+  }
+  const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+  for (const s of stores) {
+    const c = curated[s.id];
+    if (!c) continue;
+    s.curatedAt = text(c.source, 40);
+    s.quote = text(c.quote, 80) || s.quote;
+    s.manager = text(c.manager, 30) || s.manager;
+    s.picks = (Array.isArray(c.products) ? c.products : []).filter((p) => text(p?.name, 60)).map((p) => {
+      const id = /^\d{1,12}$/.test(String(p.salePageId || '')) ? String(p.salePageId) : '';
+      return {
+        name: text(p.name, 60),
+        reason: text(p.reason, 120),
+        code: text(p.code, 30),
+        color: text(p.color, 12),
+        url: id ? `https://www.dk-shoes.com.tw/SalePage/Index/${id}` : '',
+        image: id ? `https://img.91app.com/webapi/imagesV3/Cropped/SalePage/${id}/0/0?v=1` : '',
+      };
+    });
+  }
+
   // 集點蓋章：集滿幾間不同門市的章才能領獎（不能比門市還多）
   let stamps = null;
   if (raw.site.stamps?.enabled) {
@@ -133,10 +159,9 @@ async function loadManagerPicks(url) {
   }
 }
 
-// 店長有填的店，一句話和推薦商品以試算表為準；留言牆放沒被隱藏的留言。回傳要換鞋色的門市
+// 試算表：留言牆放沒被隱藏的留言。店長填的原文不上島，只提醒哪些店有新填寫、還沒整理進 picks.json
 function applyPicks(data, picks) {
   const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
-  const shoes = new Map();
   for (const s of data.stores) {
     const p = picks.stores[s.id];
     s.messages = (Array.isArray(p?.messages) ? p.messages : [])
@@ -144,24 +169,10 @@ function applyPicks(data, picks) {
       .map((m) => ({ nickname: text(m?.nickname, 12) || '路過的客人', text: text(m?.text, 60) }))
       .filter((m) => m.text);
     if (!p?.filled) continue;
-    s.quote = text(p.quote, 80) || s.quote;
-    s.manager = text(p.managerName, 30) || s.manager;
-    const name = text(p.product?.name, 60);
-    if (!name) continue;
-    const id = /^\d{1,12}$/.test(String(p.product.salePageId || '')) ? String(p.product.salePageId) : '';
-    const known = id ? data.products.get(id) : null;
-    s.pick = {
-      name,
-      reason: text(p.product.reason, 120),
-      url: id ? `https://www.dk-shoes.com.tw/SalePage/Index/${id}` : '',
-      image: known?.image || (id ? `https://img.91app.com/webapi/imagesV3/Cropped/SalePage/${id}/0/0?v=1` : ''),
-      code: known?.code || '',
-      color: known?.color || '',
-    };
-    const shoe = shoeColorOf(known) ?? shoeColorOf({ color: name });
-    if (shoe) shoes.set(s.id, shoe);
+    const at = Date.parse(p.submittedAt || '');
+    if (!s.curatedAt) data.warn(`${s.name} 店長填了表單，還沒整理進 picks.json`);
+    else if (at > Date.parse(s.curatedAt)) data.warn(`${s.name} 店長在 ${p.submittedAt} 重填了，picks.json 要重新整理`);
   }
-  return shoes;
 }
 
 // 這台裝置的代號，給後端擋「同一個人連續狂留言」用；存不了就每次開頁面換一個
@@ -407,6 +418,11 @@ async function boot() {
     return;
   }
   $('loading').hidden = true;
+  // 門口店員穿整理過的店長推薦第一雙鞋的顏色
+  for (const s of data.stores) {
+    const shoe = shoeColorOf({ color: s.picks?.[0]?.color || '' });
+    if (shoe) world.setShoe(s.id, shoe);
+  }
   if (book) {
     world.setStamped(book.ids());
     drawStampBtn();
@@ -430,7 +446,8 @@ async function boot() {
   if (data.site.managerPicksUrl) {
     loadManagerPicks(data.site.managerPicksUrl)
       .then((picks) => {
-        for (const [id, color] of applyPicks(data, picks)) world.setShoe(id, color);
+        applyPicks(data, picks);
+        showWarnings();
         ui.refresh();
         if (residentsOn) {
           serverResidents = (Array.isArray(picks.residents) ? picks.residents : []).map(cleanResident).filter(Boolean);
@@ -446,8 +463,10 @@ async function boot() {
       .catch((e) => console.warn(`[DK 台灣島] 讀不到店長的話試算表，先不顯示：${e.message}`));
   }
 
-  // 資料提醒只給改資料的人看：網址加 ?debug 才顯示（Console 一律會印）
-  if (data.warnings.length && new URLSearchParams(location.search).has('debug')) {
+  showWarnings();
+  function showWarnings() {
+    // 資料提醒只給改資料的人看：網址加 ?debug 才顯示（Console 一律會印）
+    if (!data.warnings.length || !new URLSearchParams(location.search).has('debug')) return;
     const badge = $('warn-badge');
     badge.textContent = `資料提醒 ${data.warnings.length} 則（按 F12 看 Console）`;
     badge.hidden = false;

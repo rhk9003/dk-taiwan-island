@@ -170,7 +170,7 @@ export function createUI(data, handlers) {
     const tel = (s.phone || '').replace(/[^\d]/g, '');
     const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.address)}`;
     const products = s.products.map((pid) => data.products.get(pid)).filter(Boolean);
-    const picks = s.pick ? [s.pick, ...products] : products;
+    const picks = [...(s.picks || []), ...products];
     const sampleTag = s.sample ? h('span', { class: 'tag', text: '範例' }) : null;
     // 試算表資料晚到而重畫時，保留捲動位置和正在打的留言
     const oldRoom = shopInner.querySelector('.shop-room');
@@ -188,7 +188,7 @@ export function createUI(data, handlers) {
       h('div', { class: 'shop-awning', style: `--c:${m.color}` }),
       h('div', { class: 'shop-room' },
         h('section', { class: 'shop-counter' },
-          h('div', { class: s.quote ? 'bubble' : 'bubble empty' },
+          h('div', { class: !s.quote ? 'bubble empty' : [...s.quote].length > 32 ? 'bubble long' : 'bubble' },
             s.quote ? `「${s.quote}」` : '店長的話還在準備中，下次來就聽得到囉！',
             sampleTag),
           h('img', { class: 'mascot', src: `assets/mascot-${MASCOT_LETTERS[mascotIndex(s.id)]}.png`, alt: '' }),
