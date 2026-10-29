@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { layoutTaiwan, buildIsland, LAND_H, project } from './islands.js';
 import { createBuilding, createPlaza, createClouds, createRing, MASCOT, SHOE_FALLBACK, shoeColorOf, mascotIndex, windowGlass } from './buildings.js';
-import { createDecorations, createBats, createGhosts, createMoon, nightOf, taipeiHour } from './seasons.js';
+import { createDecorations, createBats, createFloatingPumpkins, createMoon, nightOf, taipeiHour } from './seasons.js';
 import { buildTown } from './town.js';
 import { createPeople } from './people.js';
 import { createMovers, createResidents } from './residents.js';
@@ -376,11 +376,11 @@ export function createWorld(container, data, handlers) {
     scene.add(decor);
     pickables.push(decor); // 點門口的南瓜燈（聖誕樹、燈籠）就進那間店
   }
-  // 萬聖節特效（events.json 的 fx）：天上的蝙蝠、街上飄的幽靈、一顆大月亮
+  // 萬聖節特效（events.json 的 fx）：商圈上空的蝙蝠、街上飄浮的南瓜燈、一顆大月亮
   const bats = fx.has('bats') ? createBats([...storeObjs.values()].map((o) => ({ x: o.tile.x, y: o.tile.h, z: o.tile.z }))) : null;
-  const ghosts = fx.has('ghosts') ? createGhosts(layout.streets.filter((t) => !t.store)) : null;
+  const floaters = fx.has('pumpkins') ? createFloatingPumpkins(layout.streets.filter((t) => !t.store)) : null;
   if (fx.has('moon')) createMoon(container);
-  for (const o of [bats?.group, ghosts?.group]) if (o) scene.add(o);
+  for (const o of [bats?.group, floaters?.group]) if (o) scene.add(o);
 
   // ---- 有買鞋煩惱的路人：頭上冒「!」，點了幫他挑鞋（slot 是第幾個「!」，換人時 slot 不變）----
   const shoppers = [];
@@ -857,7 +857,7 @@ export function createWorld(container, data, handlers) {
     }
     people.update(t, dt);
     bats?.update(t);
-    ghosts?.update(t);
+    floaters?.update(t);
     for (const s of shoppers) {
       const p = people.positionOf(s.walker);
       s.label.position.set(p.x, p.y + 0.95, p.z);

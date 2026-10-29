@@ -120,7 +120,7 @@ export function createDecorations(kind, spots) {
 
 export const DECOR_KINDS = Object.keys(DECOR);
 
-// ---- 萬聖節特效（events.json 的 fx）：天上的蝙蝠、街上飄的床單幽靈、一顆大月亮 ----
+// ---- 萬聖節特效（events.json 的 fx）：商圈上空的蝙蝠、街上飄浮的南瓜燈、一顆大月亮 ----
 const rand01 = (seed) => {
   let s = seed >>> 0;
   return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
@@ -178,37 +178,40 @@ export function createBats(spots, count = 36) {
   };
 }
 
-/** 街上飄的床單幽靈：在商圈街道上慢慢繞圈、上下飄，晚上微微發光 */
-export function createGhosts(tiles, count = 24) {
+/** 街上飄浮的南瓜燈：在商圈街道上空慢慢繞圈、上下飄、輕輕轉身，晚上會發光 */
+export function createFloatingPumpkins(tiles, count = 30) {
   const rand = rand01(2207);
   const group = new THREE.Group();
   if (!tiles.length) return { group, update() {} };
-  const sheet = new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#d9fff0', emissiveIntensity: 0.35, roughness: 0.6, transparent: true, opacity: 0.88 });
-  const eye = new THREE.MeshStandardMaterial({ color: '#1d1f24', roughness: 0.5 });
+  const skin = new THREE.MeshStandardMaterial({ color: '#f08a24', emissive: '#ff7a00', emissiveIntensity: 0.3, roughness: 0.6, flatShading: true });
+  const stem = new THREE.MeshStandardMaterial({ color: '#4d7a35', roughness: 0.8 });
+  const face = new THREE.MeshStandardMaterial({ color: '#ffd86b', emissive: '#ffb52e', emissiveIntensity: 0.9, roughness: 0.8 }); // 刻出來的臉，裡面點著燈
+  const eye = (x) => new THREE.ConeGeometry(0.028, 0.045, 3).translate(x, 0.02, 0.112);
   const parts = [
-    [new THREE.SphereGeometry(0.12, 12, 8).translate(0, 0.27, 0), sheet],
-    [new THREE.ConeGeometry(0.15, 0.24, 10).translate(0, 0.12, 0), sheet],
-    [new THREE.SphereGeometry(0.022, 6, 4).translate(-0.045, 0.29, 0.105), eye],
-    [new THREE.SphereGeometry(0.022, 6, 4).translate(0.045, 0.29, 0.105), eye],
+    [new THREE.SphereGeometry(0.13, 12, 9).scale(1.15, 0.85, 1.05), skin],
+    [new THREE.CylinderGeometry(0.014, 0.02, 0.07, 5).translate(0, 0.13, 0), stem],
+    [eye(-0.05), face],
+    [eye(0.05), face],
+    [new THREE.BoxGeometry(0.1, 0.022, 0.02).translate(0, -0.035, 0.115), face],
   ].map(([g, m]) => new THREE.InstancedMesh(g, m, count));
   group.add(...parts);
-  const ghosts = Array.from({ length: count }, () => {
+  const pumpkins = Array.from({ length: count }, () => {
     const t = tiles[Math.floor(rand() * tiles.length)];
-    return { x: t.x, z: t.z, y: t.h, r: 0.25 + rand() * 0.35, speed: (0.5 + rand() * 0.5) * (rand() < 0.5 ? -1 : 1), phase: rand() * Math.PI * 2 };
+    return { x: t.x, z: t.z, y: t.h, r: 0.2 + rand() * 0.4, speed: (0.3 + rand() * 0.4) * (rand() < 0.5 ? -1 : 1), phase: rand() * Math.PI * 2, size: 0.9 + rand() * 0.5 };
   });
   const m = new THREE.Matrix4();
   const q = new THREE.Quaternion();
   const p = new THREE.Vector3();
-  const s = new THREE.Vector3(1.25, 1.25, 1.25);
+  const s = new THREE.Vector3();
   const up = new THREE.Vector3(0, 1, 0);
   return {
     group,
     update(t) {
-      ghosts.forEach((g, i) => {
+      pumpkins.forEach((g, i) => {
         const a = g.phase + t * g.speed;
-        p.set(g.x + Math.cos(a) * g.r, g.y + 0.25 + Math.sin(t * 2.2 + g.phase) * 0.08, g.z + Math.sin(a) * g.r);
-        q.setFromAxisAngle(up, -a + (g.speed > 0 ? 0 : Math.PI)); // 面朝飄的方向
-        m.compose(p, q, s);
+        p.set(g.x + Math.cos(a) * g.r, g.y + 0.7 + Math.sin(t * 1.8 + g.phase) * 0.12, g.z + Math.sin(a) * g.r);
+        q.setFromAxisAngle(up, Math.sin(t * 0.8 + g.phase) * 0.6); // 臉大致朝鏡頭（南方），輕輕左右轉
+        m.compose(p, q, s.setScalar(g.size));
         for (const mesh of parts) mesh.setMatrixAt(i, m);
       });
       for (const mesh of parts) mesh.instanceMatrix.needsUpdate = true;

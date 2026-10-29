@@ -588,10 +588,10 @@ export function createHiker(color) {
 }
 
 // DK 物流車：酒紅色貨箱兩側掛 DK 招牌、白色車頭，沿 +z 方向開
-// 萬聖節的幽靈物流車：半透明、發著綠光、沒有輪子飄在路上，車頂坐一隻床單幽靈，車尾拖著鬼火
+// 萬聖節的幽靈物流車：半透明、發著綠光、沒有輪子飄在路上，車頂載一顆大南瓜燈，車尾拖著光點
 const GHOST = new THREE.MeshStandardMaterial({ color: '#eafff5', emissive: '#7dffc8', emissiveIntensity: 0.45, transparent: true, opacity: 0.62, roughness: 0.4, depthWrite: false });
 const GHOST_EYE = glow('#b9ffdf', '#5dff9e', 1.2);
-const SHEET = new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#d9fff0', emissiveIntensity: 0.35, roughness: 0.6 });
+const PUMPKIN = glow('#f08a24', '#ff7a00', 0.35);
 function ghostTruck() {
   const g = new THREE.Group();
   g.add(box(0.36, 0.3, 0.6, GHOST, 0, 0.1, -0.08));
@@ -602,14 +602,17 @@ function ghostTruck() {
   }
   g.add(box(0.34, 0.22, 0.2, GHOST, 0, 0.1, 0.32));
   for (const x of [-0.1, 0.1]) g.add(ball(0.035, GHOST_EYE, x, 0.2, 0.425)); // 兩顆綠色車燈像眼睛
-  // 車頂的床單幽靈：圓頭＋往下散開的床單＋兩個黑眼睛，會揮手
+  // 車頂載一顆南瓜燈：橘色南瓜、綠色蒂頭、會發光的眼睛和笑臉，跟著車子搖來搖去
   const rider = new THREE.Group();
-  rider.add(ball(0.12, SHEET, 0, 0.27, 0, 2), cone(0.15, 0.24, 10, SHEET, 0, 0, 0));
-  for (const x of [-0.045, 0.045]) rider.add(ball(0.022, '#1d1f24', x, 0.29, 0.105, 1));
+  const body = ball(0.16, PUMPKIN, 0, 0.13, 0, 2);
+  body.scale.set(1.15, 0.85, 1.05);
+  rider.add(body, cyl(0.016, 0.022, 0.08, 5, '#4d7a35', 0, 0.25, 0));
+  for (const x of [-0.06, 0.06]) rider.add(ball(0.026, GHOST_EYE, x, 0.16, 0.15, 0));
+  rider.add(box(0.12, 0.022, 0.02, GHOST_EYE, 0, 0.08, 0.15));
   rider.position.set(0, 0.4, -0.12);
   g.add(rider);
   g.userData.rider = rider;
-  // 車尾拖著三團鬼火，越後面越小
+  // 車尾拖著三團光點，越後面越小
   [0.06, 0.045, 0.03].forEach((r, i) => g.add(ball(r, GHOST, 0, 0.12 + i * 0.03, -0.46 - i * 0.12, 1)));
   g.userData.ghost = true;
   g.scale.setScalar(1.6);
