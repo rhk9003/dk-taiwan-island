@@ -7,7 +7,7 @@
   "islanderUrl": "https://script.google.com/macros/s/AKfycbwNxBIVTWsTpizpJrBMh8ibWLUGA2Mfb3Q-iHWtjnV-oEqh367SQhiWiUR0_8KLHQ/exec",
   "_runway說明": "「整個中央山脈就是我的伸展台」穿搭照活動。url 填伸展台 Apps Script（apps-script/runway.gs）部署後的 /exec 網址，留空就不出現。照片一律先審再上牆（審核頁網址在 Apps Script 執行 adminLink 會印出來），通過的照片掛上中央山脈，票數越高掛越高、第一名在玉山頂。intro、rules、consent 是卡片上的說明文字；maxUploads 是每人最多上傳幾張（後端也有同樣的限制）。",
   "runway": {
-    "url": "",
+    "url": "https://script.google.com/macros/s/AKfycbzjNJqQ--qt9MKc7SEOQ2pC3foblmZuzCxmcfFWvv9osZkzg_53YvR6tu291rCiExXq_Q/exec",
     "title": "整個中央山脈就是我的伸展台",
     "intro": "穿上你的 DK 鞋拍一張穿搭照，上傳到台灣島！審核通過就會掛上中央山脈，票數越高掛得越高，第一名站上玉山頂。",
     "rules": ["照片裡要看得到你腳上的 DK 鞋", "每人最多上傳 3 張，審核通過才會上牆（通常 1 天內）", "每天每張照片可以投 1 票"],

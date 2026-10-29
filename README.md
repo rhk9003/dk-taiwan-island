@@ -209,6 +209,15 @@ python -m http.server 8781 --directory dk-taiwan-island
 
 **改了程式（`js/`、`css/`）再推之前**，先跑 `python tools/bump_version.py`：它會把 `index.html` 裡的 js、css 網址換上新的版本號。GitHub Pages 會讓瀏覽器把 js、css 留 10 分鐘，沒換版本號的話，剛更新時客人可能拿到「舊程式＋新資料」，畫面會少東西（例如開場邀請函不出現）。只改 `data/` 不用跑。
 
+## 中央山脈伸展台（穿搭照）
+
+「整個中央山脈就是我的伸展台」：客人上傳穿 DK 鞋的穿搭照，審核通過就掛上中央山脈，票數越高掛越高，第一名在玉山頂。入口在玉山頂的相框、找門市清單上方的綠色橫幅、登島邀請函，也可以直接連 `…/#runway`。
+
+- 後端是獨立的 Apps Script 專案「DK 台灣島 伸展台」（`apps-script/runway.gs`），照片存在 Google Drive「DK 台灣島 伸展台照片」資料夾，試算表「DK 台灣島 伸展台」一張照片一列、「投票紀錄」分頁記每一票。網址填在 `data/site.json` 的 `runway.url`，留空就整個不出現。
+- **照片一律先審再上牆**：用審核頁看照片、按「通過」或「不通過」（照片裡要看得到 DK 的鞋）。審核頁網址在 Apps Script 編輯器選 `adminLink` 執行就會印出來（印出來的是 /dev 網址，把 `/dev` 換成正式部署的 `/exec` 也可以）；網址就是鑰匙，不要外流，外流時執行 `resetAdminKey` 換一把。也可以直接在試算表勾「通過」「隱藏」。
+- 照片在手機上先縮到 1080 像素再上傳，同時去掉拍照地點（GPS）等資訊；每人最多 3 張、每天每張照片 1 票（後端也擋，每台裝置一天最多 50 票）。暱稱、穿哪雙、一句話用跟留言一樣的文字規則。
+- 卡片上的說明文字、規則、同意條款在 `site.json` 的 `runway`。
+
 ## 成效追蹤
 
 - 連到官網（dk-shoes.com.tw）的連結，客人點下去時會自動補上 UTM：`utm_source=dk_taiwan_island`、`utm_medium=referral`、`utm_campaign=dk_taiwan_island`、`utm_content=客人當時在哪`（例如 `store-頂好`、`stamps`、`banner`）。在官網 GA4 看「工作階段來源／媒介」= `dk_taiwan_island / referral`，就是台灣島帶過去的流量和訂單。

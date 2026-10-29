@@ -258,7 +258,9 @@ function vote_(deviceId, photoId) {
     var start = Math.max(2, last - 3000);
     var recent = log.getRange(start, 1, last - start + 1, VOTE_HEADERS.length).getValues();
     for (var k = recent.length - 1; k >= 0; k--) {
-      if (String(recent[k][3]) !== today) break;
+      // 「日期」欄寫進去的是文字，但試算表會自動轉成日期，讀回來兩種都要認得
+      var day = recent[k][3] instanceof Date ? day_(recent[k][3]) : String(recent[k][3]);
+      if (day !== today) break;
       if (String(recent[k][2]) !== deviceId) continue;
       if (String(recent[k][1]) === photoId) fail_('今天已經投過這張了，明天再來！');
       mineToday++;
