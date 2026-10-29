@@ -39,10 +39,10 @@
     "desc": "走進 DK 門市，在櫃台旁蓋一個章。集滿 10 間不同門市的章，就能領一張優惠券！",
     "reward": {
       "title": "恭喜集滿 10 章！",
-      "desc": "謝謝你逛遍 DK 台灣島，這張優惠券送給你。",
-      "code": "",
-      "cta": "領取優惠券",
-      "url": "https://www.dk-shoes.com.tw/"
+      "desc": "謝謝你逛遍 DK 台灣島！送你一張「DK島原價鞋款 8 折券」，點下面領取，或結帳時輸入優惠碼。",
+      "code": "WT52DBCS",
+      "cta": "領取 8 折券",
+      "url": "https://bmai.app/72ef293f"
     }
   },
   "managerPicksUrl":"https://script.google.com/macros/s/AKfycbzl42xiYJxbyZuppz3eXXOS-HdI-zcd5Tk-JKGgmem8In0yup2w286KAfIkG4rbDNPF/exec",
