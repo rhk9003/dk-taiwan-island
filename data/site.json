@@ -4,7 +4,7 @@
   "_residents說明": "島民角色：訪客可以捏一個氣球人放上島（造型、移動模式是固定選項；暱稱直接公開，一樣會擋網址、程式碼、聯絡方式、官方字樣和禁用字）。true 開放、false 關閉；需要店長表單的 Apps Script 已部署島民角色的後端。",
   "residents": true,
   "_islanderUrl說明": "島民證（換手機時把島民接回來）的 Apps Script 網址，是另一個專案（apps-script/islander.gs，設定方式見 README「島民證」）。留空就不顯示島民證。",
-  "islanderUrl": "",
+  "islanderUrl": "https://script.google.com/macros/s/AKfycbwNxBIVTWsTpizpJrBMh8ibWLUGA2Mfb3Q-iHWtjnV-oEqh367SQhiWiUR0_8KLHQ/exec",
   "_banners說明": "飛機拖的活動彩帶，可以放好幾個，每架飛機每飛一趟換下一個。text 是彩帶上的字（建議 16 字內），url 是點彩帶要開的活動頁，color 是彩帶底色。",
   "banners": [
     { "text": "DK 週年慶｜全館 85 折起", "url": "https://www.dk-shoes.com.tw/", "color": "#8B2332" },
