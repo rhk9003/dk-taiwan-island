@@ -56,13 +56,15 @@ export function createFigures(n) {
       parts[3].instanceColor.needsUpdate = true;
     },
     // 擺好第 i 個人：身體會呼吸，走路時兩隻腳一前一後（往前的那隻稍微抬起來）。回傳身體的矩陣，上衣、帽子這些配件跟著它
+    // p.scale 是個子大小（島民會隨上島天數長大），沒給就是 1
     pose(i, p, t, swing = 0, bob = 0) {
       const b = Math.sin(t * 2.2 + p.phase);
+      const k = SIZE * (p.scale || 1);
       Q.setFromAxisAngle(UP, p.rot);
-      fig.compose(P.set(p.x, p.y + bob, p.z), Q, S.set(SIZE * (1 + 0.05 * b), SIZE * (1 + 0.025 * b), SIZE * (1 + 0.05 * b)));
+      fig.compose(P.set(p.x, p.y + bob, p.z), Q, S.set(k * (1 + 0.05 * b), k * (1 + 0.025 * b), k * (1 + 0.05 * b)));
       bodies.setMatrixAt(i, fig);
       heads.setMatrixAt(i, fig);
-      feet.compose(P.set(p.x, p.y, p.z), Q, S.setScalar(SIZE));
+      feet.compose(P.set(p.x, p.y, p.z), Q, S.setScalar(k));
       [-1, 1].forEach((side, j) => {
         const stride = side * swing * 0.05;
         foot.makeRotationY(side * 0.12).setPosition(side * 0.06 * SHOE, Math.max(0, stride) * 0.5, stride);
@@ -76,6 +78,21 @@ export function createFigures(n) {
     },
   };
 }
+
+// 節日帽子：門口店員、路人，還有沒戴帽子的島民都會戴上（events.json 的 hat）。每頂帽子由幾塊不同顏色的零件組成
+const HY = LIFT + 0.44; // 頭頂附近
+export const EVENT_HATS = {
+  santa: () => [
+    [new THREE.ConeGeometry(0.09, 0.17, 12).rotateX(-0.25).translate(0, HY + 0.08, -0.02), '#d6343a'],
+    [new THREE.TorusGeometry(0.088, 0.02, 6, 16).rotateX(Math.PI / 2).translate(0, HY, 0), '#ffffff'],
+    [new THREE.SphereGeometry(0.026, 8, 6).translate(0, HY + 0.16, -0.04), '#ffffff'],
+  ],
+  witch: () => [
+    [new THREE.CylinderGeometry(0.17, 0.17, 0.012, 18).translate(0, HY - 0.005, 0), '#3a2a4a'],
+    [new THREE.ConeGeometry(0.085, 0.2, 12).translate(0, HY + 0.095, 0), '#3a2a4a'],
+    [new THREE.CylinderGeometry(0.087, 0.087, 0.025, 12).translate(0, HY + 0.015, 0), '#f08a24'],
+  ],
+};
 
 /** 跟著身體走的配件（上衣、帽子…）：同一個造型 n 份 */
 export function createWearable(geometry, material, n) {
@@ -115,7 +132,8 @@ export function turnToward(p, dx, dz, dt) {
   p.rot += diff * Math.min(1, dt * 8);
 }
 
-export function createPeople(greeters, streets) {
+/** hat：節日帽子（EVENT_HATS 的 key），沒有節日就不給 */
+export function createPeople(greeters, streets, hat = null) {
   const rand = rng('walkers');
   const walkable = streets.filter((t) => t.links.length);
   const people = greeters.map((g) => ({ ...g }));
@@ -159,8 +177,10 @@ export function createPeople(greeters, streets) {
   ].map(([g, m]) => createWearable(g, m, staff.length));
   const staffSlot = new Map(staff.map((pi, k) => [pi, k]));
 
+  const hats = EVENT_HATS[hat] ? EVENT_HATS[hat]().map(([g, c]) => createWearable(g, mat(c), people.length)) : [];
+
   const group = new THREE.Group();
-  group.add(...figures.meshes, ...uniform);
+  group.add(...figures.meshes, ...uniform, ...hats);
 
   function update(t, dt) {
     people.forEach((p, i) => {
@@ -172,9 +192,10 @@ export function createPeople(greeters, streets) {
       const body = figures.pose(i, p, t, swing, Math.abs(swing) * 0.035);
       const k = staffSlot.get(i);
       if (k !== undefined) for (const mesh of uniform) mesh.setMatrixAt(k, body);
+      for (const mesh of hats) mesh.setMatrixAt(i, body);
     });
     figures.commit();
-    for (const mesh of uniform) mesh.instanceMatrix.needsUpdate = true;
+    for (const mesh of [...uniform, ...hats]) mesh.instanceMatrix.needsUpdate = true;
   }
 
   // 店長換了推薦鞋，第 i 個人（門口的店長）就換鞋色；walkers／positionOf／hold 給「有買鞋煩惱的路人」用

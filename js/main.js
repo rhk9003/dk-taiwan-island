@@ -2,12 +2,14 @@ import { createWorld } from './world.js';
 import { createUI } from './ui.js';
 import { BUILDING_TYPES, shoeColorOf } from './buildings.js';
 import { LANDMARK_MODELS } from './landmarks.js';
-import { cleanResident, residentIdOf } from './residents.js';
+import { cleanResident, residentIdOf, ageOf } from './residents.js';
+import { postcardsOf } from './postcards.js';
 import { createStampBook } from './stamps.js';
-import { h } from './util.js';
+import { activeEvent } from './seasons.js';
+import { h, shortName } from './util.js';
 
-const FILES = ['site', 'regions', 'modules', 'stores', 'products', 'landmarks', 'service', 'picks', 'shoppers'];
-const OPTIONAL = new Set(['landmarks', 'service', 'picks', 'shoppers']); // 沒有這些檔也能跑
+const FILES = ['site', 'regions', 'modules', 'stores', 'products', 'landmarks', 'service', 'picks', 'shoppers', 'events'];
+const OPTIONAL = new Set(['landmarks', 'service', 'picks', 'shoppers', 'events']); // 沒有這些檔也能跑
 
 // 官網商品頁序號 → 商品頁網址和商品圖
 function salePage(salePageId) {
@@ -160,8 +162,21 @@ function normalize(raw) {
     stamps = { ...raw.site.stamps, goal, reward };
   }
 
+  // 節日與日夜：網址 ?event=christmas 直接看某個節日、?time=21 看晚上 9 點的島（測試用）
+  const params = new URLSearchParams(location.search);
+  const events = (raw.events?.events || []).filter((e) => {
+    if (e?.id && e.name && (e.dates || (e.from && e.to))) return true;
+    warn(`events.json 有一個節日缺少 id／name 或日期：${e?.name || e?.id}`);
+    return false;
+  });
+  const event = activeEvent(events, Date.now(), params.get('event'));
+  const time = params.get('time')?.match(/^(\d{1,2})(?::(\d{2}))?$/);
+  const clockOverride = time ? (Number(time[1]) % 24) + Number(time[2] || 0) / 60 : null;
+
   return {
     site: raw.site,
+    event,
+    clockOverride,
     stamps,
     shoppers,
     regions,
@@ -198,7 +213,7 @@ function applyPicks(data, picks) {
     const p = picks.stores[s.id];
     s.messages = (Array.isArray(p?.messages) ? p.messages : [])
       .slice(0, 12)
-      .map((m) => ({ nickname: text(m?.nickname, 12) || '路過的客人', text: text(m?.text, 60) }))
+      .map((m) => ({ nickname: text(m?.nickname, 12) || '路過的客人', text: text(m?.text, 60), at: text(m?.at, 40) }))
       .filter((m) => m.text);
     if (!p?.filled) continue;
     const at = Date.parse(p.submittedAt || '');
@@ -251,6 +266,21 @@ function saveMe(me) {
   try { localStorage.setItem(ME_KEY, JSON.stringify(me)); } catch { /* 存不了就只是下次要重捏 */ }
 }
 
+// 看過幾張明信片、看過哪些節日（島嶼快報用來判斷有沒有新的）
+const POSTCARD_KEY = 'dk-island-postcards-seen';
+const EVENTS_KEY = 'dk-island-events-seen';
+function readNumber(key) {
+  try { return Number(localStorage.getItem(key)) || 0; } catch { return 0; }
+}
+function seenEvents() {
+  try { return JSON.parse(localStorage.getItem(EVENTS_KEY) || '[]') || []; } catch { return []; }
+}
+function markEventSeen(id) {
+  const seen = seenEvents();
+  if (seen.includes(id)) return;
+  try { localStorage.setItem(EVENTS_KEY, JSON.stringify([...seen, id].slice(-20))); } catch { /* 存不了就下次再說一次 */ }
+}
+
 function showError(message) {
   const box = $('loading');
   box.classList.add('error');
@@ -290,12 +320,52 @@ async function boot() {
   async function saveResident(choice) {
     const res = await postSheet(data.site.managerPicksUrl, { role: 'resident', ...choice });
     if (!res.ok) return res;
-    me = { id: mineId, look: choice.look, mode: choice.mode, nickname: choice.nickname, pending: Boolean(choice.nickname) && res.data.nicknamePending !== false };
+    me = {
+      id: mineId,
+      look: choice.look,
+      mode: choice.mode,
+      nickname: choice.nickname,
+      pending: Boolean(choice.nickname) && res.data.nicknamePending !== false,
+      since: res.data.since || me?.since || '', // 上島時間：重新捏不會變，島民照這個時間長大
+      code: me?.code || '',
+    };
     saveMe(me);
     $('btn-me').textContent = '我的島民';
     placeResidents();
     world.focusResident();
+    issueCard(); // 島民證順便更新造型快照
     return { ok: true, pending: me.pending };
+  }
+
+  // 島民證：另一個 Apps Script 專案（site.json 的 islanderUrl），沒設定就不出現。
+  // 換手機或清掉瀏覽器資料時，輸入號碼就改用原本的裝置代號，變回原本的島民
+  const islanderUrl = residentsOn ? data.site.islanderUrl || '' : '';
+  async function issueCard() {
+    if (!islanderUrl || !me || !mineId) return { ok: false, message: '還沒有島民。' };
+    const res = await postSheet(islanderUrl, {
+      role: 'issue',
+      resident: { id: mineId, look: me.look, mode: me.mode, nickname: me.nickname, since: me.since || '' },
+    });
+    if (res.ok && res.data.code) {
+      me.code = res.data.code;
+      saveMe(me);
+    }
+    return res.ok ? { ok: true, code: me.code } : res;
+  }
+  async function reclaim(code) {
+    const res = await postSheet(islanderUrl, { role: 'reclaim', code });
+    if (!res.ok) return res;
+    try {
+      localStorage.setItem('dk-island-device', res.data.deviceId);
+    } catch {
+      return { ok: false, message: '這個瀏覽器存不了資料（可能是無痕模式），沒辦法接回島民。' };
+    }
+    const id = await residentIdOf(res.data.deviceId);
+    const r = cleanResident({ ...(res.data.resident || {}), id });
+    // 快照壞掉也沒關係：重新整理後會從島上的島民名單認出自己
+    saveMe(r ? { ...r, code: res.data.code, pending: false } : null);
+    location.reload();
+    return { ok: true };
   }
   let world = null;
 
@@ -495,6 +565,16 @@ async function boot() {
     onServiceBack: () => app.service(),
     onSaveResident: (choice) => saveResident(choice),
     onFindMe: () => world.focusResident(),
+    islander: Boolean(islanderUrl),
+    onIslanderCard: () => issueCard(),
+    onReclaim: (code) => reclaim(code),
+    onPostcardsSeen: (total) => {
+      try { localStorage.setItem(POSTCARD_KEY, String(total)); } catch { /* 存不了就下次再提醒一次 */ }
+    },
+    onReportGo: (go) => {
+      if (go === 'me') app.me();
+      else if (go?.startsWith('store:')) app.store(go.slice(6));
+    },
     stamps: book,
     helped,
     helpCoupon,
@@ -545,10 +625,63 @@ async function boot() {
     meBtn.hidden = false;
     meBtn.addEventListener('click', () => app.me());
     placeResidents();
+    if (me && !me.code) issueCard(); // 以前捏的島民，補發島民證
   }
   const serviceBtn = $('btn-service');
   if (data.service) serviceBtn.addEventListener('click', () => app.service());
   else serviceBtn.hidden = true;
+
+  // ---- 上次來是什麼時候：隔一天以上回來，先給一張「島嶼快報」（網址加 ?report 隨時看得到）----
+  const LAST_KEY = 'dk-island-last-visit';
+  const AWAY = 20 * 3600000;
+  const forceReport = new URLSearchParams(location.search).has('report');
+  let lastVisit = 0;
+  try {
+    lastVisit = Number(localStorage.getItem(LAST_KEY)) || 0;
+    localStorage.setItem(LAST_KEY, String(Date.now()));
+  } catch { /* 存不了就不出快報 */ }
+  if (forceReport && !lastVisit) lastVisit = Date.now() - 3 * 86400000;
+  const reportDue = Boolean(lastVisit) && (forceReport || Date.now() - lastVisit >= AWAY);
+
+  function buildReport() {
+    const items = [];
+    const after = (iso) => Date.parse(iso || '') > lastVisit;
+    if (me?.since) {
+      const was = ageOf(me.since, lastVisit);
+      const now = ageOf(me.since);
+      items.push(now.index > was.index
+        ? { icon: '🎈', text: `你的島民長大了，現在是「${now.title}」！`, go: 'me', label: '看我的島民' }
+        : { icon: '🎈', text: `你的島民上島第 ${now.days + 1} 天了${now.next ? `，再 ${now.next.inDays} 天就是「${now.next.title}」` : ''}。`, go: 'me', label: '看我的島民' });
+      const { total } = postcardsOf({ ...me, id: mineId }, data.landmarks);
+      const fresh = total - readNumber(POSTCARD_KEY);
+      if (fresh > 0) items.push({ icon: '💌', text: `你的島民寄來 ${fresh} 張明信片。`, go: 'me', label: '看明信片' });
+    }
+    const newcomers = serverResidents.filter((r) => r.id !== mineId && after(r.since)).length;
+    if (newcomers) items.push({ icon: '👋', text: `島上多了 ${newcomers} 位新島民。` });
+    // 新留言：蓋過章的店優先
+    const stamped = new Set(book ? book.ids() : []);
+    const walls = data.stores
+      .map((s) => ({ s, n: (s.messages || []).filter((msg) => after(msg.at)).length }))
+      .filter((w) => w.n)
+      .sort((a, b) => b.n - a.n);
+    const mine = walls.filter((w) => stamped.has(w.s.id));
+    if (mine.length) {
+      const more = mine.length > 1 ? `，另外還有 ${mine.length - 1} 間也有` : '';
+      items.push({ icon: '📝', text: `你蓋過章的${shortName(mine[0].s.name)}有 ${mine[0].n} 則新留言${more}。`, go: `store:${mine[0].s.id}`, label: '去看看' });
+    } else if (walls.length) {
+      items.push({ icon: '📝', text: `${shortName(walls[0].s.name)}等 ${walls.length} 間店有新留言。`, go: `store:${walls[0].s.id}`, label: '去看看' });
+    }
+    if (data.event?.news && (forceReport || !seenEvents().includes(data.event.id))) items.push({ icon: '🎉', text: data.event.news });
+    return items;
+  }
+  function showReport() {
+    // 客人已經自己點去別的地方，就不打擾
+    if (!reportDue || state.region || state.store || state.mission || !$('card').hidden || !$('intro').hidden) return;
+    const items = buildReport();
+    if (!items.length) return;
+    if (data.event) markEventSeen(data.event.id);
+    ui.showReport(items, Math.max(1, Math.round((Date.now() - lastVisit) / 86400000)));
+  }
 
   if (data.site.managerPicksUrl) {
     loadManagerPicks(data.site.managerPicksUrl)
@@ -558,16 +691,26 @@ async function boot() {
         ui.refresh();
         if (residentsOn) {
           serverResidents = (Array.isArray(picks.residents) ? picks.residents : []).map(cleanResident).filter(Boolean);
-          // 試算表回傳的暱稱跟自己的一樣（審核通過，或後端已改成直接公開），就拿掉「審核中」
           const mine = serverResidents.find((r) => r.id === mineId);
-          if (me?.pending && mine?.nickname && mine.nickname === me.nickname) {
-            me.pending = false;
+          if (!me && mine) {
+            // 這台裝置在島上有島民，但瀏覽器裡的紀錄不見了（例如剛用島民證接回來）：從名單認回來
+            me = { ...mine, pending: false };
+            saveMe(me);
+            meBtn.textContent = '我的島民';
+            issueCard();
+          } else if (me && mine) {
+            // 試算表回傳的暱稱跟自己的一樣，就拿掉「審核中」；也補上上島時間
+            if (me.pending && mine.nickname && mine.nickname === me.nickname) me.pending = false;
+            if (!me.since && mine.since) me.since = mine.since;
             saveMe(me);
           }
           placeResidents();
         }
       })
-      .catch((e) => console.warn(`[DK 台灣島] 讀不到店長的話試算表，先不顯示：${e.message}`));
+      .catch((e) => console.warn(`[DK 台灣島] 讀不到店長的話試算表，先不顯示：${e.message}`))
+      .finally(showReport);
+  } else {
+    setTimeout(showReport, 0);
   }
 
   showWarnings();

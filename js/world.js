@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { layoutTaiwan, buildIsland, LAND_H, project } from './islands.js';
-import { createBuilding, createPlaza, createClouds, createRing, MASCOT, SHOE_FALLBACK, shoeColorOf, mascotIndex } from './buildings.js';
+import { createBuilding, createPlaza, createClouds, createRing, MASCOT, SHOE_FALLBACK, shoeColorOf, mascotIndex, windowGlass } from './buildings.js';
+import { createDecorations, nightOf, taipeiHour } from './seasons.js';
 import { buildTown } from './town.js';
 import { createPeople } from './people.js';
 import { createMovers, createResidents } from './residents.js';
@@ -58,7 +59,8 @@ export function createWorld(container, data, handlers) {
   scene.add(sea);
 
   // ---- 光：太陽跟著鏡頭走，拉近看時影子比較清楚 ----
-  scene.add(new THREE.HemisphereLight('#fffaf0', '#6fb6c4', 1.7));
+  const hemi = new THREE.HemisphereLight('#fffaf0', '#6fb6c4', 1.7);
+  scene.add(hemi);
   const sun = new THREE.DirectionalLight('#fff1dc', 2.6);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -358,8 +360,18 @@ export function createWorld(container, data, handlers) {
     return out;
   }
 
-  const people = createPeople(spots, layout.streets);
+  const people = createPeople(spots, layout.streets, data.event?.hat);
   scene.add(people.group);
+
+  // ---- 節日裝飾（events.json）：門市門口的南瓜燈、聖誕樹、紅燈籠，或海邊的遮陽傘 ----
+  if (data.event?.decor) {
+    const door = [...storeObjs.values()].map((o) => ({ x: o.tile.x, y: o.tile.h, z: o.tile.z, rot: o.group.rotation.y }));
+    const beach = layout.tiles
+      .filter((t) => t.kind === 'beach' && !t.store && !t.reserved && !t.plaza && !t.islet)
+      .filter((_, i) => i % 5 === 0)
+      .map((t) => ({ x: t.x, y: t.h, z: t.z, rot: 0 }));
+    scene.add(createDecorations(data.event.decor, { door, beach }));
+  }
 
   // ---- 有買鞋煩惱的路人：頭上冒「!」，點了幫他挑鞋（slot 是第幾個「!」，換人時 slot 不變）----
   const shoppers = [];
@@ -619,12 +631,66 @@ export function createWorld(container, data, handlers) {
   }
 
   // ---- 每一格畫面 ----
+  // ---- 日夜：照台灣時間。晚上天空和海變暗、燈籠路燈更亮、門市窗戶亮燈、滿天星星；傍晚天空帶一點橘 ----
+  const DAY_SKY = new THREE.Color(SKY);
+  const NIGHT_SKY = new THREE.Color('#1b2540');
+  const DUSK_SKY = new THREE.Color('#f2c3a2');
+  const DAY_SEA = new THREE.Color(SEA);
+  const NIGHT_SEA = new THREE.Color('#1f3d55');
+  const stars = (() => {
+    const rand = rng('stars');
+    const pts = [];
+    for (let i = 0; i < 500; i++) {
+      const a = rand() * Math.PI * 2;
+      const up = 0.15 + rand() * 0.85;
+      const r = maxDim * 2.2;
+      pts.push(mapCenter.x + Math.cos(a) * r * Math.sqrt(1 - up * up), r * up, mapCenter.z + Math.sin(a) * r * Math.sqrt(1 - up * up));
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+    return new THREE.Points(g, new THREE.PointsMaterial({ color: '#fff8e0', size: 2, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false }));
+  })();
+  scene.add(stars);
+  const glass = windowGlass();
+  glass.emissive.set('#ffcf7a');
+  let glowing = null; // 有發光的材質和它們白天的亮度（第一次換日夜時才收集，那時島上的東西都放好了）
+  let night = -1;
+  function applyNight(n) {
+    if (!glowing) {
+      glowing = new Map();
+      scene.traverse((o) => {
+        for (const m of [].concat(o.material || [])) {
+          if (m?.emissive?.getHex() && m.emissiveIntensity > 0 && m !== glass && !glowing.has(m)) glowing.set(m, m.emissiveIntensity);
+        }
+      });
+    }
+    const warm = Math.sin(n * Math.PI) * 0.55;
+    scene.background.copy(DAY_SKY).lerp(NIGHT_SKY, n).lerp(DUSK_SKY, warm);
+    scene.fog.color.copy(scene.background);
+    sea.material.color.copy(DAY_SEA).lerp(NIGHT_SEA, n);
+    hemi.intensity = 1.7 - 1.15 * n;
+    hemi.color.set('#fffaf0').lerp(new THREE.Color('#8fa3d6'), n);
+    sun.intensity = 2.6 - 2.1 * n;
+    sun.color.set('#fff1dc').lerp(new THREE.Color('#9fb4ff'), n).lerp(new THREE.Color('#ffb27a'), warm);
+    clouds.material.color.set('#ffffff').lerp(new THREE.Color('#5d6a8c'), n);
+    for (const [m, base] of glowing) m.emissiveIntensity = base * (1 + 2.2 * n);
+    glass.emissiveIntensity = 0.9 * n;
+    stars.material.opacity = Math.max(0, n * 1.1 - 0.1);
+    stars.visible = n > 0.05;
+    night = n;
+  }
+  function updateNight() {
+    const n = nightOf(taipeiHour(Date.now(), data.clockOverride ?? null));
+    if (Math.abs(n - night) > 0.005) applyNight(n);
+  }
+
   const clock = new THREE.Clock();
   let frame = 0;
   function loop() {
     const dt = Math.min(clock.getDelta(), 0.1);
     const t = clock.elapsedTime;
     frame++;
+    if (frame % 300 === 1) updateNight(); // 大約每 5 秒看一次時間
 
     if (tween) {
       const k = easeInOutCubic(Math.min(1, (performance.now() - tween.t0) / tween.duration));
@@ -808,7 +874,7 @@ export function createWorld(container, data, handlers) {
         residents.dispose();
       }
       mineId = mine;
-      residents = createResidents(list, makeMover, mine);
+      residents = createResidents(list, makeMover, mine, data.event?.hat);
       scene.add(residents.group);
     },
     // 有買鞋煩惱的路人：放 n 個「!」在不同地方的路人頭上

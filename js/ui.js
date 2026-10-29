@@ -1,7 +1,8 @@
 import { h, shortName } from './util.js';
 import { mascotIndex } from './buildings.js';
 import { shippingStation, returnsStation, comingSoonStation } from './service.js';
-import { RESIDENT_OPTIONS, createResidentPreview } from './residents.js';
+import { RESIDENT_OPTIONS, createResidentPreview, ageOf } from './residents.js';
+import { postcardsOf, createPostcardCamera } from './postcards.js';
 import { stampSvg, stampDate, STAMPER_SVG } from './stamps.js';
 import { cleanText, textProblem } from './textrules.js';
 
@@ -726,12 +727,13 @@ export function createUI(data, handlers) {
       mode: me?.mode || 'loop',
     };
     const labelOf = (key, id) => O[key].find((o) => o.id === id)?.label || '';
-    // 預覽：3D 小人跟島上長得一樣，選什麼馬上換上；瀏覽器畫不了 3D 就退回身體的圖
+    // 預覽：3D 小人跟島上長得一樣（長多大、節日帽子也一樣），選什麼馬上換上；瀏覽器畫不了 3D 就退回身體的圖
     const look = () => ({ body: choice.body, hat: choice.hat, acc: choice.acc, shoe: choice.shoe });
+    const age = ageOf(me?.since);
     const canvas = h('canvas', { class: 'me-figure', 'aria-label': '我的島民預覽' });
     let figure = null;
     try {
-      figure = createResidentPreview(canvas);
+      figure = createResidentPreview(canvas, data.event?.hat);
     } catch {
       figure = null;
     }
@@ -739,13 +741,17 @@ export function createUI(data, handlers) {
     const list = h('ul');
     const preview = h('div', { class: 'me-preview' }, figure ? canvas : fallback, list);
     const drawPreview = () => {
-      figure?.set(look());
+      figure?.set(look(), me?.since || '');
       fallback.src = `assets/mascot-${choice.body}.png`;
-      list.replaceChildren(
+      // replaceChildren 遇到 null 會印出「null」字樣，先濾掉
+      list.replaceChildren(...[
+        age.known ? h('li', { class: 'me-age' }, h('b', { text: age.title }), `上島第 ${age.days + 1} 天`) : null,
+        age.next ? h('li', { class: 'me-next', text: `再 ${age.next.inDays} 天變成「${age.next.title}」` }) : null,
         h('li', { text: `帽子：${labelOf('hat', choice.hat)}` }),
         h('li', { text: `配件：${labelOf('acc', choice.acc)}` }),
         h('li', {}, '鞋子：', h('i', { class: 'swatch', style: `background:${choice.shoe}` })),
-        h('li', { text: `移動：${labelOf('mode', choice.mode)}` }));
+        h('li', { text: `移動：${labelOf('mode', choice.mode)}` }),
+      ].filter(Boolean));
     };
     drawPreview();
 
@@ -791,8 +797,14 @@ export function createUI(data, handlers) {
 
     fillCard(
       head('ISLANDER・島民', me ? '我的島民' : '捏一個你的島民'),
-      h('p', { class: 'lead', text: '選造型和移動方式，放上島之後大家都看得到。一台裝置一個島民，之後可以回來改。' }),
+      h('p', { class: 'lead', text: me
+        ? '你的島民會照真實時間慢慢長大，還會從去過的地方寄明信片回來。造型隨時可以改。'
+        : '選造型和移動方式，放上島之後大家都看得到。島民會照真實時間慢慢長大，還會寄明信片回來。' }),
       preview,
+      me ? h('button', { type: 'button', class: 'me-find', onclick: () => handlers.onFindMe() }, '看我的島民走到哪了 →') : null,
+      islanderCard(me),
+      me ? postcardAlbum(me) : null,
+      me ? h('p', { class: 'me-section', text: '改造型' }) : null,
       group('body', '身體', O.body, (b) => h('img', { src: `assets/mascot-${b.id}.png`, alt: b.label, title: b.label })),
       group('hat', '帽子', O.hat, (o) => o.label),
       group('acc', '配件', O.acc, (o) => o.label),
@@ -801,7 +813,170 @@ export function createUI(data, handlers) {
       h('div', { class: 'me-group' }, h('p', { class: 'me-label' }, '暱稱', h('span', { class: 'note-hint', text: '不能放網址、聯絡方式或官方字樣' })), nickname, honeypot),
       submit,
       status,
-      me ? h('button', { type: 'button', class: 'me-find', onclick: () => handlers.onFindMe() }, '看我的島民走到哪了 →') : null,
+      reclaimForm(Boolean(me)),
+    );
+  }
+
+  // ---- 島民證：換手機或清掉瀏覽器資料時，用號碼把島民接回來 ----
+  const codeText = (code) => (code ? `${code.slice(0, 3)}-${code.slice(3)}` : '');
+  function islanderCard(me) {
+    if (!handlers.islander || !me) return null;
+    const code = h('b', { class: 'id-code', text: me.code ? codeText(me.code) : '發證中…' });
+    const status = h('p', { class: 'note-status', role: 'status' });
+    const save = h('button', { type: 'button', class: 'id-btn', disabled: !me.code, onclick: () => saveIslanderImage(me).catch(() => { status.textContent = '存不了圖片，請直接截圖這張島民證。'; }) }, '存成圖片');
+    const copy = h('button', {
+      type: 'button',
+      class: 'id-btn',
+      disabled: !me.code,
+      onclick: async () => {
+        try {
+          await navigator.clipboard.writeText(me.code);
+          status.textContent = '號碼複製好了！';
+        } catch {
+          status.textContent = '複製不了，請把號碼抄下來或截圖。';
+        }
+      },
+    }, '複製號碼');
+    if (!me.code) {
+      handlers.onIslanderCard().then((res) => {
+        if (!res.ok) {
+          code.textContent = '暫時拿不到';
+          status.textContent = res.message || '等一下再打開看看。';
+          return;
+        }
+        code.textContent = codeText(res.code);
+        save.disabled = copy.disabled = false;
+      });
+    }
+    return h('section', { class: 'id-card' },
+      h('p', { class: 'id-title' }, '島民證', h('small', { text: '換手機或清掉瀏覽器資料時，用這組號碼把島民接回來' })),
+      code,
+      h('div', { class: 'id-actions' }, save, copy),
+      status);
+  }
+
+  function reclaimForm(hasMe) {
+    if (!handlers.islander) return null;
+    const input = h('input', { class: 'me-name', maxlength: '8', placeholder: '例如 ABC-234', autocomplete: 'off', autocapitalize: 'characters' });
+    const status = h('p', { class: 'note-status', role: 'status' });
+    const go = h('button', { type: 'button', class: 'cta', style: '--c:#3F7FBF' }, '接回我的島民 →');
+    go.addEventListener('click', async () => {
+      if (input.value.replace(/[^0-9a-z]/gi, '').length !== 6) {
+        status.textContent = '島民證是 6 個英文字母和數字。';
+        return;
+      }
+      go.disabled = true;
+      status.textContent = '找找看…';
+      const res = await handlers.onReclaim(input.value);
+      go.disabled = false;
+      status.textContent = res.ok ? '找到了！島民回來囉，重新整理中…' : res.message;
+    });
+    return h('details', { class: 'me-reclaim' },
+      h('summary', { text: hasMe ? '換成另一個島民？輸入島民證' : '以前捏過島民？輸入島民證接回來' }),
+      hasMe ? h('p', { class: 'note-hint', text: '接回另一個島民後，這台裝置原本的島民就不會再跟著你（它還會留在島上）。' }) : null,
+      input, go, status);
+  }
+
+  // 島民證存成一張圖：氣球人、暱稱、頭銜、上島日期和號碼
+  async function saveIslanderImage(me) {
+    const W = 640;
+    const H = 380;
+    const cv = document.createElement('canvas');
+    cv.width = W;
+    cv.height = H;
+    const g = cv.getContext('2d');
+    g.fillStyle = '#fff7ef';
+    g.fillRect(0, 0, W, H);
+    g.strokeStyle = '#8B2332';
+    g.lineWidth = 10;
+    g.strokeRect(5, 5, W - 10, H - 10);
+    const img = new Image();
+    img.src = `assets/mascot-${me.look.body}.png`;
+    await img.decode();
+    const ih = 220;
+    g.drawImage(img, 44, 96, (img.width / img.height) * ih, ih);
+    const age = ageOf(me.since);
+    const font = (size, weight = 700) => `${weight} ${size}px "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif`;
+    g.fillStyle = '#8B2332';
+    g.font = font(22, 900);
+    g.fillText('DK 台灣島・島民證', 44, 60);
+    g.fillStyle = '#3b2a25';
+    g.font = font(30, 900);
+    g.fillText(me.nickname || '沒有名字的島民', 250, 130);
+    g.font = font(20);
+    g.fillStyle = '#7a6a62';
+    if (age.known) g.fillText(`${age.title}・上島第 ${age.days + 1} 天`, 250, 168);
+    g.fillText('島民證號碼', 250, 222);
+    g.fillStyle = '#8B2332';
+    g.font = font(64, 900);
+    g.fillText(codeText(me.code), 250, 290);
+    g.fillStyle = '#7a6a62';
+    g.font = font(16, 500);
+    g.fillText('換手機時，到 DK 台灣島「我的島民」輸入這組號碼就能接回來', 44, 345);
+    const blob = await new Promise((resolve) => cv.toBlob(resolve, 'image/png'));
+    const url = URL.createObjectURL(blob);
+    const a = h('a', { href: url, download: 'DK台灣島-島民證.png' });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
+  // ---- 明信片冊：島民從去過的地方寄回來的 3D 合照，一張一張拍，不要一次卡住畫面 ----
+  const dateOf = (at) => new Intl.DateTimeFormat('zh-TW', { timeZone: 'Asia/Taipei', month: 'numeric', day: 'numeric' }).format(at);
+  function postcardAlbum(me) {
+    if (!me.since) return null;
+    const { total, cards } = postcardsOf(me, data.landmarks);
+    handlers.onPostcardsSeen(total);
+    const section = h('section', { class: 'me-album' },
+      h('p', { class: 'me-label' }, '明信片', h('span', { class: 'note-hint', text: total ? `共 ${total} 張${total > cards.length ? `，留最新 ${cards.length} 張` : ''}` : '' })));
+    if (!cards.length) {
+      section.append(h('p', { class: 'note-hint', text: '島民上島半天後，就會開始從去過的地方寄明信片回來。' }));
+      return section;
+    }
+    const items = cards.map((card) => {
+      const img = h('img', { alt: `${card.landmark.name}寄來的明信片` });
+      const fig = h('figure', { class: 'pc' },
+        h('div', { class: 'pc-photo' }, img),
+        h('figcaption', {}, h('b', { text: card.landmark.name }), h('small', { text: dateOf(card.at) }), h('span', { text: card.text })));
+      fig.addEventListener('click', () => fig.classList.toggle('big'));
+      return { card, img };
+    });
+    section.append(h('div', { class: 'pc-grid' }, items.map((it) => it.img.closest('figure'))));
+    (async () => {
+      let cam;
+      try {
+        cam = createPostcardCamera(data.event?.hat);
+      } catch {
+        return; // 畫不了 3D 就只有文字
+      }
+      for (const it of items) {
+        await new Promise((r) => setTimeout(r, 30));
+        if (!section.isConnected && it !== items[0]) break; // 卡片關掉了就不拍了
+        try {
+          it.img.src = cam.shoot(it.card, me);
+        } catch {
+          break;
+        }
+      }
+      cam.dispose();
+    })();
+    return section;
+  }
+
+  // ---- 島嶼快報：隔一天以上回來時，告訴客人島上變了什麼 ----
+  function showReport(items, days) {
+    current = { region: null, store: null };
+    renderList();
+    closeShop();
+    fillCard(
+      head('ISLAND NEWS・島嶼快報', days > 1 ? `你離開了 ${days} 天，島上發生了這些事` : '你不在的時候，島上發生了這些事'),
+      h('ul', { class: 'news' }, items.map((it) => h('li', {},
+        h('span', { class: 'news-icon', 'aria-hidden': 'true', text: it.icon }),
+        h('div', {},
+          h('p', { text: it.text }),
+          it.go ? h('button', { type: 'button', class: 'news-go', onclick: () => handlers.onReportGo(it.go) }, `${it.label || '去看看'} →`) : null)))),
+      h('button', { type: 'button', class: 'cta', onclick: () => handlers.onOverview() }, '逛逛島 →'),
     );
   }
 
@@ -991,5 +1166,5 @@ export function createUI(data, handlers) {
     else if (!card.hidden) handlers.onCloseCard();
   });
 
-  return { showRegion, showLandmark, showCoupon, showServiceMenu, openStation, showResidentEditor, showStampBook, showShopper, markStamps: renderList, selectStore, openShop, showNone, maybeShowIntro, refresh };
+  return { showRegion, showLandmark, showCoupon, showServiceMenu, openStation, showResidentEditor, showStampBook, showShopper, showReport, markStamps: renderList, selectStore, openShop, showNone, maybeShowIntro, refresh };
 }

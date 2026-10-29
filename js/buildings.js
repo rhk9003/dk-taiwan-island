@@ -351,8 +351,11 @@ export function createClouds(bounds, count = 9) {
       if (cl.obj.position.x > bounds.max.x + 14) cl.obj.position.x = bounds.min.x - 14;
     }
   }
-  return { group, update };
+  return { group, update, material };
 }
+
+/** 門市窗戶的玻璃（晚上會亮燈） */
+export const windowGlass = () => mat(GLASS);
 
 /** 選中門市時地上的光圈 */
 export function createRing() {

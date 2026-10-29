@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { mat, MASCOT } from './buildings.js';
-import { createFigures, createWearable, stepWalker, turnToward, LIFT } from './people.js';
+import { createFigures, createWearable, stepWalker, turnToward, LIFT, EVENT_HATS } from './people.js';
 import { rng, h } from './util.js';
 
 // 島民角色：訪客自己捏的氣球人。選項要跟後端（店長表單的 Apps Script）檢查的清單一致
@@ -39,7 +39,7 @@ export const RESIDENT_OPTIONS = {
   ],
 };
 
-// 從試算表讀到的資料，不在選項裡的一律丟掉
+// 從試算表讀到的資料，不在選項裡的一律丟掉。since 是上島時間（算島民長多大），沒有就是空字串
 export function cleanResident(r) {
   const ok = (key, v) => RESIDENT_OPTIONS[key].some((o) => (o.id ?? o) === v);
   const look = r?.look || {};
@@ -50,7 +50,29 @@ export function cleanResident(r) {
     look: { body: look.body, hat: look.hat, acc: look.acc, shoe: look.shoe },
     mode: r.mode,
     nickname: typeof r.nickname === 'string' ? r.nickname.trim().slice(0, 10) : '',
+    since: typeof r.since === 'string' && Date.parse(r.since) ? r.since : '',
   };
+}
+
+// 島民照真實時間長大：從上島那天起算，不用每天來。老島民留白鬍子，耆老再拄一根拐杖
+export const AGE_STAGES = [
+  { days: 0, title: '新島民', scale: 0.85 },
+  { days: 3, title: '島民', scale: 0.93 },
+  { days: 7, title: '資深島民', scale: 1 },
+  { days: 30, title: '老島民', scale: 1.05, beard: true },
+  { days: 60, title: '島上耆老', scale: 1.08, beard: true, cane: true },
+];
+const DAY = 86400000;
+
+/** 上島幾天、現在是哪個階段、下一個階段還要幾天。不知道上島時間就照一般大小、沒有頭銜 */
+export function ageOf(since, now = Date.now()) {
+  const at = Date.parse(since || '');
+  if (!at) return { known: false, days: 0, index: -1, title: '', scale: 1 };
+  const days = Math.max(0, Math.floor((now - at) / DAY));
+  let index = 0;
+  while (index + 1 < AGE_STAGES.length && days >= AGE_STAGES[index + 1].days) index++;
+  const next = AGE_STAGES[index + 1];
+  return { ...AGE_STAGES[index], known: true, days, index, next: next ? { title: next.title, inDays: next.days - days } : null };
 }
 
 // 角色 ID：裝置代號做 SHA-256 取前 12 碼（後端用同一個算法）
@@ -93,6 +115,12 @@ const ACCS = {
   ]),
 };
 const ACC_COLORS = { backpack: '#E07A2E', scarf: '#8B2332', glasses: '#1d1f24' };
+// 長大以後才有的：白鬍子、拐杖
+const BEARD = () => new THREE.SphereGeometry(0.06, 10, 8).scale(1.15, 0.85, 0.6).translate(0, LIFT + 0.315, 0.072);
+const CANE = () => mergeGeometries([
+  new THREE.CylinderGeometry(0.011, 0.011, 0.3, 6).translate(0.155, 0.15, 0.05),
+  new THREE.TorusGeometry(0.028, 0.01, 6, 10, Math.PI).translate(0.127, 0.3, 0.05),
+]);
 
 /**
  * 移動方式。places 由 world 給：streets（依分區分好的街道格子）、loop（環島路線上一連串的點）、trails（登山步道）
@@ -192,15 +220,24 @@ export function createMovers(places) {
   };
 }
 
-/** 把一批島民放上島。list 已經清過（cleanResident），mine 是這台裝置自己的角色 ID */
-export function createResidents(list, makeMover, mineId) {
-  const people = list.map((r) => ({
-    ...r,
-    mine: r.id === mineId,
-    x: 0, y: 0, z: 0, rot: 0,
-    phase: rng(`phase-${r.id}`)() * 6,
-    step: makeMover(r.mode, r.id),
-  }));
+/**
+ * 把一批島民放上島。list 已經清過（cleanResident），mine 是這台裝置自己的角色 ID。
+ * eventHat：節日帽子（EVENT_HATS 的 key），沒戴帽子的島民會戴上；now 用來算島民長多大
+ */
+export function createResidents(list, makeMover, mineId, eventHat = null, now = Date.now()) {
+  const people = list.map((r) => {
+    const age = ageOf(r.since, now);
+    return {
+      ...r,
+      mine: r.id === mineId,
+      age,
+      scale: age.scale,
+      hat: r.look.hat === 'none' && EVENT_HATS[eventHat] ? 'event' : r.look.hat,
+      x: 0, y: 0, z: 0, rot: 0,
+      phase: rng(`phase-${r.id}`)() * 6,
+      step: makeMover(r.mode, r.id),
+    };
+  });
   const figures = createFigures(people.length);
   people.forEach((p, i) => {
     figures.setColor(i, RESIDENT_OPTIONS.body.find((b) => b.id === p.look.body).color);
@@ -209,21 +246,28 @@ export function createResidents(list, makeMover, mineId) {
 
   const group = new THREE.Group();
   group.add(...figures.meshes);
+  // 每一種配件：誰戴、造型、材質（沒人戴就不建）
   const wear = [];
-  const addWear = (kind, makers, colors) => {
-    for (const [type, make] of Object.entries(makers)) {
-      const who = people.map((p, i) => (p.look[kind] === type ? i : -1)).filter((i) => i >= 0);
-      if (!who.length) continue;
-      const material = type === 'crown'
-        ? new THREE.MeshStandardMaterial({ color: colors[type], roughness: 0.3, metalness: 0.4 })
-        : mat(colors[type]);
-      const mesh = createWearable(make(), material, who.length);
-      group.add(mesh);
-      wear.push({ mesh, slot: new Map(who.map((pi, k) => [pi, k])) });
+  const addWear = (who, geometry, material) => {
+    const idx = people.map((p, i) => (who(p) ? i : -1)).filter((i) => i >= 0);
+    if (!idx.length) {
+      geometry.dispose();
+      return;
     }
+    const mesh = createWearable(geometry, material, idx.length);
+    group.add(mesh);
+    wear.push({ mesh, slot: new Map(idx.map((pi, k) => [pi, k])) });
   };
-  addWear('hat', HATS, HAT_COLORS);
-  addWear('acc', ACCS, ACC_COLORS);
+  for (const [type, make] of Object.entries(HATS)) {
+    const material = type === 'crown'
+      ? new THREE.MeshStandardMaterial({ color: HAT_COLORS[type], roughness: 0.3, metalness: 0.4 })
+      : mat(HAT_COLORS[type]);
+    addWear((p) => p.hat === type, make(), material);
+  }
+  for (const [type, make] of Object.entries(ACCS)) addWear((p) => p.look.acc === type, make(), mat(ACC_COLORS[type]));
+  if (EVENT_HATS[eventHat]) for (const [g, c] of EVENT_HATS[eventHat]()) addWear((p) => p.hat === 'event', g, mat(c));
+  addWear((p) => p.age.beard, BEARD(), mat('#f4f1ea'));
+  addWear((p) => p.age.cane, CANE(), mat('#7a5236'));
 
   // 名牌：公開的暱稱，和自己的「我」
   const labels = [];
@@ -248,7 +292,7 @@ export function createResidents(list, makeMover, mineId) {
     });
     figures.commit();
     for (const w of wear) w.mesh.instanceMatrix.needsUpdate = true;
-    for (const { obj, p } of labels) obj.position.set(p.x, p.y + 0.85, p.z);
+    for (const { obj, p } of labels) obj.position.set(p.x, p.y + 0.85 * p.scale, p.z);
   }
 
   return {
@@ -263,8 +307,8 @@ export function createResidents(list, makeMover, mineId) {
   };
 }
 
-/** 捏島民時的預覽：小畫布上一個原地踏步、慢慢轉圈的氣球人，造型跟島上的一模一樣。畫布離開畫面就自己收掉 */
-export function createResidentPreview(canvas) {
+/** 捏島民時的預覽：小畫布上一個原地踏步、慢慢轉圈的氣球人，造型跟島上的一模一樣（含節日帽、長大的樣子）。畫布離開畫面就自己收掉 */
+export function createResidentPreview(canvas, eventHat = null) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   const scene = new THREE.Scene();
@@ -309,12 +353,12 @@ export function createResidentPreview(canvas) {
   });
 
   return {
-    set(look) {
+    set(look, since = '') {
       if (fig) {
         scene.remove(fig.group);
         fig.dispose();
       }
-      fig = createResidents([{ id: 'preview', look, mode: 'street', nickname: '' }], spin, null);
+      fig = createResidents([{ id: 'preview', look, mode: 'street', nickname: '', since }], spin, null, eventHat);
       scene.add(fig.group);
     },
   };
