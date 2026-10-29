@@ -4,6 +4,7 @@ import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { mat, MASCOT } from './buildings.js';
 import { createFigures, createWearable, stepWalker, turnToward, LIFT, EVENT_HATS } from './people.js';
 import { rng, h } from './util.js';
+import { safeText } from './textrules.js';
 
 // 島民角色：訪客自己捏的氣球人。選項要跟後端（店長表單的 Apps Script）檢查的清單一致
 export const RESIDENT_OPTIONS = {
@@ -49,7 +50,7 @@ export function cleanResident(r) {
     id: r.id,
     look: { body: look.body, hat: look.hat, acc: look.acc, shoe: look.shoe },
     mode: r.mode,
-    nickname: typeof r.nickname === 'string' ? r.nickname.trim().slice(0, 10) : '',
+    nickname: typeof r.nickname === 'string' ? safeText(r.nickname.trim().slice(0, 10), 'nickname') : '',
     since: typeof r.since === 'string' && Date.parse(r.since) ? r.since : '',
   };
 }

@@ -7,6 +7,7 @@ import { postcardsOf } from './postcards.js';
 import { createStampBook } from './stamps.js';
 import { activeEvent } from './seasons.js';
 import { h, shortName } from './util.js';
+import { safeText } from './textrules.js';
 
 const FILES = ['site', 'regions', 'modules', 'stores', 'products', 'landmarks', 'service', 'picks', 'shoppers', 'events'];
 const OPTIONAL = new Set(['landmarks', 'service', 'picks', 'shoppers', 'events']); // 沒有這些檔也能跑
@@ -222,7 +223,8 @@ function applyPicks(data, picks) {
     const p = picks.stores[s.id];
     s.messages = (Array.isArray(p?.messages) ? p.messages : [])
       .slice(0, 12)
-      .map((m) => ({ nickname: text(m?.nickname, 12) || '路過的客人', text: text(m?.text, 60), at: text(m?.at, 40) }))
+      // 顯示前再用文字規則過一次：繞過前端直接打後端的冒充客服、聯絡方式不會上島
+      .map((m) => ({ nickname: safeText(text(m?.nickname, 12), 'nickname') || '路過的客人', text: safeText(text(m?.text, 60)), at: text(m?.at, 40) }))
       .filter((m) => m.text);
     if (!p?.filled) continue;
     const at = Date.parse(p.submittedAt || '');
@@ -393,7 +395,7 @@ async function boot() {
       const res = await fetch(`${notesUrl}?resident=${encodeURIComponent(id)}`, { cache: 'no-store' });
       const json = await res.json();
       return (Array.isArray(json?.notes) ? json.notes : [])
-        .map((n) => ({ id: text(n.id, 80), nickname: text(n.nickname, 12) || '路過的客人', text: text(n.text, 60), at: text(n.at, 40) }))
+        .map((n) => ({ id: text(n.id, 80), nickname: safeText(text(n.nickname, 12), 'nickname') || '路過的客人', text: safeText(text(n.text, 60)), at: text(n.at, 40) }))
         .filter((n) => n.id && n.text);
     } catch {
       return [];
