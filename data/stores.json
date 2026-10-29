@@ -1,5 +1,5 @@
 {
-  "_說明": "全台門市。latlng 是門市在島上的位置 [緯度, 經度]：在 Google 地圖對門市按右鍵，點第一行的數字就會複製（例如 25.0435, 121.5470）；沒填就先放在該縣市中心附近，位置撞到別間店會自動挪到旁邊的空地。module 填 modules.json 裡的代號（shop、balloon、downstairs、quiz、fortune、board、workshop），換了建築就會跟著換。quote 是店長的一句話、manager 是店長稱呼、products 填 products.json 的商品 id。sample: true 代表內容是範例，卡片上會標「範例」。",
+  "_說明": "全台門市。latlng 是門市在島上的位置 [緯度, 經度]：在 Google 地圖對門市按右鍵，點第一行的數字就會複製（例如 25.0435, 121.5470）；沒填就先放在該縣市中心附近，位置撞到別間店會自動挪到旁邊的空地。module 填 modules.json 裡的代號（shop、balloon、downstairs、quiz、fortune、board、workshop），換了建築就會跟著換。quote 是店長的一句話、manager 是店長稱呼、products 填 products.json 的商品 id。sample: true 代表內容是範例，卡片上會標「範例」。 hours 是營業時間（weekday 平日、weekend 週末），用 python tools/pull_hours.py 從官網門市資料抓，不用手打。",
   "stores": [
     {
       "id": "頂好",
@@ -18,7 +18,11 @@
         "12257529",
         "12256620"
       ],
-      "sample": true
+      "sample": true,
+      "hours": {
+        "weekday": "11:30~20:30",
+        "weekend": "11:30~20:30"
+      }
     },
     {
       "id": "民生",
@@ -33,7 +37,11 @@
       "module": "quiz",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "忠孝",
@@ -48,7 +56,11 @@
       "module": "fortune",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "市民",
@@ -63,7 +75,11 @@
       "module": "board",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "11:30~20:30",
+        "weekend": "11:30~20:30"
+      }
     },
     {
       "id": "雙連",
@@ -78,7 +94,11 @@
       "module": "workshop",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "11:30~20:30",
+        "weekend": "11:30~20:30"
+      }
     },
     {
       "id": "沅陵",
@@ -93,7 +113,11 @@
       "module": "downstairs",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "10:30~19:30",
+        "weekend": "10:30~19:30"
+      }
     },
     {
       "id": "博愛",
@@ -108,7 +132,11 @@
       "module": "quiz",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "10:30~19:30",
+        "weekend": "10:30~19:30"
+      }
     },
     {
       "id": "萬芳",
@@ -123,7 +151,11 @@
       "module": "quiz",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "永和",
@@ -138,7 +170,11 @@
       "module": "fortune",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "內湖",
@@ -153,7 +189,11 @@
       "module": "board",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "萬華",
@@ -168,7 +208,11 @@
       "module": "workshop",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "三重",
@@ -183,7 +227,11 @@
       "module": "downstairs",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "成功",
@@ -198,7 +246,11 @@
       "module": "balloon",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "11:00~20:00",
+        "weekend": "11:00~20:00"
+      }
     },
     {
       "id": "南勢角",
@@ -213,7 +265,11 @@
       "module": "quiz",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:30~21:30",
+        "weekend": "12:30~21:30"
+      }
     },
     {
       "id": "北新",
@@ -228,7 +284,11 @@
       "module": "fortune",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "新光醫",
@@ -243,7 +303,11 @@
       "module": "board",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "09:00~18:00",
+        "weekend": "09:00~18:00"
+      }
     },
     {
       "id": "新店",
@@ -258,7 +322,11 @@
       "module": "workshop",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "11:30~20:30",
+        "weekend": "11:30~20:30"
+      }
     },
     {
       "id": "埔墘",
@@ -273,7 +341,11 @@
       "module": "downstairs",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "11:30~20:30",
+        "weekend": "11:30~20:30"
+      }
     },
     {
       "id": "石牌",
@@ -288,7 +360,11 @@
       "module": "balloon",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "10:00~19:00",
+        "weekend": "10:00~19:00"
+      }
     },
     {
       "id": "府中",
@@ -303,7 +379,11 @@
       "module": "quiz",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "11:00~20:00",
+        "weekend": "11:00~20:00"
+      }
     },
     {
       "id": "蘆洲",
@@ -318,7 +398,11 @@
       "module": "fortune",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "新泰",
@@ -333,7 +417,11 @@
       "module": "board",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "裕民",
@@ -348,7 +436,11 @@
       "module": "workshop",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "樹林",
@@ -363,7 +455,11 @@
       "module": "downstairs",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "淡水",
@@ -378,7 +474,11 @@
       "module": "balloon",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "林口",
@@ -393,7 +493,11 @@
       "module": "quiz",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "11:00~20:00",
+        "weekend": "11:00~20:00"
+      }
     },
     {
       "id": "三峽",
@@ -408,7 +512,11 @@
       "module": "quiz",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "10:30~19:30",
+        "weekend": "10:30~19:30"
+      }
     },
     {
       "id": "基隆",
@@ -423,7 +531,11 @@
       "module": "fortune",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "桃園",
@@ -438,7 +550,11 @@
       "module": "fortune",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "藝文",
@@ -453,7 +569,11 @@
       "module": "board",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "八德",
@@ -468,7 +588,11 @@
       "module": "workshop",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "11:30~20:30",
+        "weekend": "11:30~20:30"
+      }
     },
     {
       "id": "元化",
@@ -483,7 +607,11 @@
       "module": "downstairs",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "新生",
@@ -498,7 +626,11 @@
       "module": "balloon",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "羅東",
@@ -513,7 +645,11 @@
       "module": "downstairs",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:30~21:30",
+        "weekend": "12:30~21:30"
+      }
     },
     {
       "id": "竹北",
@@ -528,7 +664,11 @@
       "module": "quiz",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "新竹",
@@ -543,7 +683,11 @@
       "module": "fortune",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "苗栗",
@@ -558,7 +702,11 @@
       "module": "board",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "11:30~20:30",
+        "weekend": "11:30~20:30"
+      }
     },
     {
       "id": "豐原",
@@ -573,7 +721,11 @@
       "module": "fortune",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "大甲",
@@ -588,7 +740,11 @@
       "module": "board",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "11:00~20:00",
+        "weekend": "11:00~20:00"
+      }
     },
     {
       "id": "精武",
@@ -603,7 +759,11 @@
       "module": "workshop",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "精明",
@@ -618,7 +778,11 @@
       "module": "downstairs",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "美村",
@@ -633,7 +797,11 @@
       "module": "balloon",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "大里",
@@ -648,7 +816,11 @@
       "module": "quiz",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "沙鹿",
@@ -663,7 +835,11 @@
       "module": "fortune",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "11:00~20:00",
+        "weekend": "11:00~20:00"
+      }
     },
     {
       "id": "草屯",
@@ -678,7 +854,11 @@
       "module": "board",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "11:30~20:30",
+        "weekend": "11:30~20:30"
+      }
     },
     {
       "id": "彰化",
@@ -693,7 +873,11 @@
       "module": "workshop",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "員林",
@@ -708,7 +892,11 @@
       "module": "downstairs",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "鹿港",
@@ -723,7 +911,11 @@
       "module": "balloon",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "11:30~20:30",
+        "weekend": "11:30~20:30"
+      }
     },
     {
       "id": "斗六",
@@ -738,7 +930,11 @@
       "module": "board",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "虎尾",
@@ -753,7 +949,11 @@
       "module": "workshop",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "11:30~20:30",
+        "weekend": "11:30~20:30"
+      }
     },
     {
       "id": "嘉義",
@@ -768,7 +968,11 @@
       "module": "downstairs",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "垂楊",
@@ -783,7 +987,11 @@
       "module": "balloon",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "新營",
@@ -798,7 +1006,11 @@
       "module": "quiz",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "11:30~20:30",
+        "weekend": "11:30~20:30"
+      }
     },
     {
       "id": "麻豆",
@@ -813,7 +1025,11 @@
       "module": "fortune",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "11:00~20:00",
+        "weekend": "11:00~20:00"
+      }
     },
     {
       "id": "台南",
@@ -831,7 +1047,11 @@
       "products": [
         "12255057"
       ],
-      "sample": true
+      "sample": true,
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "屏東",
@@ -846,7 +1066,11 @@
       "module": "workshop",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "裕誠",
@@ -861,7 +1085,11 @@
       "module": "downstairs",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "大樂",
@@ -876,7 +1104,11 @@
       "module": "balloon",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "10:00~22:00",
+        "weekend": "10:00~22:00"
+      }
     },
     {
       "id": "鳳山",
@@ -891,7 +1123,11 @@
       "module": "quiz",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:30~21:30",
+        "weekend": "12:30~21:30"
+      }
     },
     {
       "id": "大連",
@@ -906,7 +1142,11 @@
       "module": "fortune",
       "manager": "",
       "quote": "",
-      "products": []
+      "products": [],
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     },
     {
       "id": "三多",
@@ -925,7 +1165,11 @@
         "12255061",
         "12255053"
       ],
-      "sample": true
+      "sample": true,
+      "hours": {
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      }
     }
   ]
 }

@@ -112,7 +112,9 @@ apps-script/
 - 不能放程式碼或特殊符號（`< > { } [ ] =`、反斜線、反引號、`script` 等）
 - 不能放帳號、email（`@`）或電話、一長串數字（連續 9 個以上）
 - 同一個字連續 10 個以上算洗版
-- 暱稱不能用「官方、客服、店長、管理員」等字樣
+- 暱稱不能用「DK、高博士、官方、客服、門市、店長、店員、小編、管理員」等字樣
+- **防冒充客服詐騙**：留言不能提到客服、官方、公告、LINE／加賴、微信、私訊、電話、帳戶、扣款、退款、匯款、定期購、信用卡等字（去掉空白標點再比對，「加 賴」「L.I.N.E」也擋得到），也不能留「加 dkcs88」「ID：abc123」這種帳號
+- 島上**顯示前**也用同一套規則再過一次：就算有人繞過網頁直接打後端，違規的留言、暱稱也不會出現在島上
 - 試算表「禁用字」分頁裡的字（只在後端檢查，清單不會公開）
 - 全形字（`ｗｗｗ`、`＜`、`＠`）和看不見的字元也擋得到
 
@@ -201,7 +203,25 @@ python -m http.server 8781 --directory dk-taiwan-island
 
 之後只要改 `data/` 裡的檔案再推上去，網站就會更新，不用重新嵌入。
 
+想讓「離我最近的門市」在官網文章裡也能定位，iframe 的 `allow` 要加 `geolocation`（`allow="fullscreen; geolocation"`）；沒加的話按了會提示客人改用搜尋縣市。
+
+**貼到 LINE 的預覽圖**是 `assets/og.jpg`（`index.html` 的 og: 標籤）。島的樣子大改時，本機開 `tools/og.html`（會跳過邀請函進島）截圖再合成；換網域時 og:url、og:image 的網址要跟著改。
+
 **改了程式（`js/`、`css/`）再推之前**，先跑 `python tools/bump_version.py`：它會把 `index.html` 裡的 js、css 網址換上新的版本號。GitHub Pages 會讓瀏覽器把 js、css 留 10 分鐘，沒換版本號的話，剛更新時客人可能拿到「舊程式＋新資料」，畫面會少東西（例如開場邀請函不出現）。只改 `data/` 不用跑。
+
+## 成效追蹤
+
+- 連到官網（dk-shoes.com.tw）的連結，客人點下去時會自動補上 UTM：`utm_source=dk_taiwan_island`、`utm_medium=referral`、`utm_campaign=dk_taiwan_island`、`utm_content=客人當時在哪`（例如 `store-頂好`、`stamps`、`banner`）。在官網 GA4 看「工作階段來源／媒介」= `dk_taiwan_island / referral`，就是台灣島帶過去的流量和訂單。
+- `data/site.json` 的 `analytics` 填 GA4 評估 ID（`G-` 開頭）或 Meta 像素 ID 才會載入追蹤碼、送事件：`select_content`（進店、看分區…）、`stamp_get`、`reward_claim`、`module_play`、`message_post`、`resident_save`、`find_nearby`、`outbound_click`。留空就只加 UTM。
+- 網址加 `?debug`，按 F12 的 Console 會印出每個事件，方便檢查。
+
+## 手機效能
+
+觸控螢幕或核心、記憶體少的裝置會自動關陰影、解析度最多 1.5 倍（全景每格畫面的 draw call 從約 3,700 降到約 2,000）。電腦上網址加 `?lite` 可以看手機版的畫質。
+
+## 門市營業時間
+
+`data/stores.json` 每間店的 `hours` 是從官網門市資料抓的（平日 `weekday`、週末 `weekend`）。門市改營業時間或開新店時跑 `python tools/pull_hours.py` 就會更新。進店畫面最下面會顯示「營業中／已打烊」（台灣時間，國定假日沒另外算）。
 
 ## 還沒做的
 

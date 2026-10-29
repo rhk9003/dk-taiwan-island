@@ -352,7 +352,7 @@ export function createWorld(container, data, handlers) {
     }, h('span', {}, h('i'), data.site.coupon.label || '領優惠券'))); // 動畫放在內層，外層的 transform 是 3D 定位用的
     label.position.set(0, 7.9, 0);
     g.add(label);
-    coupon = { group: g, curve, lap: Number(data.site.coupon.lapSeconds) || 50 };
+    coupon = { group: g, curve, lap: Number(data.site.coupon.lapSeconds) || 50, label };
   }
   const couponPos = new THREE.Vector3();
   const followWant = new THREE.Vector3();
@@ -625,6 +625,38 @@ export function createWorld(container, data, handlers) {
       it.el.classList.toggle('is-hidden', hit);
       if (!hit) kept.push(r);
     }
+    // 「幫我挑鞋」、領優惠券壓到分區名牌時，縮成只剩圖示，分區名字才看得到（手機全景最擠）。
+    // 用展開時的大小判斷，縮起來之後才不會一縮一放地閃
+    // 分區名牌超出畫面左右邊（直式手機的離島、客服任務島）就往內推，整塊看得到。
+    // 用 CSS 的 translate 推，CSS2D 自己用的 transform 不動
+    const box = labelRenderer.domElement.getBoundingClientRect();
+    const regionRects = [];
+    for (const o of regionLabels.values()) {
+      const el = o.element;
+      const r = o.visible ? el.getBoundingClientRect() : null;
+      if (!r?.width) continue;
+      const prev = Number(el.dataset.dx || 0);
+      const left = r.left - prev;
+      const right = r.right - prev;
+      const dx = left < box.left + 6 ? box.left + 6 - left : right > box.right - 6 ? box.right - 6 - right : 0;
+      if (Math.abs(dx - prev) > 0.5) {
+        el.dataset.dx = dx;
+        el.style.translate = dx ? `${dx}px 0` : '';
+      }
+      regionRects.push(new DOMRect(left + dx, r.top, r.width, r.height));
+    }
+    const squeeze = (el) => {
+      const r = el.getBoundingClientRect();
+      if (!r.width || el.classList.contains('is-open') || el.classList.contains('happy')) return el.classList.remove('is-compact');
+      if (!el.classList.contains('is-compact')) Object.assign(el.dataset, { w: r.width, h: r.height });
+      const cx = (r.left + r.right) / 2;
+      const cy = (r.top + r.bottom) / 2;
+      const w = Number(el.dataset.w) / 2;
+      const hh = Number(el.dataset.h) / 2;
+      el.classList.toggle('is-compact', regionRects.some((k) => cx - w < k.right && cx + w > k.left && cy - hh < k.bottom && cy + hh > k.top));
+    };
+    for (const s of shoppers) squeeze(s.label.element);
+    if (coupon) squeeze(coupon.label.element);
   }
 
   // 鏡頭拉近時，自動顯示正在看的那一區的門市名稱
@@ -882,11 +914,12 @@ export function createWorld(container, data, handlers) {
 
   return {
     overview() {
-      // 橫式螢幕連離島一起放進來；直式手機寬度不夠，只框台灣本島，往西南（離鏡頭近、看起來比較大）挪一點
+      // 橫式螢幕連離島一起放進來；直式手機寬度不夠，只框台灣本島，往西南（離鏡頭近、看起來比較大）挪一點。
+      // 直式時島整個往上推：上面的空天空拿來放島，下面讓給右下角的按鈕
       if (W < H) {
         const size = layout.mainBounds.getSize(new THREE.Vector3());
         const target = layout.mainBounds.getCenter(new THREE.Vector3()).setY(LAND_H);
-        target.z += size.z * 0.06;
+        target.z += size.z * 0.15;
         target.x -= size.x * 0.06;
         flyTo(target, fitDistance(size.x * 0.88, size.z), VIEW_POLAR, 1400, 0);
       } else {

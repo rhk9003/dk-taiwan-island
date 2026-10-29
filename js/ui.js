@@ -52,6 +52,18 @@ export function createUI(data, handlers) {
     }, h('i'), m.name, h('em', { text: n })));
   }
 
+  // 營業時間（官網門市資料，tools/pull_hours.py）：今天幾點到幾點、現在有沒有開（台灣時間；國定假日沒另外算）
+  function hoursNow(s, now = Date.now()) {
+    if (!s.hours?.weekday) return null;
+    const t = new Date(now + 8 * 3600000);
+    const day = t.getUTCDay();
+    const text = (day === 0 || day === 6 ? s.hours.weekend : s.hours.weekday) || s.hours.weekday;
+    const m = text.match(/(\d{1,2}):(\d{2})\s*[~～-]\s*(\d{1,2}):(\d{2})/);
+    if (!m) return { text, open: null };
+    const mins = t.getUTCHours() * 60 + t.getUTCMinutes();
+    return { text, open: mins >= m[1] * 60 + Number(m[2]) && mins < m[3] * 60 + Number(m[4]) };
+  }
+
   const storeRow = (s, note) => {
     const m = data.modules[s.module];
     return h('button', { type: 'button', class: handlers.stamps?.has(s.id) ? 'store-row stamped' : 'store-row', style: `--c:${m.color}`, onclick: () => handlers.onStore(s.id) },
@@ -98,6 +110,49 @@ export function createUI(data, handlers) {
   }
   search.addEventListener('input', () => { query = search.value; renderList(); });
   renderList();
+
+  // ---- 離我最近：位置只在這台裝置上算距離，不會送出去 ----
+  const nearBtn = $('btn-near');
+  const nearBox = $('near');
+  const located = data.stores.filter((s) => Array.isArray(s.latlng));
+  const kmBetween = ([a1, o1], [a2, o2]) => {
+    const rad = Math.PI / 180;
+    const x = Math.sin(((a2 - a1) * rad) / 2) ** 2 + Math.cos(a1 * rad) * Math.cos(a2 * rad) * Math.sin(((o2 - o1) * rad) / 2) ** 2;
+    return 12742 * Math.asin(Math.sqrt(x));
+  };
+  const kmText = (km) => (km < 1 ? `${Math.round(km * 100) * 10} 公尺` : `${km < 10 ? km.toFixed(1) : Math.round(km)} 公里`);
+  function showNear(here, problem) {
+    nearBtn.disabled = false;
+    nearBtn.textContent = '📍 離我最近的門市';
+    nearBox.hidden = false;
+    if (!here) {
+      nearBox.replaceChildren(h('p', { class: 'near-tip', text: problem }));
+      search.focus();
+      return;
+    }
+    const rows = located
+      .map((s) => ({ s, km: kmBetween(here, s.latlng) }))
+      .sort((a, b) => a.km - b.km)
+      .slice(0, 5)
+      .map(({ s, km }) => {
+        const t = hoursNow(s);
+        return h('li', {}, storeRow(s, [kmText(km), t ? (t.open === null ? t.text : t.open ? '營業中' : '已打烊') : ''].filter(Boolean).join('・')));
+      });
+    nearBox.replaceChildren(h('p', { class: 'near-tip', text: '離你最近的 5 間（直線距離）' }), h('ol', { class: 'store-list near-list' }, rows));
+  }
+  nearBtn.addEventListener('click', () => {
+    track('find_nearby');
+    if (!navigator.geolocation) return showNear(null, '這個瀏覽器拿不到位置，可以直接在上面搜尋縣市，例如「台中」。');
+    nearBtn.disabled = true;
+    nearBtn.textContent = '定位中…';
+    navigator.geolocation.getCurrentPosition(
+      (pos) => showNear([pos.coords.latitude, pos.coords.longitude]),
+      (err) => showNear(null, err.code === 1
+        ? '沒有定位權限（或是在官網文章裡被擋住了）。可以直接在上面搜尋縣市，例如「台中」。'
+        : '暫時拿不到位置，可以直接在上面搜尋縣市，例如「台中」。'),
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 },
+    );
+  });
 
   // ---- 卡片 ----
   function fillCard(...nodes) {
@@ -165,6 +220,15 @@ export function createUI(data, handlers) {
     return p.url ? h('a', { class: 'shoe', href: p.url, target: '_blank', rel: 'noopener' }, body) : h('div', { class: 'shoe' }, body);
   }
 
+  function hoursBadge(s) {
+    const t = hoursNow(s);
+    if (!t) return null;
+    const same = s.hours.weekend === s.hours.weekday;
+    const label = same ? `每天 ${t.text}` : `今天 ${t.text}`;
+    return h('span', { class: t.open === null ? 'hours' : t.open ? 'hours open' : 'hours closed' },
+      h('b', { text: t.open === null ? '營業時間' : t.open ? '營業中' : '已打烊' }), label);
+  }
+
   function openShop(id, { refresh = false } = {}) {
     const s = data.storeById.get(id);
     const r = regionById.get(s.region);
@@ -213,6 +277,7 @@ export function createUI(data, handlers) {
           cornerAction(m, maps)),
         noteBoard(s)),
       h('footer', { class: 'shop-info' },
+        hoursBadge(s),
         h('span', { text: s.address }),
         tel ? h('a', { href: `tel:${tel}`, text: s.phone }) : null,
         h('a', { href: maps, target: '_blank', rel: 'noopener', text: 'Google 地圖 ↗' })),
