@@ -2094,3 +2094,7 @@ a { color: var(--wine); }
 .rw-shoe, .rw-text { margin: 0 0 4px; color: var(--muted); font-size: 14px; }
 .rw-vote { margin: 12px 0 6px; --c: #d6578c; }
 .rw-vote:disabled { opacity: 0.7; }
+/* 伸展台相框壓到分區名牌時（全景）：縮成小圖示、躲到名牌後面 */
+.rwlabel.is-compact { z-index: 0 !important; }
+.rwlabel.is-compact b, .rwlabel.is-compact small { display: none; }
+.rwlabel.is-compact .rw-frame { width: 30px; height: 38px; border-width: 2px; font-size: 15px; }

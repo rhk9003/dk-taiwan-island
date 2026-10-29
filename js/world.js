@@ -716,6 +716,7 @@ export function createWorld(container, data, handlers) {
     };
     for (const s of shoppers) squeeze(s.label.element);
     if (coupon) squeeze(coupon.label.element);
+    for (const obj of runwayLabels) if (obj.visible) squeeze(obj.element); // 玉山頂的伸展台相框也一樣
   }
 
   // 鏡頭拉近時，自動顯示正在看的那一區的門市名稱

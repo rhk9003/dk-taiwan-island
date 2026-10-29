@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // 島跟著真實時間變：台灣時間的日夜、events.json 的節日與季節裝飾
 
@@ -126,54 +127,139 @@ const rand01 = (seed) => {
   return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
 };
 
-/** 蝙蝠在門市商圈的上空低低地繞圈，翅膀拍個不停（身上帶一點紫光，晚上也看得到）。spots 是門市位置 */
+// 蝙蝠翅膀的外形（從肩膀往外是 +x，頭朝 +y，畫完轉成水平）：前緣到手腕再到最長的指尖，
+// 後緣是三根手指之間往內凹的膜，這個鋸齒狀的邊才看得出是蝙蝠（方形翅膀會像蒼蠅）
+const WING = { shoulder: [0.02, 0.05], wrist: [0.17, 0.1], tips: [[0.43, -0.01], [0.34, -0.15], [0.21, -0.2]], leg: [0.03, -0.12] };
+function wingPiece(points, origin) {
+  const [ox, oy] = origin;
+  const shape = new THREE.Shape();
+  shape.moveTo(points[0][0] - ox, points[0][1] - oy);
+  for (let i = 1; i < points.length; i++) {
+    const [x, y, scallop] = points[i];
+    const [px, py] = points[i - 1];
+    if (!scallop) { shape.lineTo(x - ox, y - oy); continue; }
+    // 兩根指尖之間的膜往手腕方向凹進去
+    const mx = (px + x) / 2;
+    const my = (py + y) / 2;
+    const [wx, wy] = WING.wrist;
+    shape.quadraticCurveTo(mx + (wx - mx) * 0.55 - ox, my + (wy - my) * 0.55 - oy, x - ox, y - oy);
+  }
+  return new THREE.ShapeGeometry(shape, 6).rotateX(-Math.PI / 2); // 畫在 XY，轉成水平（+y → -z，所以頭朝 -z）
+}
+// 翅膀上的骨頭（深色細棍）：從 from 拉到每個 to，座標跟 wingPiece 一樣以 origin 為原點
+function wingBones(from, tos, origin) {
+  const at = ([x, y]) => new THREE.Vector3(x - origin[0], 0.004, -(y - origin[1]));
+  const a = at(from);
+  return mergeGeometries(tos.map((to) => {
+    const b = at(to);
+    const dir = b.clone().sub(a);
+    const g = new THREE.CylinderGeometry(0.0045, 0.008, dir.length(), 4);
+    g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize()));
+    return g.translate((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+  }));
+}
+
+/** 萬聖節蝙蝠：在門市上空繞圈。翅膀分內外兩段、外段晚一點拍，晚上眼睛會發光。全部蝙蝠合成幾個 InstancedMesh，draw call 很少 */
 export function createBats(spots, count = 36) {
   const rand = rand01(1031);
   const group = new THREE.Group();
   if (!spots.length) return { group, update() {} };
-  const body = new THREE.MeshStandardMaterial({ color: '#2a2233', emissive: '#6b3fa0', emissiveIntensity: 0.14, roughness: 0.8, flatShading: true });
-  const bodyGeo = new THREE.SphereGeometry(0.09, 8, 6).scale(1, 0.8, 1.5);
-  const wingGeo = new THREE.BoxGeometry(0.34, 0.012, 0.2).translate(0.17, 0, 0);
-  const earGeo = new THREE.ConeGeometry(0.025, 0.07, 4).translate(0, 0.08, 0.06);
-  const bats = [];
-  for (let i = 0; i < count; i++) {
-    const b = new THREE.Group();
-    b.add(new THREE.Mesh(bodyGeo, body));
-    for (const x of [-0.035, 0.035]) {
-      const ear = new THREE.Mesh(earGeo, body);
-      ear.position.x = x;
-      b.add(ear);
-    }
+  const skin = new THREE.MeshStandardMaterial({ color: '#2a2233', emissive: '#6b3fa0', emissiveIntensity: 0.14, roughness: 0.8, flatShading: true });
+  const membrane = new THREE.MeshStandardMaterial({ color: '#3a2c4a', emissive: '#6b3fa0', emissiveIntensity: 0.12, roughness: 0.9, side: THREE.DoubleSide });
+  const glow = new THREE.MeshStandardMaterial({ color: '#ffcf5a', emissive: '#ffb52e', emissiveIntensity: 1.2 });
+
+  // 身體：圓胖的身體＋頭＋兩隻尖耳朵（頭朝 -z，跟翅膀一致）
+  const bodyGeo = mergeGeometries([
+    new THREE.SphereGeometry(0.075, 10, 8).scale(1, 0.85, 1.35).translate(0, 0, 0.02),
+    new THREE.SphereGeometry(0.055, 10, 8).translate(0, 0.02, -0.1),
+    new THREE.ConeGeometry(0.022, 0.075, 4).rotateX(-0.25).translate(-0.03, 0.08, -0.11),
+    new THREE.ConeGeometry(0.022, 0.075, 4).rotateX(-0.25).translate(0.03, 0.08, -0.11),
+  ]);
+  const eyeGeo = mergeGeometries([
+    new THREE.SphereGeometry(0.012, 6, 4).translate(-0.022, 0.03, -0.15),
+    new THREE.SphereGeometry(0.012, 6, 4).translate(0.022, 0.03, -0.15),
+  ]);
+  const { shoulder, wrist, tips, leg } = WING;
+  // 內段：肩膀 → 手腕 → 最內側的指尖，再凹到腳；外段：手腕 → 三根指尖（中間兩段凹進去）→ 回手腕。外段以手腕為軸
+  const innerGeo = wingPiece([shoulder, wrist, tips[2], [...leg, true]], shoulder);
+  const outerGeo = wingPiece([wrist, tips[0], [...tips[1], true], [...tips[2], true]], wrist);
+  const innerBones = wingBones(shoulder, [wrist], shoulder); // 前臂
+  const outerBones = wingBones(wrist, tips, wrist); // 三根手指
+  const mirror = (g) => g.clone().scale(-1, 1, 1);
+  const meshes = [
+    [bodyGeo, skin], [eyeGeo, glow],
+    [innerGeo, membrane], [mirror(innerGeo), membrane],
+    [outerGeo, membrane], [mirror(outerGeo), membrane],
+    [innerBones, skin], [mirror(innerBones), skin],
+    [outerBones, skin], [mirror(outerBones), skin],
+  ].map(([g, m]) => {
+    const mesh = new THREE.InstancedMesh(g, m, count);
+    mesh.frustumCulled = false; // 蝙蝠飛遍全島，用原點算的包圍球會被誤判成看不到
+    group.add(mesh);
+    return mesh;
+  });
+
+  // 每隻蝙蝠用一組不放進場景的 Object3D 算位置，再把矩陣抄進 InstancedMesh
+  const SCALE = 2.4;
+  const wristX = wrist[0] - shoulder[0];
+  const wristZ = -(wrist[1] - shoulder[1]);
+  const bats = Array.from({ length: count }, () => {
+    const rig = new THREE.Object3D();
+    const parts = [new THREE.Object3D(), new THREE.Object3D()];
     const wings = [-1, 1].map((side) => {
-      const w = new THREE.Mesh(wingGeo, body);
-      w.scale.x = side;
-      b.add(w);
-      return w;
+      const inner = new THREE.Object3D();
+      inner.position.set(side * shoulder[0], 0, -shoulder[1]);
+      const outer = new THREE.Object3D();
+      outer.position.set(side * wristX, 0, wristZ);
+      inner.add(outer);
+      rig.add(inner);
+      return { inner, outer, side };
     });
-    b.scale.setScalar(2.4);
-    group.add(b);
+    rig.add(...parts);
+    rig.scale.setScalar(SCALE);
     const home = spots[Math.floor(rand() * spots.length)];
-    bats.push({
-      b, wings,
+    return {
+      rig, parts, wings,
       cx: home.x + (rand() - 0.5) * 2,
       cz: home.z + (rand() - 0.5) * 2,
       r: 0.8 + rand() * 2.2,
       y: home.y + 2.2 + rand() * 2,
       speed: (0.6 + rand() * 0.6) * (rand() < 0.5 ? -1 : 1),
       phase: rand() * Math.PI * 2,
-    });
-  }
+    };
+  });
+  const write = (mesh, i, obj) => mesh.setMatrixAt(i, obj.matrixWorld);
+
   return {
     group,
     update(t) {
-      for (const it of bats) {
+      bats.forEach((it, i) => {
         const a = it.phase + t * it.speed;
-        it.b.position.set(it.cx + Math.cos(a) * it.r, it.y + Math.sin(t * 2 + it.phase) * 0.3, it.cz + Math.sin(a) * it.r);
-        it.b.rotation.y = -a + (it.speed > 0 ? 0 : Math.PI); // 頭朝飛的方向
-        const flap = Math.sin(t * 14 + it.phase) * 0.7;
-        it.wings[0].rotation.z = -flap;
-        it.wings[1].rotation.z = flap;
-      }
+        it.rig.position.set(it.cx + Math.cos(a) * it.r, it.y + Math.sin(t * 2 + it.phase) * 0.3, it.cz + Math.sin(a) * it.r);
+        // 頭朝 -z：繞圈時讓 -z 對準前進方向
+        it.rig.rotation.y = it.speed > 0 ? Math.PI - a : -a;
+        // 拍翅：每隔幾秒滑翔一下（翅膀微微上揚、不拍）
+        const glide = Math.sin(t * 0.7 + it.phase * 3) > 0.75;
+        const beat = t * 11 + it.phase;
+        const flap = glide ? 0.18 : Math.sin(beat) * 0.75 + 0.1;
+        const tip = glide ? 0.08 : Math.sin(beat - 0.9) * 0.55;
+        for (const w of it.wings) {
+          w.inner.rotation.z = w.side * flap;
+          w.outer.rotation.z = w.side * tip;
+        }
+        it.rig.updateMatrixWorld(true);
+        write(meshes[0], i, it.parts[0]);
+        write(meshes[1], i, it.parts[1]);
+        write(meshes[2], i, it.wings[1].inner);
+        write(meshes[3], i, it.wings[0].inner);
+        write(meshes[4], i, it.wings[1].outer);
+        write(meshes[5], i, it.wings[0].outer);
+        write(meshes[6], i, it.wings[1].inner);
+        write(meshes[7], i, it.wings[0].inner);
+        write(meshes[8], i, it.wings[1].outer);
+        write(meshes[9], i, it.wings[0].outer);
+      });
+      for (const m of meshes) m.instanceMatrix.needsUpdate = true;
     },
   };
 }
