@@ -5,6 +5,15 @@
   "residents": true,
   "_islanderUrl說明": "島民證（換手機時把島民接回來）的 Apps Script 網址，是另一個專案（apps-script/islander.gs，設定方式見 README「島民證」）。留空就不顯示島民證。",
   "islanderUrl": "https://script.google.com/macros/s/AKfycbwNxBIVTWsTpizpJrBMh8ibWLUGA2Mfb3Q-iHWtjnV-oEqh367SQhiWiUR0_8KLHQ/exec",
+  "_runway說明": "「整個中央山脈就是我的伸展台」穿搭照活動。url 填伸展台 Apps Script（apps-script/runway.gs）部署後的 /exec 網址，留空就不出現。照片一律先審再上牆（審核頁網址在 Apps Script 執行 adminLink 會印出來），通過的照片掛上中央山脈，票數越高掛越高、第一名在玉山頂。intro、rules、consent 是卡片上的說明文字；maxUploads 是每人最多上傳幾張（後端也有同樣的限制）。",
+  "runway": {
+    "url": "",
+    "title": "整個中央山脈就是我的伸展台",
+    "intro": "穿上你的 DK 鞋拍一張穿搭照，上傳到台灣島！審核通過就會掛上中央山脈，票數越高掛得越高，第一名站上玉山頂。",
+    "rules": ["照片裡要看得到你腳上的 DK 鞋", "每人最多上傳 3 張，審核通過才會上牆（通常 1 天內）", "每天每張照片可以投 1 票"],
+    "consent": "我同意照片公開展示在 DK 台灣島，照片是我本人拍攝，或已經取得照片中每個人的同意。",
+    "maxUploads": 3
+  },
   "_analytics說明": "成效追蹤。連到官網的網址一律自動加 UTM（utm_source=dk_taiwan_island、utm_medium=referral、utm_campaign 用下面的 campaign、utm_content 是客人當時在哪間店或哪個畫面），在官網 GA4 的「工作階段來源／媒介」就看得到台灣島帶來的流量和訂單。ga4 填 GA4 評估 ID（G- 開頭）、metaPixel 填 Meta 像素 ID（一串數字），填了才會送事件：select_content（進店、看分區…）、stamp_get、reward_claim、module_play、message_post、resident_save、outbound_click。留空就只加 UTM。",
   "analytics": { "ga4": "", "metaPixel": "", "campaign": "dk_taiwan_island" },
   "_banners說明": "飛機拖的活動彩帶，可以放好幾個，每架飛機每飛一趟換下一個。text 是彩帶上的字（建議 16 字內），url 是點彩帶要開的活動頁，color 是彩帶底色。",
@@ -13,14 +22,14 @@
     { "text": "Teddy Island 泰迪熊聯名", "url": "https://www.dk-shoes.com.tw/", "color": "#E07A2E" },
     { "text": "官網獨家價 $1388 起", "url": "https://www.dk-shoes.com.tw/", "color": "#3F7FBF" }
   ],
-  "_coupon說明": "領優惠券的金色氣球人，會在全島上空快速巡迴。lapSeconds 是繞一圈幾秒（越小越快）；route 可以自訂巡迴路線（[緯度, 經度] 至少 3 點，不填就繞台灣一圈）；label 是頭上的名牌，title／desc 是點它出現的卡片內容，cta／url 是領券按鈕的文字和網址。",
+  "_coupon說明": "領優惠券的金色氣球人，會在全島上空快速巡迴。lapSeconds 是繞一圈幾秒（越小越快）；route 可以自訂巡迴路線（[緯度, 經度] 至少 3 點，不填就繞台灣一圈）；label 是頭上的名牌，title／desc 是點它出現的卡片內容，code 是優惠碼（卡片上可以一鍵複製），cta／url 是領券按鈕的文字和網址。",
   "coupon": {
     "lapSeconds": 50,
     "label": "領優惠券",
     "title": "優惠券氣球人",
-    "desc": "玩一場氣球特攻隊，射中氣球就能把優惠券帶回家！",
-    "cta": "去領優惠券",
-    "url": "https://www.dk-shoes.com.tw/Article/Detail/109024"
+    "desc": "抓到優惠券氣球人了！送你「DK島-精選電商鞋 $200 折價券」，點下面領取，或結帳時輸入優惠碼。",
+    "cta": "領取 $200 折價券", "code": "KSVHY2LS",
+    "url": "https://bmai.app/6b8183ff"
   },
   "_stamps說明": "集點蓋章：進門市在櫃台旁按「蓋章！」，集滿 goal 間不同門市的章，就能在集章冊領獎。enabled 開關；title／desc 是集章冊的標題和說明；reward 是集滿後的獎品：title／desc 是獎品卡的文字，code 是優惠碼（可不填，填了會顯示並可一鍵複製），cta／url 是領券按鈕的文字和網址。蓋章紀錄存在客人自己的瀏覽器，換手機或清除瀏覽資料就會重來。",
   "stamps": {
@@ -55,6 +64,7 @@
       { "mark": "玩", "title": "每間店都有自己的玩法", "text": "射氣球、空氣鞋小教室、抽鞋籤、小氣球下樓梯……" },
       { "mark": "章", "title": "門市集章換優惠券", "text": "在櫃台旁蓋章，集滿 {goal} 間不同門市就能領", "needs": "stamps" },
       { "mark": "民", "title": "成為島民", "text": "捏一個自己的氣球人，放上島一起逛", "needs": "residents" },
+      { "mark": "秀", "title": "中央山脈伸展台", "text": "上傳穿 DK 鞋的穿搭照，大家來投票，第一名站上玉山頂", "needs": "runway" },
       { "mark": "客", "title": "客服任務島", "text": "什麼時候到貨、怎麼退換貨，到島上一問就懂", "needs": "service" }
     ],
     "tip": "小提醒：拖曳可以移動，滾輪或兩指可以縮放。",

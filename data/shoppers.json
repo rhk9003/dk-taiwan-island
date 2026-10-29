@@ -4,10 +4,10 @@
   "reward": {
     "after": 3,
     "title": "謝謝你幫忙挑鞋！",
-    "desc": "送你一張 DK 優惠券，買鞋時用得到。",
-    "code": "",
-    "cta": "領取優惠券",
-    "url": "https://www.dk-shoes.com.tw/"
+    "desc": "送你一張「DK島-官網購物金 $350」，點下面領取，或結帳時輸入優惠碼。",
+    "code": "B5GW9MLS",
+    "cta": "領取 $350 購物金",
+    "url": "https://bmai.app/6e10a490"
   },
   "shoes": [
     { "id": "waterproof", "salePageId": "12182494", "name": "藍白飛織空氣女鞋", "code": "69-6001-50", "color": "白色", "tag": "防水套式・DK 旗艦款", "points": ["防水套式設計", "附高足弓鞋墊", "空氣鞋底台：好穿、好走、不怕悶"] },

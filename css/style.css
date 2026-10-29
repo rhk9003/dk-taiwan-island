@@ -2038,3 +2038,59 @@ a { color: var(--wine); }
 .rn-form { grid-template-columns: 1fr; }
 .rn-form .cta { width: auto; padding: 0 20px; height: 40px; }
 .me-album p.note-hint { margin: 0; font-size: 13px; }
+
+/* ---------- 中央山脈伸展台 ---------- */
+/* 山上的相框：CSS2D 的 transform 是定位用的，往上挪改用 translate，框的下緣剛好在山頂 */
+.rwlabel { display: grid; justify-items: center; gap: 2px; padding: 0; border: 0; background: none; cursor: pointer; pointer-events: auto; translate: 0 -50%; font: inherit; }
+.rwlabel .rw-frame { display: grid; place-items: center; width: 44px; height: 56px; overflow: hidden; border: 3px solid #fff; border-radius: 8px; background: #f3e6e8; box-shadow: 0 4px 12px rgba(40, 20, 20, 0.35); font-size: 22px; }
+.rwlabel .rw-frame img { width: 100%; height: 100%; object-fit: cover; }
+.rwlabel b { padding: 1px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.92); color: var(--wine); font-size: 11px; font-weight: 900; white-space: nowrap; }
+.rwlabel small { color: #fff; font-size: 11px; font-weight: 700; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5); }
+.rwlabel.top { translate: 0 calc(-50% - 34px); } /* 玉山頂：讓開「玉山」名牌 */
+.rwlabel.top .rw-frame { width: 56px; height: 72px; border-color: #ffd36b; }
+.rwlabel.top b { background: #ffd36b; color: #5e1520; }
+.rwlabel:hover .rw-frame { transform: scale(1.06); }
+.rwlabel.is-hidden { visibility: hidden; }
+
+/* 找門市清單上方的入口 */
+.rw-banner { display: grid; gap: 2px; width: 100%; margin: 0 0 14px; padding: 12px 14px; border: 0; border-radius: 14px; background: linear-gradient(135deg, #2f6b3f, #1f4f2e); color: #fff; text-align: left; font: inherit; cursor: pointer; }
+.rw-banner b { font-size: 15px; }
+.rw-banner small { opacity: 0.85; font-size: 12px; }
+
+/* 卡片 */
+.rw-rules { margin: 0 0 14px; padding-left: 20px; font-size: 14px; color: var(--muted); }
+.rw-rules li + li { margin-top: 2px; }
+.rw-open { margin-bottom: 16px; --c: #2f6b3f; }
+.rw-form { display: grid; gap: 10px; margin-bottom: 16px; }
+.rw-form input:not([type]), .rw-form input[name] { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; font: inherit; font-size: 15px; }
+.rw-form input[type="checkbox"] { width: 18px; height: 18px; margin: 2px 0 0; flex: none; }
+.rw-form .hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.rw-drop { display: grid; place-items: center; gap: 8px; min-height: 120px; padding: 14px; border: 2px dashed #b9a7a3; border-radius: 14px; background: #fffaf6; color: var(--muted); font-size: 14px; text-align: center; cursor: pointer; }
+.rw-file { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.rw-preview { max-width: 100%; max-height: 260px; border-radius: 10px; }
+.rw-agree { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--muted); }
+.rw-form .note-actions .cta { width: auto; padding: 0 22px; height: 42px; }
+.rw-cancel { height: 42px; padding: 0 16px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--muted); font: inherit; font-weight: 700; }
+.rw-mine { margin-bottom: 16px; }
+.rw-mine-list { display: flex; gap: 10px; flex-wrap: wrap; }
+.rw-mine-item { display: grid; gap: 4px; justify-items: center; padding: 0; border: 0; background: none; font: inherit; cursor: pointer; }
+.rw-mine-item:disabled { cursor: default; }
+.rw-mine-item img { width: 64px; height: 84px; object-fit: cover; border-radius: 8px; background: #eee; }
+.rw-mine-item small { font-size: 12px; color: var(--muted); }
+.rw-mine-item.approved small { color: #23784a; font-weight: 700; }
+.rw-mine-item.hidden img { opacity: 0.4; }
+.rw-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+.rw-tile { position: relative; display: grid; padding: 0; overflow: hidden; border: 0; border-radius: 12px; background: #fff; box-shadow: 0 2px 8px rgba(60, 30, 30, 0.12); text-align: left; font: inherit; cursor: pointer; }
+.rw-tile img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; background: #f1eceb; }
+.rw-rank { position: absolute; top: 6px; left: 6px; padding: 1px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.92); color: var(--wine); font-size: 12px; }
+.rw-meta { display: flex; justify-content: space-between; gap: 4px; padding: 6px 8px; font-size: 12px; }
+.rw-meta em { overflow: hidden; font-style: normal; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; }
+.rw-meta small { flex: none; color: #d6578c; font-weight: 700; }
+.rw-back { margin: 0 0 10px; padding: 0; border: 0; background: none; color: var(--wine); font: inherit; font-weight: 700; cursor: pointer; }
+.rw-photo { margin: 0 0 12px; }
+.rw-photo img { display: block; width: 100%; max-height: 62vh; object-fit: contain; border-radius: 14px; background: #f1eceb; }
+.rw-who { margin: 0 0 4px; font-size: 16px; }
+.rw-who b { color: var(--wine); }
+.rw-shoe, .rw-text { margin: 0 0 4px; color: var(--muted); font-size: 14px; }
+.rw-vote { margin: 12px 0 6px; --c: #d6578c; }
+.rw-vote:disabled { opacity: 0.7; }

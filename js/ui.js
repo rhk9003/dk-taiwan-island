@@ -6,6 +6,7 @@ import { postcardsOf, createPostcardCamera } from './postcards.js';
 import { stampSvg, stampDate, STAMPER_SVG } from './stamps.js';
 import { cleanText, textProblem } from './textrules.js';
 import { track } from './track.js';
+import { runwayView } from './runway.js';
 
 const INVITE_KEY = 'dk-island-invite-v1'; // 登島邀請函看過了沒、登島證號碼
 const MISSION_KEY = 'dk-island-missions'; // 這台裝置完成過哪些客服任務
@@ -776,15 +777,48 @@ export function createUI(data, handlers) {
   };
 
   // 領優惠券的金色氣球人：說明＋領券按鈕
+  // 中央山脈伸展台（js/runway.js 畫卡片內容）
+  function showRunway(photoId) {
+    current = { region: null, store: null };
+    renderList();
+    closeShop();
+    const cfg = handlers.runway.cfg;
+    fillCard(
+      head('RUNWAY・中央山脈伸展台', cfg.title || '整個中央山脈就是我的伸展台'),
+      runwayView(handlers.runway, { photoId, onPhoto: (id) => handlers.onRunwayPhoto(id) }),
+    );
+  }
+  if (handlers.runway) {
+    // 找門市清單上方也放一個入口
+    $('chips').before(h('button', { type: 'button', class: 'rw-banner', onclick: () => handlers.onRunway() },
+      h('b', { text: '👟 ' + (handlers.runway.cfg.title || '整個中央山脈就是我的伸展台') }), h('small', { text: '上傳穿搭照、幫大家投票 →' })));
+  }
+
   function showCoupon() {
     const c = data.site.coupon;
     current = { region: null, store: null };
     renderList();
     closeShop();
+    const status = h('p', { class: 'note-status', role: 'status' });
     fillCard(
       head('COUPON・領優惠券', c.title || '優惠券氣球人'),
       c.desc ? h('p', { class: 'lead', text: c.desc }) : null,
-      c.url ? h('a', { class: 'cta coupon-cta', href: c.url, target: '_blank', rel: 'noopener' }, `${c.cta || '去領優惠券'} →`) : null,
+      c.code ? h('div', { class: 'reward-code' },
+        h('code', { text: c.code }),
+        h('button', {
+          type: 'button',
+          onclick: async () => {
+            try {
+              await navigator.clipboard.writeText(c.code);
+              status.textContent = '優惠碼複製好了！';
+            } catch {
+              status.textContent = '複製不了，請長按優惠碼自己複製。';
+            }
+            track('reward_claim', { reward: 'coupon' });
+          },
+        }, '複製')) : null,
+      c.url ? h('a', { class: 'cta coupon-cta', href: c.url, target: '_blank', rel: 'noopener', onclick: () => track('reward_claim', { reward: 'coupon' }) }, `${c.cta || '去領優惠券'} →`) : null,
+      status,
     );
   }
 
@@ -1352,6 +1386,7 @@ export function createUI(data, handlers) {
   const FEATURES = {
     stamps: () => Boolean(handlers.stamps),
     residents: () => Boolean(data.site.residents && data.site.managerPicksUrl),
+    runway: () => Boolean(handlers.runway),
     service: () => Boolean(data.service),
     shoppers: () => Boolean(data.shoppers),
   };
@@ -1490,5 +1525,5 @@ export function createUI(data, handlers) {
     else if (!card.hidden) handlers.onCloseCard();
   });
 
-  return { showRegion, showLandmark, showCoupon, showServiceMenu, openStation, showResidentEditor, showStampBook, showTreatBag, showShopper, showReport, showResident, markStamps: renderList, selectStore, openShop, showNone, maybeShowIntro, refresh };
+  return { showRunway, showRegion, showLandmark, showCoupon, showServiceMenu, openStation, showResidentEditor, showStampBook, showTreatBag, showShopper, showReport, showResident, markStamps: renderList, selectStore, openShop, showNone, maybeShowIntro, refresh };
 }

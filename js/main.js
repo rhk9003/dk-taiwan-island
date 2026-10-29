@@ -9,6 +9,7 @@ import { activeEvent } from './seasons.js';
 import { h, shortName } from './util.js';
 import { safeText } from './textrules.js';
 import { initTracking, setPlace, track } from './track.js';
+import { createRunway } from './runway.js';
 
 const FILES = ['site', 'regions', 'modules', 'stores', 'products', 'landmarks', 'service', 'picks', 'shoppers', 'events'];
 const OPTIONAL = new Set(['landmarks', 'service', 'picks', 'shoppers', 'events']); // 沒有這些檔也能跑
@@ -193,6 +194,7 @@ function normalize(raw) {
     regions,
     landmarks,
     service: raw.service?.missions?.length ? raw.service : null,
+    runway: /^https:\/\/script\.google\.com\//.test(raw.site.runway?.url || '') ? raw.site.runway : null,
     modules,
     products,
     stores,
@@ -627,6 +629,17 @@ async function boot() {
       world.focusCoupon();
       setHash('coupon');
     },
+    // 中央山脈伸展台：排行榜和上傳；帶照片 ID 就直接打開那張、鏡頭飛到它在山上的位置
+    runway(photoId) {
+      if (!runway) return app.overview();
+      clearTimeout(enterTimer);
+      Object.assign(state, { region: null, store: null, mission: null });
+      ui.showRunway(photoId || null);
+      world.setFocus(null);
+      world.setSelected(null);
+      world.focusRunway(photoId || null);
+      setHash(photoId ? `runway/${photoId}` : 'runway');
+    },
     landmark(id) {
       if (!data.landmarks.some((l) => l.id === id)) return app.overview();
       clearTimeout(enterTimer);
@@ -665,7 +678,11 @@ async function boot() {
     };
   }
 
+  const runway = data.runway ? createRunway(data.runway, postSheet) : null;
   const ui = createUI(data, {
+    runway,
+    onRunway: () => app.runway(),
+    onRunwayPhoto: (id) => { world.focusRunway(id); setHash(`runway/${id}`); },
     onRegion: app.region,
     onStore: app.store,
     onOverview: app.overview,
@@ -697,7 +714,10 @@ async function boot() {
     onShopperSolved: shopperSolved,
     onClaimHelpCoupon: claimHelpCoupon,
     onNextShopper: () => app.shopper(nextShopperSlot()),
-    onInviteGo: (feature) => { if (feature === 'shoppers' && data.shoppers) app.shopper(nextShopperSlot()); },
+    onInviteGo: (feature) => {
+      if (feature === 'shoppers' && data.shoppers) app.shopper(nextShopperSlot());
+      else if (feature === 'runway' && runway) app.runway();
+    },
     onStamp: addStamp,
     onStampBook: () => app.stamps(),
     candy,
@@ -721,7 +741,7 @@ async function boot() {
   });
 
   try {
-    world = createWorld($('stage'), data, { onRegion: app.region, onStore: app.store, onLandmark: app.landmark, onCoupon: app.coupon, onMission: app.mission, onService: app.service, onShopper: app.shopper, onResident: (id) => app.resident(id) });
+    world = createWorld($('stage'), data, { onRegion: app.region, onStore: app.store, onLandmark: app.landmark, onCoupon: app.coupon, onMission: app.mission, onService: app.service, onShopper: app.shopper, onResident: (id) => app.resident(id), onRunway: (id) => app.runway(id) });
   } catch (e) {
     console.error(e);
     showError(`這個瀏覽器沒辦法顯示 3D 畫面（${e.message}）`);
@@ -760,6 +780,12 @@ async function boot() {
     meBtn.addEventListener('click', () => app.me());
     placeResidents();
     if (me && !me.code) issueCard(); // 以前捏的島民，補發島民證
+  }
+  // ---- 中央山脈伸展台：讀到照片就掛上山 ----
+  if (runway) {
+    runway.onChange(() => world.setRunway(runway.state.photos, runway.fillImg));
+    world.setRunway([], runway.fillImg);
+    runway.load();
   }
   const serviceBtn = $('btn-service');
   if (data.service) serviceBtn.addEventListener('click', () => app.service());
@@ -872,6 +898,7 @@ async function boot() {
   else if (location.hash === '#me') app.me();
   else if (location.hash === '#stamps') app.stamps();
   else if (location.hash === '#treat') app.treat();
+  else if (decodeURIComponent(location.hash).match(/^#runway(\/|$)/)) app.runway(decodeURIComponent(location.hash).slice(8) || null);
   else if (decodeURIComponent(location.hash).startsWith('#mission/')) app.mission(decodeURIComponent(location.hash).slice(9));
   else if (m?.[1] === 'region') app.region(m[2]);
   else {

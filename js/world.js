@@ -260,6 +260,65 @@ export function createWorld(container, data, handlers) {
     return { hiker, path, dist, length: dist[dist.length - 1], speed: 0.35, phase: i * 7 };
   });
   const hikePos = new THREE.Vector3();
+
+  // ---- 中央山脈伸展台：通過審核的穿搭照掛在山脊上，票數越高掛越高，第一名站上玉山頂 ----
+  const RIDGE = [[24.38, 121.23], [24.14, 121.27], [23.98, 121.18], [23.75, 121.08], [23.47, 120.96], [23.2, 120.88], [22.95, 120.8], [22.65, 120.74]];
+  const RUNWAY_SHOWN = 12; // 山上最多掛幾張，其他的在排行榜看
+  let ridgeSlots = null;
+  function runwaySlots() {
+    if (ridgeSlots) return ridgeSlots;
+    const pts = RIDGE.map(project);
+    const total = pts.slice(1).reduce((sum, p, i) => sum + Math.hypot(p.x - pts[i].x, p.z - pts[i].z), 0);
+    const step = total / (RUNWAY_SHOWN * 1.6);
+    const taken = new Set([...landmarkObjs.values()].map((o) => o.tile));
+    const found = [];
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i];
+      const b = pts[i + 1];
+      const n = Math.max(1, Math.round(Math.hypot(b.x - a.x, b.z - a.z) / step));
+      for (let k = 0; k < n; k++) {
+        const t = nearestTile({ x: a.x + ((b.x - a.x) * k) / n, z: a.z + ((b.z - a.z) * k) / n });
+        if (t && !taken.has(t)) { taken.add(t); found.push(t); }
+      }
+    }
+    const peak = landmarkObjs.get('yushan');
+    const top = peak ? { x: peak.tile.x, y: peak.tile.h + peak.height + 0.2, z: peak.tile.z } : null;
+    ridgeSlots = [top, ...found.sort((a, b) => b.h - a.h).map((t) => ({ x: t.x, y: t.h + 0.3, z: t.z }))].filter(Boolean);
+    return ridgeSlots;
+  }
+  let runwayLabels = [];
+  function placeRunway(photos, fillImg) {
+    for (const obj of runwayLabels) {
+      scene.remove(obj);
+      for (const list of [extraLabels, featuredLabels]) {
+        const i = list.indexOf(obj);
+        if (i !== -1) list.splice(i, 1);
+      }
+    }
+    runwayLabels = [];
+    const slots = runwaySlots();
+    const add = (el, slot, featured) => {
+      const obj = new CSS2DObject(el);
+      obj.position.set(slot.x, slot.y, slot.z);
+      obj.visible = featured;
+      scene.add(obj);
+      extraLabels.push(obj);
+      if (featured) featuredLabels.push(obj);
+      runwayLabels.push(obj);
+    };
+    // 還沒有照片：玉山頂掛一個「等你上榜」的空相框
+    if (!photos.length && slots[0]) {
+      add(h('button', { type: 'button', class: 'rwlabel top empty', onclick: (e) => { e.stopPropagation(); handlers.onRunway?.(null); } },
+        h('span', { class: 'rw-frame', text: '👟' }), h('b', { text: '伸展台' }), h('small', { text: '等你上榜' })), slots[0], true);
+      return;
+    }
+    photos.slice(0, Math.min(RUNWAY_SHOWN, slots.length)).forEach((p, i) => {
+      const el = h('button', { type: 'button', class: i === 0 ? 'rwlabel top' : 'rwlabel', 'data-id': p.id, onclick: (e) => { e.stopPropagation(); handlers.onRunway?.(p.id); } },
+        h('span', { class: 'rw-frame' }, fillImg(h('img', { loading: 'lazy' }), p)),
+        h('b', { text: i === 0 ? '👑 伸展台 No.1' : `No.${i + 1}` }));
+      add(el, slots[i], i === 0); // 第一名全景就看得到，其他拉近才出現
+    });
+  }
   const hikeAhead = new THREE.Vector3();
   function pointAt(hk, d, out) {
     let k = 1;
@@ -1019,6 +1078,16 @@ export function createWorld(container, data, handlers) {
       const p = coupon.group.position;
       flyTo(new THREE.Vector3(p.x, p.y + 2, p.z), W < 600 ? 40 : 32, 1.05);
       follow = () => followAt.set(coupon.group.position.x, coupon.group.position.y + 2, coupon.group.position.z); // 飛到之後一路跟著它
+    },
+    setRunway(photos, fillImg) {
+      placeRunway(photos, fillImg);
+    },
+    // 伸展台：有照片 ID 就飛到那張掛的位置，沒有就看玉山一帶的山脊
+    focusRunway(id) {
+      const obj = runwayLabels.find((o) => o.element.dataset.id === id) || runwayLabels[0];
+      const slot = obj?.position || runwaySlots()[0];
+      if (!slot) return;
+      flyTo(new THREE.Vector3(slot.x, slot.y, slot.z), id ? (W < 600 ? 11 : 9) : (W < 600 ? 30 : 24), 0.95);
     },
     focusLandmark(id) {
       const o = landmarkObjs.get(id);
