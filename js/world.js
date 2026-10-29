@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { layoutTaiwan, buildIsland, LAND_H, project } from './islands.js';
 import { createBuilding, createPlaza, createClouds, createRing, MASCOT, SHOE_FALLBACK, shoeColorOf, mascotIndex, windowGlass } from './buildings.js';
-import { createDecorations, nightOf, taipeiHour } from './seasons.js';
+import { createDecorations, createBats, createGhosts, createMoon, nightOf, taipeiHour } from './seasons.js';
 import { buildTown } from './town.js';
 import { createPeople } from './people.js';
 import { createMovers, createResidents } from './residents.js';
@@ -286,8 +286,10 @@ export function createWorld(container, data, handlers) {
     lake,
   });
   // DK 物流車：沿著環島公路送貨
+  // 萬聖節（events.json 的 fx 有 ghostTrucks）換成幽靈車，飄在路上
+  const fx = new Set(data.event?.fx || []);
   const trucks = [0, 0.25, 0.5, 0.75].map((offset, i) => {
-    const truck = createDeliveryTruck();
+    const truck = createDeliveryTruck(fx.has('ghostTrucks') ? 'ghost' : null);
     scene.add(truck);
     return { truck, i: offset * loopPoints.length, dir: i % 2 ? -1 : 1, speed: 2.6 };
   });
@@ -365,13 +367,20 @@ export function createWorld(container, data, handlers) {
 
   // ---- 節日裝飾（events.json）：門市門口的南瓜燈、聖誕樹、紅燈籠，或海邊的遮陽傘 ----
   if (data.event?.decor) {
-    const door = [...storeObjs.values()].map((o) => ({ x: o.tile.x, y: o.tile.h, z: o.tile.z, rot: o.group.rotation.y }));
+    const door = [...storeObjs.entries()].map(([id, o]) => ({ x: o.tile.x, y: o.tile.h, z: o.tile.z, rot: o.group.rotation.y, id }));
     const beach = layout.tiles
       .filter((t) => t.kind === 'beach' && !t.store && !t.reserved && !t.plaza && !t.islet)
       .filter((_, i) => i % 5 === 0)
       .map((t) => ({ x: t.x, y: t.h, z: t.z, rot: 0 }));
-    scene.add(createDecorations(data.event.decor, { door, beach }));
+    const decor = createDecorations(data.event.decor, { door, beach });
+    scene.add(decor);
+    pickables.push(decor); // 點門口的南瓜燈（聖誕樹、燈籠）就進那間店
   }
+  // 萬聖節特效（events.json 的 fx）：天上的蝙蝠、街上飄的幽靈、一顆大月亮
+  const bats = fx.has('bats') ? createBats([...storeObjs.values()].map((o) => ({ x: o.tile.x, y: o.tile.h, z: o.tile.z }))) : null;
+  const ghosts = fx.has('ghosts') ? createGhosts(layout.streets.filter((t) => !t.store)) : null;
+  if (fx.has('moon')) createMoon(container);
+  for (const o of [bats?.group, ghosts?.group]) if (o) scene.add(o);
 
   // ---- 有買鞋煩惱的路人：頭上冒「!」，點了幫他挑鞋（slot 是第幾個「!」，換人時 slot 不變）----
   const shoppers = [];
@@ -539,6 +548,8 @@ export function createWorld(container, data, handlers) {
         if (o.userData.service) return { service: true };
         if (o.userData.regionId) return { region: o.userData.regionId };
       }
+      const placeIds = hit.object.userData.placeIds;
+      if (placeIds && hit.instanceId != null && placeIds[hit.instanceId]) return { store: placeIds[hit.instanceId] };
       const tileRegion = hit.object.userData.tileRegion;
       if (tileRegion && hit.instanceId != null) return { region: tileRegion[hit.instanceId] };
     }
@@ -633,10 +644,10 @@ export function createWorld(container, data, handlers) {
   // ---- 每一格畫面 ----
   // ---- 日夜：照台灣時間。晚上天空和海變暗、燈籠路燈更亮、門市窗戶亮燈、滿天星星；傍晚天空帶一點橘 ----
   const DAY_SKY = new THREE.Color(SKY);
-  const NIGHT_SKY = new THREE.Color('#1b2540');
+  const NIGHT_SKY = new THREE.Color(fx.has('purpleNight') ? '#2a1d45' : '#1b2540'); // 萬聖節的夜空偏紫
   const DUSK_SKY = new THREE.Color('#f2c3a2');
   const DAY_SEA = new THREE.Color(SEA);
-  const NIGHT_SEA = new THREE.Color('#1f3d55');
+  const NIGHT_SEA = new THREE.Color(fx.has('purpleNight') ? '#2b2350' : '#1f3d55');
   const stars = (() => {
     const rand = rng('stars');
     const pts = [];
@@ -677,6 +688,7 @@ export function createWorld(container, data, handlers) {
     glass.emissiveIntensity = 0.9 * n;
     stars.material.opacity = Math.max(0, n * 1.1 - 0.1);
     stars.visible = n > 0.05;
+    document.documentElement.style.setProperty('--night', n.toFixed(3)); // 給 HTML 的月亮用
     night = n;
   }
   function updateNight() {
@@ -803,6 +815,13 @@ export function createWorld(container, data, handlers) {
       const lane = 0.45; // 靠右開，兩個方向各走一個車道
       tr.truck.position.set(a.x + (b.x - a.x) * k - (dz / len) * lane, a.y + (b.y - a.y) * k, a.z + (b.z - a.z) * k + (dx / len) * lane);
       tr.truck.rotation.y = Math.atan2(dx, dz);
+      if (tr.truck.userData.ghost) {
+        // 幽靈車離地飄著、輕輕左右晃，車頂的幽靈揮來揮去
+        const ph = t * 2 + tr.i * 0.1;
+        tr.truck.position.y += 0.3 + Math.sin(ph) * 0.08;
+        tr.truck.rotation.z = Math.sin(ph * 0.75) * 0.06;
+        tr.truck.userData.rider.rotation.z = Math.sin(t * 3 + tr.dir) * 0.25;
+      }
     }
     if (follow && !tween) {
       const want = follow();
@@ -837,6 +856,8 @@ export function createWorld(container, data, handlers) {
       }
     }
     people.update(t, dt);
+    bats?.update(t);
+    ghosts?.update(t);
     for (const s of shoppers) {
       const p = people.positionOf(s.walker);
       s.label.position.set(p.x, p.y + 0.95, p.z);

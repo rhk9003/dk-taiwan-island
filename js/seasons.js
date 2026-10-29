@@ -95,7 +95,7 @@ export function createDecorations(kind, spots) {
   for (const f of frames) {
     for (const [x, y, z] of d.local) {
       v.set(x, y, z).applyAxisAngle(THREE.Object3D.DEFAULT_UP, f.rot || 0);
-      places.push({ x: f.x + v.x, y: f.y + v.y, z: f.z + v.z, rot: f.rot || 0 });
+      places.push({ x: f.x + v.x, y: f.y + v.y, z: f.z + v.z, rot: f.rot || 0, id: f.id });
     }
   }
   if (!places.length) return group;
@@ -105,6 +105,8 @@ export function createDecorations(kind, spots) {
   const c = new THREE.Color();
   for (const [geometry, material, colors] of d.parts()) {
     const mesh = new THREE.InstancedMesh(geometry, material, places.length);
+    mesh.userData.placeIds = places.map((p) => p.id); // 門口的裝飾點了就進那間店
+    mesh.userData.decor = kind;
     places.forEach((p, i) => {
       q.setFromAxisAngle(THREE.Object3D.DEFAULT_UP, p.rot);
       mesh.setMatrixAt(i, m.compose(v.set(p.x, p.y, p.z), q, one));
@@ -117,3 +119,111 @@ export function createDecorations(kind, spots) {
 }
 
 export const DECOR_KINDS = Object.keys(DECOR);
+
+// ---- 萬聖節特效（events.json 的 fx）：天上的蝙蝠、街上飄的床單幽靈、一顆大月亮 ----
+const rand01 = (seed) => {
+  let s = seed >>> 0;
+  return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+};
+
+/** 蝙蝠在門市商圈的上空低低地繞圈，翅膀拍個不停（身上帶一點紫光，晚上也看得到）。spots 是門市位置 */
+export function createBats(spots, count = 36) {
+  const rand = rand01(1031);
+  const group = new THREE.Group();
+  if (!spots.length) return { group, update() {} };
+  const body = new THREE.MeshStandardMaterial({ color: '#2a2233', emissive: '#6b3fa0', emissiveIntensity: 0.14, roughness: 0.8, flatShading: true });
+  const bodyGeo = new THREE.SphereGeometry(0.09, 8, 6).scale(1, 0.8, 1.5);
+  const wingGeo = new THREE.BoxGeometry(0.34, 0.012, 0.2).translate(0.17, 0, 0);
+  const earGeo = new THREE.ConeGeometry(0.025, 0.07, 4).translate(0, 0.08, 0.06);
+  const bats = [];
+  for (let i = 0; i < count; i++) {
+    const b = new THREE.Group();
+    b.add(new THREE.Mesh(bodyGeo, body));
+    for (const x of [-0.035, 0.035]) {
+      const ear = new THREE.Mesh(earGeo, body);
+      ear.position.x = x;
+      b.add(ear);
+    }
+    const wings = [-1, 1].map((side) => {
+      const w = new THREE.Mesh(wingGeo, body);
+      w.scale.x = side;
+      b.add(w);
+      return w;
+    });
+    b.scale.setScalar(2.4);
+    group.add(b);
+    const home = spots[Math.floor(rand() * spots.length)];
+    bats.push({
+      b, wings,
+      cx: home.x + (rand() - 0.5) * 2,
+      cz: home.z + (rand() - 0.5) * 2,
+      r: 0.8 + rand() * 2.2,
+      y: home.y + 2.2 + rand() * 2,
+      speed: (0.6 + rand() * 0.6) * (rand() < 0.5 ? -1 : 1),
+      phase: rand() * Math.PI * 2,
+    });
+  }
+  return {
+    group,
+    update(t) {
+      for (const it of bats) {
+        const a = it.phase + t * it.speed;
+        it.b.position.set(it.cx + Math.cos(a) * it.r, it.y + Math.sin(t * 2 + it.phase) * 0.3, it.cz + Math.sin(a) * it.r);
+        it.b.rotation.y = -a + (it.speed > 0 ? 0 : Math.PI); // 頭朝飛的方向
+        const flap = Math.sin(t * 14 + it.phase) * 0.7;
+        it.wings[0].rotation.z = -flap;
+        it.wings[1].rotation.z = flap;
+      }
+    },
+  };
+}
+
+/** 街上飄的床單幽靈：在商圈街道上慢慢繞圈、上下飄，晚上微微發光 */
+export function createGhosts(tiles, count = 24) {
+  const rand = rand01(2207);
+  const group = new THREE.Group();
+  if (!tiles.length) return { group, update() {} };
+  const sheet = new THREE.MeshStandardMaterial({ color: '#ffffff', emissive: '#d9fff0', emissiveIntensity: 0.35, roughness: 0.6, transparent: true, opacity: 0.88 });
+  const eye = new THREE.MeshStandardMaterial({ color: '#1d1f24', roughness: 0.5 });
+  const parts = [
+    [new THREE.SphereGeometry(0.12, 12, 8).translate(0, 0.27, 0), sheet],
+    [new THREE.ConeGeometry(0.15, 0.24, 10).translate(0, 0.12, 0), sheet],
+    [new THREE.SphereGeometry(0.022, 6, 4).translate(-0.045, 0.29, 0.105), eye],
+    [new THREE.SphereGeometry(0.022, 6, 4).translate(0.045, 0.29, 0.105), eye],
+  ].map(([g, m]) => new THREE.InstancedMesh(g, m, count));
+  group.add(...parts);
+  const ghosts = Array.from({ length: count }, () => {
+    const t = tiles[Math.floor(rand() * tiles.length)];
+    return { x: t.x, z: t.z, y: t.h, r: 0.25 + rand() * 0.35, speed: (0.5 + rand() * 0.5) * (rand() < 0.5 ? -1 : 1), phase: rand() * Math.PI * 2 };
+  });
+  const m = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  const p = new THREE.Vector3();
+  const s = new THREE.Vector3(1.25, 1.25, 1.25);
+  const up = new THREE.Vector3(0, 1, 0);
+  return {
+    group,
+    update(t) {
+      ghosts.forEach((g, i) => {
+        const a = g.phase + t * g.speed;
+        p.set(g.x + Math.cos(a) * g.r, g.y + 0.25 + Math.sin(t * 2.2 + g.phase) * 0.08, g.z + Math.sin(a) * g.r);
+        q.setFromAxisAngle(up, -a + (g.speed > 0 ? 0 : Math.PI)); // 面朝飄的方向
+        m.compose(p, q, s);
+        for (const mesh of parts) mesh.setMatrixAt(i, m);
+      });
+      for (const mesh of parts) mesh.instanceMatrix.needsUpdate = true;
+    },
+  };
+}
+
+/**
+ * 一顆大月亮。鏡頭是往下看島的，3D 的天空拍不到，所以月亮畫在畫面左上角（HTML），
+ * 亮度跟著天黑程度（world 會更新 CSS 變數 --night）
+ */
+export function createMoon(container) {
+  const moon = document.createElement('div');
+  moon.className = 'moon';
+  moon.setAttribute('aria-hidden', 'true');
+  container.appendChild(moon);
+  return moon;
+}

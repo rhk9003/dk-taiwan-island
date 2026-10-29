@@ -1,5 +1,5 @@
 {
-  "_說明": "島上的節日與季節。from／to 是每年的「月-日」（含當天；跨年也可以，例如 12-20 到 01-02）。農曆節日每年日期不同，改用 dates 列出每一年的起訖「年-月-日」，每年要補下一年。decor 是島上的裝飾：pumpkin 門口南瓜燈、christmas 門口聖誕樹、lantern 門市掛紅燈籠、parasol 海邊遮陽傘；hat 是大家戴的節日帽（santa 聖誕帽、witch 巫師帽），沒戴帽子的島民也會戴上。news 是客人隔天以上回來時「島嶼快報」上的那句話。同一天有好幾個節日時，用列表裡最前面的。測試：網址加 ?event=christmas 直接看某個節日，加 ?time=21 看晚上 9 點的島。",
+  "_說明": "島上的節日與季節。from／to 是每年的「月-日」（含當天；跨年也可以，例如 12-20 到 01-02）。農曆節日每年日期不同，改用 dates 列出每一年的起訖「年-月-日」，每年要補下一年。decor 是島上的裝飾：pumpkin 門口南瓜燈、christmas 門口聖誕樹、lantern 門市掛紅燈籠、parasol 海邊遮陽傘；hat 是大家戴的節日帽（santa 聖誕帽、witch 巫師帽），沒戴帽子的島民也會戴上。fx 是額外特效：bats 天上的蝙蝠、ghosts 街上飄的幽靈、moon 大月亮、purpleNight 夜空偏紫、ghostTrucks 物流車變幽靈車。treat 是節日小遊戲「每間門市拿一顆糖，集滿 goal 顆送優惠券」：點門口的南瓜燈或在店裡敲南瓜燈拿糖，reward 跟集章的優惠券一樣（url 或 code 至少填一個）。news 是客人隔天以上回來時「島嶼快報」上的那句話。同一天有好幾個節日時，用列表裡最前面的。測試：網址加 ?event=christmas 直接看某個節日，加 ?time=21 看晚上 9 點的島。",
   "events": [
     {
       "id": "halloween",
@@ -8,7 +8,19 @@
       "to": "11-01",
       "decor": "pumpkin",
       "hat": "witch",
-      "news": "萬聖節到了！門市門口擺上南瓜燈，大家都戴上巫師帽。"
+      "fx": ["bats", "ghosts", "moon", "purpleNight", "ghostTrucks"],
+      "treat": {
+        "title": "不給糖就搗蛋",
+        "goal": 5,
+        "reward": {
+          "title": "萬聖節糖果集滿了！",
+          "desc": "謝謝你逛遍 DK 的南瓜燈，送你一張萬聖節優惠券。",
+          "code": "",
+          "url": "https://www.dk-shoes.com.tw/",
+          "cta": "領取萬聖節優惠券"
+        }
+      },
+      "news": "萬聖節到了！門市門口的南瓜燈會發糖果，集滿 5 顆送優惠券；晚上還有幽靈物流車出沒。"
     },
     {
       "id": "christmas",

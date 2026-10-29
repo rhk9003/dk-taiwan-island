@@ -170,12 +170,21 @@ function normalize(raw) {
     return false;
   });
   const event = activeEvent(events, Date.now(), params.get('event'));
+  // 節日小遊戲（萬聖節「不給糖就搗蛋」）：每間門市拿一顆糖，集滿 goal 顆送優惠券
+  let treat = null;
+  if (event?.treat) {
+    const goal = Math.round(Number(event.treat.goal)) || 5;
+    const reward = event.treat.reward || {};
+    if (!reward.url && !reward.code) warn(`events.json 的「${event.name}」treat.reward 沒有 url 也沒有 code，集滿了會顯示「優惠券準備中」`);
+    treat = { title: event.treat.title || '不給糖就搗蛋', goal: Math.min(Math.max(goal, 1), stores.length), reward, key: `dk-island-treat-${event.id}-${new Date().getFullYear()}` };
+  }
   const time = params.get('time')?.match(/^(\d{1,2})(?::(\d{2}))?$/);
   const clockOverride = time ? (Number(time[1]) % 24) + Number(time[2] || 0) / 60 : null;
 
   return {
     site: raw.site,
     event,
+    treat,
     clockOverride,
     stamps,
     shoppers,
@@ -264,6 +273,34 @@ function loadMe() {
 }
 function saveMe(me) {
   try { localStorage.setItem(ME_KEY, JSON.stringify(me)); } catch { /* 存不了就只是下次要重捏 */ }
+}
+
+// 節日的糖果袋：在哪幾間店拿過糖、什麼時候領的優惠券（存在這台裝置，每個節日每年一份）
+function createTreatBag(key, goal) {
+  let bag = { stores: {}, claimedAt: null };
+  try { bag = { ...bag, ...JSON.parse(localStorage.getItem(key) || '{}') }; } catch { /* 讀不到就從空的開始 */ }
+  const save = () => {
+    try { localStorage.setItem(key, JSON.stringify(bag)); } catch { /* 存不了就只算這次 */ }
+  };
+  return {
+    goal,
+    get count() { return Object.keys(bag.stores).length; },
+    get full() { return Object.keys(bag.stores).length >= goal; },
+    get claimedAt() { return bag.claimedAt; },
+    has: (id) => Boolean(bag.stores[id]),
+    ids: () => Object.keys(bag.stores),
+    add(id) {
+      if (bag.stores[id]) return false;
+      bag.stores[id] = new Date().toISOString();
+      save();
+      return true;
+    },
+    claim() {
+      if (bag.claimedAt) return;
+      bag.claimedAt = new Date().toISOString();
+      save();
+    },
+  };
 }
 
 // 看過幾張明信片、看過哪些節日（島嶼快報用來判斷有沒有新的）
@@ -428,6 +465,16 @@ async function boot() {
     return true;
   }
 
+  // 萬聖節糖果袋（events.json 的 treat）：右下角的南瓜按鈕顯示拿了幾顆
+  const candy = data.treat ? createTreatBag(data.treat.key, data.treat.goal) : null;
+  const treatBtn = $('btn-treat');
+  const drawTreatBtn = () => {
+    if (!candy) return;
+    const ready = candy.full && !candy.claimedAt;
+    treatBtn.classList.toggle('ready', ready);
+    treatBtn.replaceChildren(h('i', { 'aria-hidden': 'true', text: '🎃' }), ready ? '糖果集滿了！領優惠券' : `${data.treat.title} ${Math.min(candy.count, candy.goal)}/${candy.goal}`);
+  };
+
   const setHash = (value) => history.replaceState(null, '', value ? `#${value}` : location.pathname + location.search);
 
   const app = {
@@ -498,6 +545,17 @@ async function boot() {
       if (plaza) world.focusRegion(plaza.id);
       else world.overview();
       setHash('stamps');
+    },
+    // 萬聖節糖果袋：拿了哪幾間店的糖、集滿領優惠券
+    treat() {
+      if (!candy) return app.overview();
+      clearTimeout(enterTimer);
+      Object.assign(state, { region: null, store: null, mission: null });
+      ui.showTreatBag();
+      world.setFocus(null);
+      world.setSelected(null);
+      world.overview();
+      setHash('treat');
     },
     // 點了頭上有「!」的路人：他停下來，卡片上是他的煩惱和幾雙鞋
     shopper(slot) {
@@ -584,6 +642,17 @@ async function boot() {
     onInviteGo: (feature) => { if (feature === 'shoppers' && data.shoppers) app.shopper(nextShopperSlot()); },
     onStamp: addStamp,
     onStampBook: () => app.stamps(),
+    candy,
+    onTreat: (id) => {
+      const fresh = candy.add(id);
+      drawTreatBtn();
+      return fresh;
+    },
+    onTreatBag: () => app.treat(),
+    onClaimTreat: () => {
+      candy.claim();
+      drawTreatBtn();
+    },
     onClaim: () => { book.claim(); drawStampBtn(); },
     onPostMessage: data.site.managerPicksUrl && data.site.messageBoard
       ? (storeId, nickname, text, website) => sendNote(data.site.managerPicksUrl, storeId, nickname, text, website)
@@ -615,6 +684,11 @@ async function boot() {
     drawStampBtn();
     stampBtn.hidden = false;
     stampBtn.addEventListener('click', () => app.stamps());
+  }
+  if (candy) {
+    drawTreatBtn();
+    treatBtn.hidden = false;
+    treatBtn.addEventListener('click', () => app.treat());
   }
   // ---- 島民角色 ----
   const meBtn = $('btn-me');
@@ -730,6 +804,7 @@ async function boot() {
   else if (location.hash === '#service') app.service();
   else if (location.hash === '#me') app.me();
   else if (location.hash === '#stamps') app.stamps();
+  else if (location.hash === '#treat') app.treat();
   else if (decodeURIComponent(location.hash).startsWith('#mission/')) app.mission(decodeURIComponent(location.hash).slice(9));
   else if (m?.[1] === 'region') app.region(m[2]);
   else {

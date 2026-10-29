@@ -187,7 +187,7 @@ export function createUI(data, handlers) {
           h('h2', { id: 'shop-name', text: s.name })),
         h('button', { type: 'button', class: 'shop-exit', onclick: () => handlers.onCloseShop() }, '← 離開門市')),
       h('div', { class: 'shop-awning', style: `--c:${m.color}` }),
-      h('div', { class: 'shop-room' },
+      h('div', { class: handlers.candy ? 'shop-room has-treat' : 'shop-room' },
         h('section', { class: 'shop-counter' },
           h('div', { class: !s.quote ? 'bubble empty' : [...s.quote].length > 32 ? 'bubble long' : 'bubble' },
             s.quote ? `「${s.quote}」` : '店長的話還在準備中，下次來就聽得到囉！',
@@ -196,6 +196,7 @@ export function createUI(data, handlers) {
           h('div', { class: 'counter' },
             h('span', { class: 'nameplate', text: s.manager || `${shortName(s.name)}店長` }))),
         stampDesk(s, m),
+        treatDesk(s),
         h('section', { class: 'shop-wall' },
           h('p', { class: 'shop-label' }, '店長推薦', s.sample && products.length ? h('span', { class: 'tag', text: '範例' }) : null),
           h('div', { class: 'shelves' },
@@ -431,6 +432,100 @@ export function createUI(data, handlers) {
       msg,
       btn,
       progress);
+  }
+
+  // ---- 萬聖節「不給糖就搗蛋」：店裡的南瓜燈，敲一下拿一顆糖 ----
+  const PUMPKIN_SVG = '<svg viewBox="0 0 64 60" aria-hidden="true"><path d="M31 10c0-4 3-8 8-8" stroke="#4d7a35" stroke-width="4" fill="none" stroke-linecap="round"/><ellipse cx="19" cy="35" rx="14" ry="20" fill="#e8741c"/><ellipse cx="45" cy="35" rx="14" ry="20" fill="#e8741c"/><ellipse cx="32" cy="35" rx="16" ry="22" fill="#f28a24"/><path d="M19 30l6-7 6 7zM39 30l6-7 6 7z" fill="#3a1d05"/><path d="M17 41q15 13 30 0l-4 2-3-3-4 4-4-4-4 4-3-3-4 2z" fill="#3a1d05"/></svg>';
+  function treatDesk(s) {
+    const bag = handlers.candy;
+    if (!bag || !data.treat) return null;
+    const pumpkin = h('button', { type: 'button', class: 'treat-pumpkin', 'aria-label': '敲敲南瓜燈要糖果' });
+    pumpkin.innerHTML = PUMPKIN_SVG;
+    const pop = h('span', { class: 'treat-pop', 'aria-hidden': 'true', text: '🍬 +1' });
+    const msg = h('p', { class: 'stamp-msg' });
+    const go = h('button', { type: 'button', class: 'stamp-open', onclick: () => handlers.onTreatBag() });
+    const draw = () => {
+      const has = bag.has(s.id);
+      const left = bag.goal - bag.count;
+      const ready = bag.full && !bag.claimedAt;
+      pumpkin.classList.toggle('done', has);
+      msg.textContent = !has
+        ? `敲敲南瓜燈，跟${shortName(s.name)}要一顆糖！集滿 ${bag.goal} 間門市的糖送優惠券。`
+        : left > 0 ? `拿到糖了！再去 ${left} 間 DK 敲南瓜燈，就能領萬聖節優惠券。`
+          : ready ? `糖果集滿 ${bag.goal} 顆了！打開糖果袋領優惠券。` : '你已經領過萬聖節優惠券了，謝謝你逛遍 DK！';
+      go.textContent = ready ? '領優惠券 →' : `糖果袋 ${Math.min(bag.count, bag.goal)}/${bag.goal} →`;
+      go.className = ready ? 'stamp-open ready' : 'stamp-open';
+    };
+    pumpkin.addEventListener('click', () => {
+      const replay = (el, cls) => {
+        el.classList.remove(cls);
+        void el.offsetWidth; // 重新觸發動畫
+        el.classList.add(cls);
+      };
+      replay(pumpkin, 'shake');
+      if (bag.has(s.id)) return; // 拿過了就只是搖一搖
+      handlers.onTreat(s.id);
+      replay(pop, 'show');
+      draw();
+    });
+    draw();
+    return h('section', { class: 'shop-treat' },
+      h('p', { class: 'shop-label', text: `🎃 ${data.treat.title}` }),
+      h('div', { class: 'treat-stage' }, pumpkin, pop),
+      msg,
+      go);
+  }
+
+  // 糖果袋：拿了幾顆、在哪些店拿的，集滿就能領優惠券
+  function showTreatBag() {
+    const bag = handlers.candy;
+    current = { region: null, store: null };
+    renderList();
+    closeShop();
+    const done = Math.min(bag.count, bag.goal);
+    const got = bag.ids().map((id) => data.storeById.get(id)).filter(Boolean);
+    let tail;
+    if (bag.full) {
+      tail = treatReward();
+    } else {
+      const todo = data.stores.filter((s) => !bag.has(s.id));
+      tail = h('div', { class: 'stamp-next' },
+        h('p', { text: `還差 ${bag.goal - bag.count} 顆。點門市門口的南瓜燈，進店敲一敲就有糖。` }),
+        h('button', { type: 'button', class: 'cta', style: '--c:#e8741c', onclick: () => handlers.onStore(todo[Math.floor(Math.random() * todo.length)].id) }, '帶我去一間還沒拿糖的店 →'));
+    }
+    fillCard(
+      head('TRICK OR TREAT・萬聖節糖果袋', data.treat.title),
+      h('p', { class: 'lead', text: `每間 DK 門市的南瓜燈都有一顆糖，集滿 ${bag.goal} 間不同門市的糖，就送一張萬聖節優惠券！` }),
+      h('div', { class: 'treat-candies', 'aria-label': `已經拿了 ${done} 顆，共 ${bag.goal} 顆` },
+        Array.from({ length: bag.goal }, (_, i) => h('span', { class: i < done ? 'on' : '', text: i < done ? '🍬' : '' }))),
+      got.length ? h('p', { class: 'treat-got', text: `拿過糖的店：${got.map((s) => shortName(s.name)).join('、')}` }) : null,
+      tail);
+  }
+
+  function treatReward() {
+    const r = data.treat.reward || {};
+    const status = h('p', { class: 'note-status', role: 'status' });
+    return h('section', { class: 'q-reward treat-reward' },
+      h('span', { class: 'q-gift', 'aria-hidden': 'true', text: '🎃' }),
+      h('b', { text: r.title || '糖果集滿了！' }),
+      r.desc ? h('p', { text: r.desc }) : null,
+      r.code ? h('div', { class: 'reward-code' },
+        h('code', { text: r.code }),
+        h('button', {
+          type: 'button',
+          onclick: async () => {
+            try {
+              await navigator.clipboard.writeText(r.code);
+              status.textContent = '優惠碼複製好了！';
+            } catch {
+              status.textContent = '複製不了，請長按優惠碼自己複製。';
+            }
+            handlers.onClaimTreat();
+          },
+        }, '複製')) : null,
+      r.url ? h('a', { class: 'cta coupon-cta', href: r.url, target: '_blank', rel: 'noopener', onclick: () => handlers.onClaimTreat() }, `${r.cta || '領取優惠券'} →`) : null,
+      !r.url && !r.code ? h('button', { type: 'button', class: 'cta', disabled: true }, '優惠券準備中') : null,
+      status);
   }
 
   // ---- 集章冊：蓋過的章依序排好，集滿就能領優惠券 ----
@@ -1166,5 +1261,5 @@ export function createUI(data, handlers) {
     else if (!card.hidden) handlers.onCloseCard();
   });
 
-  return { showRegion, showLandmark, showCoupon, showServiceMenu, openStation, showResidentEditor, showStampBook, showShopper, showReport, markStamps: renderList, selectStore, openShop, showNone, maybeShowIntro, refresh };
+  return { showRegion, showLandmark, showCoupon, showServiceMenu, openStation, showResidentEditor, showStampBook, showTreatBag, showShopper, showReport, markStamps: renderList, selectStore, openShop, showNone, maybeShowIntro, refresh };
 }
