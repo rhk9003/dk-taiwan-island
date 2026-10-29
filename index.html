@@ -5,31 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>DK 台灣島｜全台門市地圖</title>
   <meta name="description" content="DK 高博士全台門市，拼成一座會呼吸的台灣島。每間店都有自己的玩法、店長的一句話與店長推薦。">
+  <!-- 貼到 LINE／FB 的預覽卡；換網域時這裡的網址要跟著改。預覽圖用 tools/og.html 截島再合成 -->
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_TW">
+  <meta property="og:site_name" content="DK 高博士">
+  <meta property="og:title" content="DK 台灣島｜全台 61 間門市，拼成一座島">
+  <meta property="og:description" content="逛門市、聽店長推薦、玩小遊戲集章換優惠，還能捏一個自己的島民住下來。">
+  <meta property="og:url" content="https://rhk9003.github.io/dk-taiwan-island/">
+  <meta property="og:image" content="https://rhk9003.github.io/dk-taiwan-island/assets/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="DK 台灣島：一座台灣形狀的 3D 小島，島上有全台 DK 門市">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%238B2332'/%3E%3Ctext x='32' y='42' font-family='Georgia,serif' font-size='28' font-weight='700' fill='white' text-anchor='middle'%3EDK%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@1,9..144,600&family=Noto+Sans+TC:wght@400;500;700;900&family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=202610291416">
+  <link rel="stylesheet" href="css/style.css?v=202610291425">
   <script type="importmap">
     {
       "imports": {
         "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
         "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
-        "./js/buildings.js": "./js/buildings.js?v=202610291416",
-        "./js/islands.js": "./js/islands.js?v=202610291416",
-        "./js/landmarks.js": "./js/landmarks.js?v=202610291416",
-        "./js/main.js": "./js/main.js?v=202610291416",
-        "./js/people.js": "./js/people.js?v=202610291416",
-        "./js/postcards.js": "./js/postcards.js?v=202610291416",
-        "./js/residents.js": "./js/residents.js?v=202610291416",
-        "./js/seasons.js": "./js/seasons.js?v=202610291416",
-        "./js/service.js": "./js/service.js?v=202610291416",
-        "./js/stamps.js": "./js/stamps.js?v=202610291416",
-        "./js/textrules.js": "./js/textrules.js?v=202610291416",
-        "./js/town.js": "./js/town.js?v=202610291416",
-        "./js/ui.js": "./js/ui.js?v=202610291416",
-        "./js/util.js": "./js/util.js?v=202610291416",
-        "./js/world.js": "./js/world.js?v=202610291416"
+        "./js/buildings.js": "./js/buildings.js?v=202610291425",
+        "./js/islands.js": "./js/islands.js?v=202610291425",
+        "./js/landmarks.js": "./js/landmarks.js?v=202610291425",
+        "./js/main.js": "./js/main.js?v=202610291425",
+        "./js/people.js": "./js/people.js?v=202610291425",
+        "./js/postcards.js": "./js/postcards.js?v=202610291425",
+        "./js/residents.js": "./js/residents.js?v=202610291425",
+        "./js/seasons.js": "./js/seasons.js?v=202610291425",
+        "./js/service.js": "./js/service.js?v=202610291425",
+        "./js/stamps.js": "./js/stamps.js?v=202610291425",
+        "./js/textrules.js": "./js/textrules.js?v=202610291425",
+        "./js/town.js": "./js/town.js?v=202610291425",
+        "./js/track.js": "./js/track.js?v=202610291425",
+        "./js/ui.js": "./js/ui.js?v=202610291425",
+        "./js/util.js": "./js/util.js?v=202610291425",
+        "./js/world.js": "./js/world.js?v=202610291425"
       }
     }
   </script>
@@ -97,6 +110,6 @@
     </div>
   </div>
 
-  <script type="module" src="js/main.js?v=202610291416"></script>
+  <script type="module" src="js/main.js?v=202610291425"></script>
 </body>
 </html>

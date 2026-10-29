@@ -9,6 +9,7 @@ import { createPeople } from './people.js';
 import { createMovers, createResidents } from './residents.js';
 import { createLandmark, createPlane, createBanner, createCouponMascot, createServiceNpc, createHiker, createSummitFlag, createDeliveryTruck } from './landmarks.js';
 import { easeInOutCubic, clamp, h, rng, shortName } from './util.js';
+import { withUtm } from './track.js';
 
 const VIEW_POLAR = 0.9; // 鏡頭和正上方的夾角（弧度），越大越斜
 const SEA = '#7fcbd8';
@@ -23,9 +24,13 @@ const COUPON_ROUTE = [
 
 /** 建立整個 3D 世界；handlers.onRegion / onStore 在使用者點分區或點門市時被呼叫 */
 export function createWorld(container, data, handlers) {
+  // 手機（觸控螢幕）或核心、記憶體少的裝置：關陰影（陰影要把 1,700 個物件再畫一遍，draw call 少一半）、
+  // 解析度最多 1.5 倍，比較不會卡、不會發燙。網址加 ?lite 可以在電腦上看手機版的畫質
+  const lowPower = new URLSearchParams(location.search).has('lite') || window.matchMedia('(pointer: coarse)').matches
+    || (navigator.deviceMemory || 8) <= 4 || (navigator.hardwareConcurrency || 8) <= 4;
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, lowPower ? 1.5 : 2));
+  renderer.shadowMap.enabled = !lowPower;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild(renderer.domElement);
 
@@ -574,7 +579,7 @@ export function createWorld(container, data, handlers) {
     if (hit?.resident) handlers.onResident?.(hit.resident);
     else if (hit?.store) handlers.onStore(hit.store);
     else if (hit?.landmark) handlers.onLandmark?.(hit.landmark);
-    else if (hit?.banner !== undefined) { if (hit.banner) window.open(hit.banner, '_blank', 'noopener'); }
+    else if (hit?.banner !== undefined) { if (hit.banner) window.open(withUtm(hit.banner, 'banner'), '_blank', 'noopener'); }
     else if (hit?.coupon) handlers.onCoupon?.();
     else if (hit?.mission) handlers.onMission?.(hit.mission);
     else if (hit?.service) handlers.onService?.();

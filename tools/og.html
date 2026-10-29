@@ -1,0 +1,8 @@
+<!doctype html>
+<meta charset="utf-8">
+<script>
+  // 只給截分享預覽圖用：先把邀請函標成看過，再進島
+  localStorage.setItem('dk-island-invite-v1', JSON.stringify({ seen: true, no: '0001', at: new Date().toISOString() }));
+  localStorage.setItem('dk-island-last-visit', String(Date.now()));
+  location.replace('../index.html?time=15');
+</script>

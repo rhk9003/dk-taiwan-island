@@ -5,6 +5,8 @@
   "residents": true,
   "_islanderUrl說明": "島民證（換手機時把島民接回來）的 Apps Script 網址，是另一個專案（apps-script/islander.gs，設定方式見 README「島民證」）。留空就不顯示島民證。",
   "islanderUrl": "https://script.google.com/macros/s/AKfycbwNxBIVTWsTpizpJrBMh8ibWLUGA2Mfb3Q-iHWtjnV-oEqh367SQhiWiUR0_8KLHQ/exec",
+  "_analytics說明": "成效追蹤。連到官網的網址一律自動加 UTM（utm_source=dk_taiwan_island、utm_medium=referral、utm_campaign 用下面的 campaign、utm_content 是客人當時在哪間店或哪個畫面），在官網 GA4 的「工作階段來源／媒介」就看得到台灣島帶來的流量和訂單。ga4 填 GA4 評估 ID（G- 開頭）、metaPixel 填 Meta 像素 ID（一串數字），填了才會送事件：select_content（進店、看分區…）、stamp_get、reward_claim、module_play、message_post、resident_save、outbound_click。留空就只加 UTM。",
+  "analytics": { "ga4": "", "metaPixel": "", "campaign": "dk_taiwan_island" },
   "_banners說明": "飛機拖的活動彩帶，可以放好幾個，每架飛機每飛一趟換下一個。text 是彩帶上的字（建議 16 字內），url 是點彩帶要開的活動頁，color 是彩帶底色。",
   "banners": [
     { "text": "DK 週年慶｜全館 85 折起", "url": "https://www.dk-shoes.com.tw/", "color": "#8B2332" },

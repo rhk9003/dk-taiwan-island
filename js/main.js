@@ -8,6 +8,7 @@ import { createStampBook } from './stamps.js';
 import { activeEvent } from './seasons.js';
 import { h, shortName } from './util.js';
 import { safeText } from './textrules.js';
+import { initTracking, setPlace, track } from './track.js';
 
 const FILES = ['site', 'regions', 'modules', 'stores', 'products', 'landmarks', 'service', 'picks', 'shoppers', 'events'];
 const OPTIONAL = new Set(['landmarks', 'service', 'picks', 'shoppers', 'events']); // 沒有這些檔也能跑
@@ -339,6 +340,7 @@ async function boot() {
   let data;
   try {
     data = normalize(await loadData());
+    initTracking(data.site.analytics);
   } catch (e) {
     showError(e.message);
     return;
@@ -380,6 +382,7 @@ async function boot() {
       code: code || me?.code || '',
     };
     saveMe(me);
+    track('resident_save', { mode: choice.mode });
     $('btn-me').textContent = '我的島民';
     placeResidents();
     world.focusResident();
@@ -444,6 +447,7 @@ async function boot() {
   function claimHelpCoupon() {
     if (helpCoupon.claimedAt) return;
     helpCoupon.claimedAt = new Date().toISOString();
+    track('reward_claim', { reward: 'shoppers' });
     try { localStorage.setItem(HELP_COUPON_KEY, helpCoupon.claimedAt); } catch { /* 存不了就只是下次還會看到領券按鈕 */ }
     drawShopperBtn();
   }
@@ -489,6 +493,7 @@ async function boot() {
   };
   function addStamp(id) {
     if (!book?.add(id)) return false;
+    track('stamp_get', { store: id, stamps: book.count });
     world.setStamped(book.ids());
     ui.markStamps();
     drawStampBtn();
@@ -652,7 +657,11 @@ async function boot() {
     app[key] = (...args) => {
       if (key !== 'shopper') world?.releaseShoppers();
       if (key !== 'resident') world?.releaseResidents();
-      return go(...args);
+      const out = go(...args);
+      const id = typeof args[0] === 'string' || typeof args[0] === 'number' ? String(args[0]) : '';
+      setPlace(state.store ? `store-${state.store}` : id ? `${key}-${id}` : key);
+      if (key !== 'overview') track('select_content', { content_type: key, content_id: id });
+      return out;
     };
   }
 
@@ -699,12 +708,14 @@ async function boot() {
     },
     onTreatBag: () => app.treat(),
     onClaimTreat: () => {
+      track('reward_claim', { reward: 'treat' });
       candy.claim();
       drawTreatBtn();
     },
-    onClaim: () => { book.claim(); drawStampBtn(); },
+    onClaim: () => { track('reward_claim', { reward: 'stamps' }); book.claim(); drawStampBtn(); },
     onPostMessage: data.site.managerPicksUrl && data.site.messageBoard
       ? (storeId, nickname, text, website) => sendNote(data.site.managerPicksUrl, storeId, nickname, text, website)
+        .then((res) => { if (res.ok) track('message_post', { store: storeId }); return res; })
       : null,
     onInsets: (ins) => world?.setInsets(ins),
   });

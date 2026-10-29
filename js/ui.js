@@ -5,6 +5,7 @@ import { RESIDENT_OPTIONS, createResidentPreview, ageOf } from './residents.js';
 import { postcardsOf, createPostcardCamera } from './postcards.js';
 import { stampSvg, stampDate, STAMPER_SVG } from './stamps.js';
 import { cleanText, textProblem } from './textrules.js';
+import { track } from './track.js';
 
 const INVITE_KEY = 'dk-island-invite-v1'; // 登島邀請函看過了沒、登島證號碼
 const MISSION_KEY = 'dk-island-missions'; // 這台裝置完成過哪些客服任務
@@ -1270,6 +1271,7 @@ export function createUI(data, handlers) {
     box.style.setProperty('--aspect', m.aspect || 'auto');
     frame.src = m.url;
     modal.hidden = false;
+    track('module_play', { module: m.name });
   }
   function closeModal() {
     modal.hidden = true;
