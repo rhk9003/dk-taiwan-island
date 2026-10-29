@@ -588,46 +588,44 @@ export function createHiker(color) {
 }
 
 // DK 物流車：酒紅色貨箱兩側掛 DK 招牌、白色車頭，沿 +z 方向開
-// 萬聖節的幽靈物流車：半透明、發著綠光、沒有輪子飄在路上，車頂載一顆大南瓜燈，車尾拖著光點
-const GHOST = new THREE.MeshStandardMaterial({ color: '#eafff5', emissive: '#7dffc8', emissiveIntensity: 0.45, transparent: true, opacity: 0.62, roughness: 0.4, depthWrite: false });
-const GHOST_EYE = glow('#b9ffdf', '#5dff9e', 1.2);
-const PUMPKIN = glow('#f08a24', '#ff7a00', 0.35);
-function ghostTruck() {
-  const g = new THREE.Group();
-  g.add(box(0.36, 0.3, 0.6, GHOST, 0, 0.1, -0.08));
+// 萬聖節的變裝物流車：一般的 DK 物流車蓋一條白布假扮幽靈。布上剪兩個眼洞，下面露出酒紅色車身和輪子，
+// 車頭照常，一看就知道是正常車子在玩變裝
+const SHEET_EYE = '#1d1f24';
+function addSheet(g) {
+  const sheet = new THREE.Group();
+  const cloth = mat('#f7f5ef');
+  sheet.add(box(0.4, 0.22, 0.64, cloth, 0, 0.2, -0.08)); // 蓋住貨櫃，下緣比車身高一截，露出酒紅色車身
+  sheet.add(place(geo('sheetTop', () => new THREE.CylinderGeometry(0.2, 0.2, 0.64, 14).rotateX(Math.PI / 2).scale(1, 0.55, 1)), cloth, 0, 0.42, -0.08)); // 布的頂端圓圓的
+  // 布的下襬一圈波浪
+  for (let z = -0.36; z <= 0.21; z += 0.095) for (const x of [-0.2, 0.2]) sheet.add(ball(0.035, cloth, x, 0.205, z, 0));
+  for (let x = -0.15; x <= 0.16; x += 0.1) sheet.add(ball(0.035, cloth, x, 0.205, -0.4, 0));
+  // 眼洞：兩側各一對（鏡頭從哪邊都看得到），車頭上方也一對
   for (const side of [-1, 1]) {
-    const s = sign(0.32, 0.2, side * 0.182, 0.26, -0.08);
-    s.rotation.y = side * Math.PI / 2;
-    g.add(s);
+    for (const z of [0.0, 0.11]) {
+      const e = ball(0.035, SHEET_EYE, side * 0.2, 0.35, z, 1);
+      e.scale.set(0.35, 1.25, 1);
+      sheet.add(e);
+    }
   }
-  g.add(box(0.34, 0.22, 0.2, GHOST, 0, 0.1, 0.32));
-  for (const x of [-0.1, 0.1]) g.add(ball(0.035, GHOST_EYE, x, 0.2, 0.425)); // 兩顆綠色車燈像眼睛
-  // 車頂載一顆南瓜燈：橘色南瓜、綠色蒂頭、會發光的眼睛和笑臉，跟著車子搖來搖去
-  const rider = new THREE.Group();
-  const body = ball(0.16, PUMPKIN, 0, 0.13, 0, 2);
-  body.scale.set(1.15, 0.85, 1.05);
-  rider.add(body, cyl(0.016, 0.022, 0.08, 5, '#4d7a35', 0, 0.25, 0));
-  for (const x of [-0.06, 0.06]) rider.add(ball(0.026, GHOST_EYE, x, 0.16, 0.15, 0));
-  rider.add(box(0.12, 0.022, 0.02, GHOST_EYE, 0, 0.08, 0.15));
-  rider.position.set(0, 0.4, -0.12);
-  g.add(rider);
-  g.userData.rider = rider;
-  // 車尾拖著三團光點，越後面越小
-  [0.06, 0.045, 0.03].forEach((r, i) => g.add(ball(r, GHOST, 0, 0.12 + i * 0.03, -0.46 - i * 0.12, 1)));
-  g.userData.ghost = true;
-  g.scale.setScalar(1.6);
-  return g;
+  for (const x of [-0.07, 0.07]) {
+    const e = ball(0.03, SHEET_EYE, x, 0.47, 0.235, 1);
+    e.scale.set(1, 1.25, 0.35);
+    sheet.add(e);
+  }
+  g.add(sheet);
+  g.userData.sheet = sheet;
 }
 
-/** style 是 'ghost' 時是萬聖節的幽靈車 */
+/** style 是 'costume' 時是萬聖節蓋白布變裝的物流車 */
 export function createDeliveryTruck(style = null) {
-  if (style === 'ghost') return ghostTruck();
   const g = new THREE.Group();
   g.add(box(0.36, 0.3, 0.6, WINE, 0, 0.1, -0.08));
-  for (const side of [-1, 1]) {
-    const s = sign(0.32, 0.2, side * 0.182, 0.26, -0.08);
-    s.rotation.y = side * Math.PI / 2;
-    g.add(s);
+  if (style !== 'costume') {
+    for (const side of [-1, 1]) {
+      const s = sign(0.32, 0.2, side * 0.182, 0.26, -0.08);
+      s.rotation.y = side * Math.PI / 2;
+      g.add(s);
+    }
   }
   g.add(box(0.34, 0.22, 0.2, '#fbf5ec', 0, 0.1, 0.32));
   g.add(box(0.3, 0.1, 0.02, '#bfe3f0', 0, 0.2, 0.42));
@@ -637,6 +635,7 @@ export function createDeliveryTruck(style = null) {
     w.position.y = 0.06;
     g.add(w);
   }
+  if (style === 'costume') addSheet(g);
   g.scale.setScalar(1.6);
   return g;
 }

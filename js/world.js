@@ -286,10 +286,10 @@ export function createWorld(container, data, handlers) {
     lake,
   });
   // DK 物流車：沿著環島公路送貨
-  // 萬聖節（events.json 的 fx 有 ghostTrucks）換成幽靈車，飄在路上
+  // 萬聖節（events.json 的 fx 有 costumeTrucks）物流車蓋上白布變裝
   const fx = new Set(data.event?.fx || []);
   const trucks = [0, 0.25, 0.5, 0.75].map((offset, i) => {
-    const truck = createDeliveryTruck(fx.has('ghostTrucks') ? 'ghost' : null);
+    const truck = createDeliveryTruck(fx.has('costumeTrucks') ? 'costume' : null);
     scene.add(truck);
     return { truck, i: offset * loopPoints.length, dir: i % 2 ? -1 : 1, speed: 2.6 };
   });
@@ -815,13 +815,8 @@ export function createWorld(container, data, handlers) {
       const lane = 0.45; // 靠右開，兩個方向各走一個車道
       tr.truck.position.set(a.x + (b.x - a.x) * k - (dz / len) * lane, a.y + (b.y - a.y) * k, a.z + (b.z - a.z) * k + (dx / len) * lane);
       tr.truck.rotation.y = Math.atan2(dx, dz);
-      if (tr.truck.userData.ghost) {
-        // 幽靈車離地飄著、輕輕左右晃，車頂的幽靈揮來揮去
-        const ph = t * 2 + tr.i * 0.1;
-        tr.truck.position.y += 0.3 + Math.sin(ph) * 0.08;
-        tr.truck.rotation.z = Math.sin(ph * 0.75) * 0.06;
-        tr.truck.userData.rider.rotation.z = Math.sin(t * 3 + tr.dir) * 0.25;
-      }
+      // 變裝的白布被風吹得輕輕晃
+      if (tr.truck.userData.sheet) tr.truck.userData.sheet.rotation.z = Math.sin(t * 3 + tr.i * 0.1) * 0.025;
     }
     if (follow && !tween) {
       const want = follow();
