@@ -1411,8 +1411,8 @@ a { color: var(--wine); }
 .id-title { display: flex; flex-direction: column; gap: 2px; margin: 0; font-size: 13px; font-weight: 900; color: var(--wine); }
 .id-title small { font-size: 11px; font-weight: 500; color: var(--muted); }
 .id-code { display: block; margin: 8px 0 10px; font-size: 32px; font-weight: 900; letter-spacing: 0.12em; color: var(--wine); font-variant-numeric: tabular-nums; }
-.id-actions { display: flex; gap: 8px; }
-.id-btn { flex: 1; height: 36px; border: 1px solid var(--wine); border-radius: 10px; background: #fff; color: var(--wine); font-weight: 700; }
+.id-actions { display: flex; flex-wrap: wrap; gap: 8px; } /* 放不下時整顆按鈕換行，不要把字切成兩行 */
+.id-btn { flex: 1 1 auto; height: 36px; padding: 0 10px; border: 1px solid var(--wine); border-radius: 10px; background: #fff; color: var(--wine); font-size: 13px; font-weight: 700; white-space: nowrap; }
 .id-btn:disabled { border-color: var(--line); color: var(--muted); }
 .me-reclaim { margin-top: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
 .me-reclaim summary { cursor: pointer; font-size: 13px; font-weight: 700; color: #2f5f8f; }
@@ -1991,7 +1991,7 @@ a { color: var(--wine); }
 /* 島民證代號：自己取、可以改 */
 .me-code { text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
 .me-code-rule { margin: 6px 0 0; }
-.id-actions .id-btn { min-width: 0; }
+.id-actions .id-btn { min-width: max-content; }
 .id-edit { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
 .id-edit[hidden] { display: none; }
 .id-edit .me-name { height: 38px; }
@@ -2010,3 +2010,4 @@ a { color: var(--wine); }
 .rn-hide { position: absolute; top: 6px; right: 8px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--muted); font-size: 11px; cursor: pointer; }
 .rn-form { grid-template-columns: 1fr; }
 .rn-form .cta { width: auto; padding: 0 20px; height: 40px; }
+.me-album p.note-hint { margin: 0; font-size: 13px; }
