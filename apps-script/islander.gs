@@ -7,8 +7,10 @@
  *   setup   第一次使用時在編輯器上方選它再按「執行」：建立「DK 台灣島 島民證」試算表（ID 記在指令碼屬性），
  *           執行紀錄會印出試算表網址。之後重跑也安全，不會刪掉任何紀錄。
  *   doPost  台灣島送來的要求（text/plain 的 JSON）：
- *     { role: "issue", deviceId, resident: {id, look, mode, nickname, since} }
+ *     { role: "issue", deviceId, code?, resident: {id, look, mode, nickname, since} }
  *        → 這台裝置的島民證（還沒有就發一組），順便更新島民快照 → {ok:true, code:"ABC234"}
+ *          有帶 code 就用客人自己取的代號（6–12 個英文字母或數字、至少一個英文字母、不能跟別人重複），
+ *          已經有島民證的裝置帶新的 code 就是改代號，舊的代號立刻失效。
  *     { role: "reclaim", deviceId, code }
  *        → 用號碼找回 → {ok:true, deviceId:"原本的裝置代號", code, resident:{…快照} 或 null}
  *          台灣島改用回傳的裝置代號，就變回原本那個島民。
@@ -24,9 +26,12 @@ var SHEET_NAME = '島民證';
 var HEADERS = ['島民證','裝置代號','角色ID','島民快照','發證時間','更新時間','找回次數','停用'];
 var COL = {code:0, deviceId:1, id:2, snapshot:3, createdAt:4, updatedAt:5, reclaims:6, disabled:7};
 var TIME_ZONE = 'Asia/Taipei';
-// 號碼不用 0/O、1/I/L 這些容易看錯的字
+// 系統隨機發的號碼不用 0/O、1/I/L 這些容易看錯的字
 var CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 var CODE_LENGTH = 6;
+// 客人自己取的代號：6–12 個英文字母或數字，至少一個英文字母（擋掉純數字的生日、電話），不分大小寫
+var CUSTOM_CODE = /^(?=.*[A-Z])[A-Z0-9]{6,12}$/;
+var ANY_CODE = /^[A-Z0-9]{6,12}$/;
 var FAIL_WINDOW_SECONDS = 600;
 var DEVICE_FAIL_LIMIT = 8;
 var GLOBAL_FAIL_LIMIT = 120;
@@ -74,7 +79,7 @@ function doPost(event) {
     if (data.role !== 'issue') fail_('不認得這個要求，請重新整理後再試。');
     lock = LockService.getScriptLock();
     if (!lock.tryLock(10000)) fail_('目前比較忙，請稍後再試。');
-    return json_(issue_(deviceId, data.resident));
+    return json_(issue_(deviceId, data.resident, data.code));
   } catch (error) {
     if (!error.publicMessage) console.error(error);
     return json_({ok:false, message:error.publicMessage || '暫時連不上島民證，請稍後再試。'});
@@ -86,26 +91,36 @@ function doPost(event) {
 
 /* ---------- 發證、找回 ---------- */
 
-/** 這台裝置的島民證：已經有就更新快照、回同一組號碼；沒有就發一組不重複的新號碼。 */
-function issue_(deviceId, resident) {
+/**
+ * 這台裝置的島民證：已經有就更新快照、回同一組號碼；沒有就發一組不重複的新號碼。
+ * desired 是客人自己取的代號：新島民就用它，已經有島民證的就改成它（不能跟別人重複）。
+ */
+function issue_(deviceId, resident, desired) {
+  var wanted = desired ? normalizeCode_(desired) : '';
+  if (wanted && !CUSTOM_CODE.test(wanted)) fail_('代號要 6–12 個英文字母或數字，而且至少要有一個英文字母。');
   var sheet = sheet_();
   var rows = rows_(sheet);
   var snapshot = snapshotOf_(resident);
   var now = new Date();
   var used = {};
+  var mine = -1;
   for (var i = rows.length - 1; i >= 0; i--) {
-    if (String(rows[i][COL.deviceId]) === deviceId && rows[i][COL.disabled] !== true) {
-      write_(sheet.getRange(i + 2, COL.id + 1, 1, 3), [snapshot.id, snapshot.json, null]);
-      write_(sheet.getRange(i + 2, COL.updatedAt + 1, 1, 1), [now]);
-      return {ok:true, code:String(rows[i][COL.code])};
-    }
+    if (mine === -1 && String(rows[i][COL.deviceId]) === deviceId && rows[i][COL.disabled] !== true) mine = i;
   }
-  for (var k = 0; k < rows.length; k++) used[String(rows[k][COL.code])] = true;
-  var code;
-  do {
+  for (var k = 0; k < rows.length; k++) if (k !== mine) used[String(rows[k][COL.code])] = true;
+  if (wanted && used[wanted]) fail_('這個代號已經有人用了，換一個試試看。');
+  if (mine !== -1) {
+    var row = mine + 2;
+    if (snapshot.json) write_(sheet.getRange(row, COL.id + 1, 1, 3), [snapshot.id, snapshot.json, null]); // 只改代號時沒帶快照，就不動原本的
+    write_(sheet.getRange(row, COL.updatedAt + 1, 1, 1), [now]);
+    if (wanted && wanted !== String(rows[mine][COL.code])) write_(sheet.getRange(row, COL.code + 1, 1, 1), [wanted]);
+    return {ok:true, code:wanted || String(rows[mine][COL.code])};
+  }
+  var code = wanted;
+  while (!code || used[code]) {
     code = '';
     for (var c = 0; c < CODE_LENGTH; c++) code += CODE_CHARS.charAt(Math.floor(Math.random() * CODE_CHARS.length));
-  } while (used[code]);
+  }
   var target = sheet.getLastRow() + 1;
   if (target > sheet.getMaxRows()) sheet.insertRowsAfter(sheet.getMaxRows(), 100);
   write_(sheet.getRange(target, 1, 1, COL.reclaims + 1), [code, deviceId, snapshot.id, snapshot.json, now, now, 0]);
@@ -116,9 +131,8 @@ function issue_(deviceId, resident) {
 
 /** 用號碼找回：回傳原本的裝置代號和島民快照。猜錯太多次先擋 10 分鐘。 */
 function reclaim_(deviceId, value) {
-  var code = String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  var pattern = new RegExp('^[' + CODE_CHARS + ']{' + CODE_LENGTH + '}$');
-  if (!pattern.test(code)) fail_('島民證是 ' + CODE_LENGTH + ' 個英文字母和數字，請再確認一次。');
+  var code = normalizeCode_(value);
+  if (!ANY_CODE.test(code)) fail_('島民證代號是 6–12 個英文字母或數字，請再確認一次。');
   var cache = CacheService.getScriptCache();
   var deviceKey = 'fail:' + deviceId;
   var fails = Number(cache.get(deviceKey)) || 0;
@@ -138,6 +152,11 @@ function reclaim_(deviceId, value) {
   cache.put(deviceKey, String(fails + 1), FAIL_WINDOW_SECONDS);
   cache.put('fail-all', String(allFails + 1), FAIL_WINDOW_SECONDS);
   fail_('找不到這張島民證，請再確認一次號碼。');
+}
+
+/** 客人輸入的代號：轉大寫、去掉空白和連字號。 */
+function normalizeCode_(value) {
+  return String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
 /** 島民快照只留固定欄位、限制長度；格式不對就不存（還是照樣發證）。 */

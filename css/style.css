@@ -1984,3 +1984,14 @@ a { color: var(--wine); }
 .clabel.pumpkin span { background: linear-gradient(135deg, #ffb347, #e8741c); border-color: #fff3e0; box-shadow: 0 6px 18px rgba(120, 50, 160, 0.45); color: #3a1d05; }
 .clabel.pumpkin span::before { content: '🎃'; font-size: 18px; line-height: 1; }
 .clabel.pumpkin i { display: none; }
+
+/* 島民證代號：自己取、可以改 */
+.me-code { text-transform: uppercase; letter-spacing: 0.12em; font-weight: 700; }
+.me-code-rule { margin: 6px 0 0; }
+.id-actions .id-btn { min-width: 0; }
+.id-edit { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
+.id-edit[hidden] { display: none; }
+.id-edit .me-name { height: 38px; }
+.id-edit .id-btn { flex: none; padding: 0 14px; height: 38px; }
+.id-edit .note-hint { grid-column: 1 / -1; margin: 0; }
+.id-code { word-break: break-all; }

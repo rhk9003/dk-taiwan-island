@@ -354,7 +354,18 @@ async function boot() {
     if (me && mineId) list.unshift({ ...cleanResident({ ...me, id: mineId }), pending: me.pending });
     world.setResidents(list, mineId);
   };
-  async function saveResident(choice) {
+  async function saveResident({ code: wanted, ...choice }) {
+    // 新島民先登記自己取的島民證代號：被別人用了就先不放上島，請客人換一個
+    let code = '';
+    if (islanderUrl && wanted) {
+      const claim = await postSheet(islanderUrl, {
+        role: 'issue',
+        code: wanted,
+        resident: { id: mineId, look: choice.look, mode: choice.mode, nickname: choice.nickname, since: me?.since || '' },
+      });
+      if (!claim.ok) return { ...claim, field: 'code' };
+      code = claim.data.code;
+    }
     const res = await postSheet(data.site.managerPicksUrl, { role: 'resident', ...choice });
     if (!res.ok) return res;
     me = {
@@ -364,7 +375,7 @@ async function boot() {
       nickname: choice.nickname,
       pending: Boolean(choice.nickname) && res.data.nicknamePending !== false,
       since: res.data.since || me?.since || '', // 上島時間：重新捏不會變，島民照這個時間長大
-      code: me?.code || '',
+      code: code || me?.code || '',
     };
     saveMe(me);
     $('btn-me').textContent = '我的島民';
@@ -377,10 +388,12 @@ async function boot() {
   // 島民證：另一個 Apps Script 專案（site.json 的 islanderUrl），沒設定就不出現。
   // 換手機或清掉瀏覽器資料時，輸入號碼就改用原本的裝置代號，變回原本的島民
   const islanderUrl = residentsOn ? data.site.islanderUrl || '' : '';
-  async function issueCard() {
+  // wanted：客人想改成的代號（不帶就是維持原本的號碼，順便更新造型快照）
+  async function issueCard(wanted = '') {
     if (!islanderUrl || !me || !mineId) return { ok: false, message: '還沒有島民。' };
     const res = await postSheet(islanderUrl, {
       role: 'issue',
+      ...(wanted ? { code: wanted } : {}),
       resident: { id: mineId, look: me.look, mode: me.mode, nickname: me.nickname, since: me.since || '' },
     });
     if (res.ok && res.data.code) {
@@ -625,6 +638,7 @@ async function boot() {
     onFindMe: () => world.focusResident(),
     islander: Boolean(islanderUrl),
     onIslanderCard: () => issueCard(),
+    onChangeCode: (code) => issueCard(code),
     onReclaim: (code) => reclaim(code),
     onPostcardsSeen: (total) => {
       try { localStorage.setItem(POSTCARD_KEY, String(total)); } catch { /* 存不了就下次再提醒一次 */ }

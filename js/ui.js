@@ -866,10 +866,13 @@ export function createUI(data, handlers) {
 
     const nickname = h('input', { class: 'me-name', maxlength: '10', placeholder: '最多 10 個字（選填）', value: me?.nickname || '' });
     const honeypot = h('input', { class: 'hp', tabindex: '-1', autocomplete: 'off', 'aria-hidden': 'true' });
+    // 新島民自己取島民證代號（先放一組隨機的，可以整個改掉）；換手機時用它把島民接回來
+    const askCode = handlers.islander && !me;
+    const codeInput = askCode ? h('input', { class: 'me-name me-code', maxlength: '14', value: randomCode(), autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false' }) : null;
     const status = h('p', { class: 'note-status', role: 'status' });
     const submit = h('button', { type: 'button', class: 'cta', style: '--c:#8B2332' }, me ? '更新我的島民 →' : '放上島 →');
     submit.addEventListener('click', async () => {
-      const problem = textProblem(nickname.value, 'nickname');
+      const problem = textProblem(nickname.value, 'nickname') || (codeInput ? codeProblem(codeInput.value) : '');
       if (problem) {
         status.textContent = problem;
         return;
@@ -881,12 +884,14 @@ export function createUI(data, handlers) {
         mode: choice.mode,
         nickname: cleanText(nickname.value),
         website: honeypot.value,
+        ...(codeInput ? { code: normCode(codeInput.value) } : {}),
       });
       submit.disabled = false;
+      if (!res.ok && res.field === 'code') codeInput?.focus();
       // 後端還沒更新到認得「泳渡日月潭」時，請客人先選別的
       const lakeNotReady = !res.ok && choice.mode === 'lake' && /移動方式/.test(res.message || '');
       status.textContent = res.ok
-        ? (res.pending ? '上島了！暱稱審核通過後，大家就看得到你的名字。' : '上島了！快去找找你的島民。')
+        ? (codeInput ? '上島了！島民證代號記好了嗎？換手機時用得到。' : res.pending ? '上島了！暱稱審核通過後，大家就看得到你的名字。' : '上島了！快去找找你的島民。')
         : lakeNotReady ? '「泳渡日月潭」還在準備中，先選別的移動方式，晚點再回來換！' : res.message;
     });
 
@@ -906,6 +911,10 @@ export function createUI(data, handlers) {
       group('shoe', '鞋子顏色', O.shoe, (c) => h('i', { class: 'swatch', style: `background:${c}`, title: c })),
       group('mode', '移動模式', O.mode, (o) => o.label),
       h('div', { class: 'me-group' }, h('p', { class: 'me-label' }, '暱稱', h('span', { class: 'note-hint', text: '不能放網址、聯絡方式或官方字樣' })), nickname, honeypot),
+      codeInput ? h('div', { class: 'me-group' },
+        h('p', { class: 'me-label' }, '島民證代號', h('span', { class: 'note-hint', text: '自己取一個好記的，換手機時用它把島民接回來' })),
+        codeInput,
+        h('p', { class: 'note-hint me-code-rule', text: '6～12 個英文字母或數字，至少要有一個英文字母，不能跟別人一樣。' })) : null,
       submit,
       status,
       reclaimForm(Boolean(me)),
@@ -913,7 +922,22 @@ export function createUI(data, handlers) {
   }
 
   // ---- 島民證：換手機或清掉瀏覽器資料時，用號碼把島民接回來 ----
-  const codeText = (code) => (code ? `${code.slice(0, 3)}-${code.slice(3)}` : '');
+  const codeText = (code) => code || '';
+  const normCode = (v) => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  // 自己取的代號：6～12 個英文字母或數字，至少一個英文字母（不要用生日、電話）
+  function codeProblem(v) {
+    const c = normCode(v);
+    if (c.length < 6 || c.length > 12) return '島民證代號要 6～12 個英文字母或數字。';
+    if (!/[A-Z]/.test(c)) return '島民證代號至少要有一個英文字母（不要用生日或電話）。';
+    return '';
+  }
+  // 預設給一組隨機代號，不用 0/O、1/I/L 這些容易看錯的字
+  function randomCode() {
+    const chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+    let c = '';
+    while (!/[A-Z]/.test(c)) c = Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+    return c;
+  }
   function islanderCard(me) {
     if (!handlers.islander || !me) return null;
     const code = h('b', { class: 'id-code', text: me.code ? codeText(me.code) : '發證中…' });
@@ -926,12 +950,37 @@ export function createUI(data, handlers) {
       onclick: async () => {
         try {
           await navigator.clipboard.writeText(me.code);
-          status.textContent = '號碼複製好了！';
+          status.textContent = '代號複製好了！';
         } catch {
-          status.textContent = '複製不了，請把號碼抄下來或截圖。';
+          status.textContent = '複製不了，請把代號抄下來或截圖。';
         }
       },
-    }, '複製號碼');
+    }, '複製代號');
+    // 改代號：換成自己好記的，舊的立刻失效
+    const newCode = h('input', { class: 'me-name me-code', maxlength: '14', placeholder: '新的代號', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false' });
+    const saveCode = h('button', { type: 'button', class: 'id-btn' }, '改好了');
+    const editor = h('div', { class: 'id-edit', hidden: true }, newCode, saveCode,
+      h('p', { class: 'note-hint', text: '6～12 個英文字母或數字，至少一個英文字母。改了以後舊的代號就不能用了。' }));
+    const edit = h('button', { type: 'button', class: 'id-btn', disabled: !me.code, onclick: () => { editor.hidden = !editor.hidden; if (!editor.hidden) newCode.focus(); } }, '改代號');
+    saveCode.addEventListener('click', async () => {
+      const problem = codeProblem(newCode.value);
+      if (problem) {
+        status.textContent = problem;
+        return;
+      }
+      saveCode.disabled = true;
+      status.textContent = '改代號中…';
+      const res = await handlers.onChangeCode(normCode(newCode.value));
+      saveCode.disabled = false;
+      if (!res.ok) {
+        status.textContent = res.message;
+        return;
+      }
+      code.textContent = codeText(res.code);
+      editor.hidden = true;
+      newCode.value = '';
+      status.textContent = '代號改好了！記得存成圖片或抄下來。';
+    });
     if (!me.code) {
       handlers.onIslanderCard().then((res) => {
         if (!res.ok) {
@@ -940,24 +989,26 @@ export function createUI(data, handlers) {
           return;
         }
         code.textContent = codeText(res.code);
-        save.disabled = copy.disabled = false;
+        save.disabled = copy.disabled = edit.disabled = false;
       });
     }
     return h('section', { class: 'id-card' },
-      h('p', { class: 'id-title' }, '島民證', h('small', { text: '換手機或清掉瀏覽器資料時，用這組號碼把島民接回來' })),
+      h('p', { class: 'id-title' }, '島民證', h('small', { text: '換手機或清掉瀏覽器資料時，用這組代號把島民接回來' })),
       code,
-      h('div', { class: 'id-actions' }, save, copy),
+      h('div', { class: 'id-actions' }, save, copy, edit),
+      editor,
       status);
   }
 
   function reclaimForm(hasMe) {
     if (!handlers.islander) return null;
-    const input = h('input', { class: 'me-name', maxlength: '8', placeholder: '例如 ABC-234', autocomplete: 'off', autocapitalize: 'characters' });
+    const input = h('input', { class: 'me-name', maxlength: '14', placeholder: '輸入你的島民證代號', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false' });
     const status = h('p', { class: 'note-status', role: 'status' });
     const go = h('button', { type: 'button', class: 'cta', style: '--c:#3F7FBF' }, '接回我的島民 →');
     go.addEventListener('click', async () => {
-      if (input.value.replace(/[^0-9a-z]/gi, '').length !== 6) {
-        status.textContent = '島民證是 6 個英文字母和數字。';
+      const len = normCode(input.value).length;
+      if (len < 6 || len > 12) {
+        status.textContent = '島民證代號是 6～12 個英文字母或數字。';
         return;
       }
       go.disabled = true;
@@ -1001,13 +1052,15 @@ export function createUI(data, handlers) {
     g.font = font(20);
     g.fillStyle = '#7a6a62';
     if (age.known) g.fillText(`${age.title}・上島第 ${age.days + 1} 天`, 250, 168);
-    g.fillText('島民證號碼', 250, 222);
+    g.fillText('島民證代號', 250, 222);
     g.fillStyle = '#8B2332';
-    g.font = font(64, 900);
+    let size = 64; // 自己取的代號最長 12 個字，太長就縮小字，不要超出卡片
+    g.font = font(size, 900);
+    while (g.measureText(codeText(me.code)).width > 360 && size > 28) g.font = font((size -= 4), 900);
     g.fillText(codeText(me.code), 250, 290);
     g.fillStyle = '#7a6a62';
     g.font = font(16, 500);
-    g.fillText('換手機時，到 DK 台灣島「我的島民」輸入這組號碼就能接回來', 44, 345);
+    g.fillText('換手機時，到 DK 台灣島「我的島民」輸入這組代號就能接回來', 44, 345);
     const blob = await new Promise((resolve) => cv.toBlob(resolve, 'image/png'));
     const url = URL.createObjectURL(blob);
     const a = h('a', { href: url, download: 'DK台灣島-島民證.png' });
