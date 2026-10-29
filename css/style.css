@@ -1998,3 +1998,15 @@ a { color: var(--wine); }
 .id-edit .id-btn { flex: none; padding: 0 14px; height: 38px; }
 .id-edit .note-hint { grid-column: 1 / -1; margin: 0; }
 .id-code { word-break: break-all; }
+
+/* 島民留言板：像貼在島民名片上的小紙條 */
+.card section.rn-board { padding: 12px 14px; background: #fffdf6; }
+.rn-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 260px; overflow-y: auto; }
+.rn-list li { position: relative; padding: 10px 12px; border-radius: 10px; background: #fff7d6; box-shadow: 0 2px 6px rgba(60, 30, 20, 0.12); }
+.rn-list li:nth-child(even) { background: #e9f5e6; }
+.rn-list li p { margin: 0 0 4px; font-family: 'LXGW WenKai TC', var(--font); font-size: 15px; line-height: 1.5; color: var(--ink); }
+.rn-list li small { color: var(--muted); font-size: 12px; }
+.rn-list li.rn-empty { background: none; box-shadow: none; padding: 4px 0; color: var(--muted); font-size: 13px; }
+.rn-hide { position: absolute; top: 6px; right: 8px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--muted); font-size: 11px; cursor: pointer; }
+.rn-form { grid-template-columns: 1fr; }
+.rn-form .cta { width: auto; padding: 0 20px; height: 40px; }

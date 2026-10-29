@@ -385,6 +385,21 @@ async function boot() {
     return { ok: true, pending: me.pending };
   }
 
+  // 島民留言：點開島民名片時才讀（店長表單的 Apps Script，doGet?resident=角色ID）；島民的主人可以隱藏收到的留言
+  const notesUrl = residentsOn ? data.site.managerPicksUrl : '';
+  async function loadNotes(id) {
+    const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+    try {
+      const res = await fetch(`${notesUrl}?resident=${encodeURIComponent(id)}`, { cache: 'no-store' });
+      const json = await res.json();
+      return (Array.isArray(json?.notes) ? json.notes : [])
+        .map((n) => ({ id: text(n.id, 80), nickname: text(n.nickname, 12) || '路過的客人', text: text(n.text, 60), at: text(n.at, 40) }))
+        .filter((n) => n.id && n.text);
+    } catch {
+      return [];
+    }
+  }
+
   // 島民證：另一個 Apps Script 專案（site.json 的 islanderUrl），沒設定就不出現。
   // 換手機或清掉瀏覽器資料時，輸入號碼就改用原本的裝置代號，變回原本的島民
   const islanderUrl = residentsOn ? data.site.islanderUrl || '' : '';
@@ -653,6 +668,9 @@ async function boot() {
     onIslanderCard: () => issueCard(),
     onMe: () => app.me(),
     hasMe: () => Boolean(me),
+    loadResidentNotes: notesUrl ? (id) => loadNotes(id) : null,
+    onResidentNote: (id, nickname, text, website) => postSheet(notesUrl, { role: 'resident-note', residentId: id, nickname, text, website }),
+    onHideNote: (noteId) => postSheet(notesUrl, { role: 'resident-note-hide', noteId }),
     onChangeCode: (code) => issueCard(code),
     onReclaim: (code) => reclaim(code),
     onPostcardsSeen: (total) => {
@@ -746,9 +764,11 @@ async function boot() {
   if (forceReport && !lastVisit) lastVisit = Date.now() - 3 * 86400000;
   const reportDue = Boolean(lastVisit) && (forceReport || Date.now() - lastVisit >= AWAY);
 
-  function buildReport() {
+  function buildReport(myNotes = []) {
     const items = [];
     const after = (iso) => Date.parse(iso || '') > lastVisit;
+    const freshNotes = myNotes.filter((n) => after(n.at)).length;
+    if (freshNotes) items.push({ icon: '💬', text: `有人留言給你的島民，共 ${freshNotes} 則新留言。`, go: 'me', label: '看留言' });
     if (me?.since) {
       const was = ageOf(me.since, lastVisit);
       const now = ageOf(me.since);
@@ -777,10 +797,15 @@ async function boot() {
     if (data.event?.news && (forceReport || !seenEvents().includes(data.event.id))) items.push({ icon: '🎉', text: data.event.news });
     return items;
   }
-  function showReport() {
+  async function showReport() {
+    if (!reportDue) return;
+    // 自己的島民收到的留言（最多等 4 秒，讀不到就算了）
+    const myNotes = me && mineId && notesUrl
+      ? await Promise.race([loadNotes(mineId), new Promise((r) => setTimeout(() => r([]), 4000))])
+      : [];
     // 客人已經自己點去別的地方，就不打擾
-    if (!reportDue || state.region || state.store || state.mission || !$('card').hidden || !$('intro').hidden) return;
-    const items = buildReport();
+    if (state.region || state.store || state.mission || !$('card').hidden || !$('intro').hidden) return;
+    const items = buildReport(myNotes);
     if (!items.length) return;
     if (data.event) markEventSeen(data.event.id);
     ui.showReport(items, Math.max(1, Math.round((Date.now() - lastVisit) / 86400000)));

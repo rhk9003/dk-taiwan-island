@@ -903,6 +903,7 @@ export function createUI(data, handlers) {
       preview,
       me ? h('button', { type: 'button', class: 'me-find', onclick: () => handlers.onFindMe() }, '看我的島民走到哪了 →') : null,
       islanderCard(me),
+      me ? residentGuestbook(me, true) : null,
       me ? postcardAlbum(me) : null,
       me ? h('p', { class: 'me-section', text: '改造型' }) : null,
       group('body', '身體', O.body, (b) => h('img', { src: `assets/mascot-${b.id}.png`, alt: b.label, title: b.label })),
@@ -946,12 +947,87 @@ export function createUI(data, handlers) {
           mode ? h('li', { text: `移動：${mode}` }) : null,
           latest ? h('li', { text: `最近從${latest.landmark.name}寄了明信片` }) : null,
         ].filter(Boolean))),
+      residentGuestbook(r, isMine),
       isMine
         ? h('button', { type: 'button', class: 'cta', onclick: () => handlers.onMe() }, '看我的島民、明信片 →')
         : handlers.hasMe()
           ? h('p', { class: 'note-hint', text: '每個島民都會照真實時間長大，也會從去過的地方寄明信片回來。' })
           : h('button', { type: 'button', class: 'cta', onclick: () => handlers.onMe() }, '我也要捏一個島民 →'),
     );
+  }
+
+  // ---- 島民留言板：別人點開島民可以留言給他；主人看得到收到的留言，也可以自己隱藏 ----
+  function residentGuestbook(r, isMine) {
+    if (!handlers.loadResidentNotes || !r?.id) return null;
+    const status = h('p', { class: 'note-status', role: 'status' });
+    const list = h('ul', { class: 'rn-list' }, h('li', { class: 'rn-empty', text: '讀取留言中…' }));
+    const empty = () => h('li', { class: 'rn-empty', text: isMine ? '還沒有人留言給你的島民，分享給朋友來留言吧！' : '還沒有人留言，當第一個吧！' });
+    const item = (n) => {
+      const li = h('li', {}, h('p', { text: n.text }), h('small', { text: `— ${n.nickname}` }));
+      if (isMine) {
+        li.append(h('button', {
+          type: 'button',
+          class: 'rn-hide',
+          onclick: async (e) => {
+            e.target.disabled = true;
+            const res = await handlers.onHideNote(n.id);
+            if (!res.ok) {
+              e.target.disabled = false;
+              status.textContent = res.message;
+              return;
+            }
+            li.remove();
+            if (!list.children.length) list.append(empty());
+          },
+        }, '隱藏'));
+      }
+      return li;
+    };
+    handlers.loadResidentNotes(r.id).then((notes) => list.replaceChildren(...(notes.length ? notes.map(item) : [empty()])));
+
+    let form = null;
+    if (!isMine) {
+      const count = h('span', { class: 'note-count', text: '0/60' });
+      const submit = h('button', { type: 'submit', class: 'cta', style: '--c:#3E9A6A' }, '留言 →');
+      form = h('form', { class: 'note-form rn-form', novalidate: true },
+        h('input', { name: 'nickname', maxlength: '12', placeholder: '你的暱稱（選填）', autocomplete: 'nickname' }),
+        h('textarea', { name: 'text', maxlength: '60', rows: '2', placeholder: `想對${r.nickname || '這位島民'}說什麼？`, oninput: (e) => { count.textContent = `${e.target.value.length}/60`; } }),
+        h('input', { name: 'website', class: 'hp', tabindex: '-1', autocomplete: 'off', 'aria-hidden': 'true' }),
+        h('div', { class: 'note-actions' }, count, submit));
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const nickname = cleanText(form.nickname.value);
+        const text = cleanText(form.text.value);
+        if ([...text].length < 2) {
+          status.textContent = '再多寫幾個字吧！';
+          return;
+        }
+        const problem = textProblem(text) || textProblem(nickname, 'nickname');
+        if (problem) {
+          status.textContent = problem;
+          return;
+        }
+        submit.disabled = true;
+        status.textContent = '留言中…';
+        const res = await handlers.onResidentNote(r.id, nickname, text, form.website.value);
+        submit.disabled = false;
+        if (!res.ok) {
+          status.textContent = res.message;
+          return;
+        }
+        status.textContent = '留言貼上去了！';
+        form.text.value = '';
+        count.textContent = '0/60';
+        const note = res.data?.note || { id: '', nickname: nickname || '路過的客人', text };
+        list.querySelector('.rn-empty')?.remove();
+        list.prepend(item(note));
+      });
+    }
+    return h('section', { class: 'rn-board' },
+      h('p', { class: 'me-label' }, isMine ? '大家給你的島民的留言' : `留言給${r.nickname || '這位島民'}`, h('span', { class: 'note-hint', text: isMine ? '不喜歡的留言可以按「隱藏」' : '請友善留言，不能放網址或聯絡方式' })),
+      list,
+      form,
+      status);
   }
 
   // ---- 島民證：換手機或清掉瀏覽器資料時，用號碼把島民接回來 ----
