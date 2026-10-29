@@ -1979,3 +1979,8 @@ a { color: var(--wine); }
 }
 .moon::after { content: ''; position: absolute; top: 22%; left: 54%; width: 16%; height: 16%; border-radius: 50%; background: rgba(214, 178, 96, 0.45); box-shadow: -22px 18px 0 4px rgba(214, 178, 96, 0.3); }
 @media (max-width: 820px) { .moon { top: 70px; left: 14px; width: 54px; height: 54px; } }
+
+/* 萬聖節的「領優惠券」名牌：南瓜橘配紫色 */
+.clabel.pumpkin span { background: linear-gradient(135deg, #ffb347, #e8741c); border-color: #fff3e0; box-shadow: 0 6px 18px rgba(120, 50, 160, 0.45); color: #3a1d05; }
+.clabel.pumpkin span::before { content: '🎃'; font-size: 18px; line-height: 1; }
+.clabel.pumpkin i { display: none; }

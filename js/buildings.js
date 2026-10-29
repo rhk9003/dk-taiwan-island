@@ -100,12 +100,30 @@ function signBoard(x, z, rot = 0) {
 // 每間店固定配一位 DKEC 氣球人（島上門口那位、進店後櫃台那位是同一個）
 export const mascotIndex = (storeId) => hashSeed(storeId) % MASCOT.length;
 
+// 萬聖節的南瓜屋頂：五瓣橘色南瓜（深淺交錯像南瓜的稜），頂上一根綠色蒂頭和一片葉子；DK 招牌照樣露在前面
+function pumpkinRoof() {
+  const g = new THREE.Group();
+  const lobe = geo('pumpkinLobe', () => new THREE.SphereGeometry(1, 14, 10));
+  [[-0.36, 0.17, 0.24, 0.34], [-0.18, 0.2, 0.29, 0.39], [0, 0.21, 0.31, 0.41], [0.18, 0.2, 0.29, 0.39], [0.36, 0.17, 0.24, 0.34]]
+    .forEach(([x, rx, ry, rz], i) => {
+      const m = place(lobe, i % 2 ? '#e5761a' : '#f08a24', x, 0.5, 0);
+      m.scale.set(rx, ry, rz);
+      g.add(m);
+    });
+  g.add(cyl(0.035, 0.05, 0.16, 6, '#4d7a35', 0, 0.76, 0));
+  const leaf = ball(0.07, '#5f9a48', 0.08, 0.84, 0.02, 0);
+  leaf.scale.set(1.3, 0.35, 0.8);
+  g.add(leaf);
+  return g;
+}
+
 const TEMPLATES = {
-  // 一般門市：白牆、酒紅屋頂、DK 招牌
-  shop(color) {
+  // 一般門市：白牆、酒紅屋頂、DK 招牌。style 是 'pumpkin'（萬聖節）時屋頂換成一顆大南瓜
+  shop(color, anims, style) {
     const g = new THREE.Group();
     g.add(box(0.86, 0.5, 0.66, WALL));
-    g.add(prism(0.98, 0.32, 0.78, WINE, 0, 0.5, 0));
+    if (style === 'pumpkin') g.add(pumpkinRoof());
+    else g.add(prism(0.98, 0.32, 0.78, WINE, 0, 0.5, 0));
     g.add(box(0.9, 0.05, 0.22, color, 0, 0.36, 0.42));
     g.add(box(0.22, 0.3, 0.02, DOOR, 0, 0, 0.335));
     g.add(box(0.2, 0.16, 0.02, GLASS, -0.27, 0.13, 0.335), box(0.2, 0.16, 0.02, GLASS, 0.27, 0.13, 0.335));
@@ -246,10 +264,11 @@ const TEMPLATES = {
 
 export const BUILDING_TYPES = Object.keys(TEMPLATES);
 
-export function createBuilding(type, color) {
+/** style：節日的樣子（目前只有門市的 'pumpkin' 南瓜屋頂） */
+export function createBuilding(type, color, style = null) {
   const anims = [];
   const make = TEMPLATES[type] || TEMPLATES.shop;
-  const g = make(color, anims);
+  const g = make(color, anims, style);
   g.userData.anims = anims;
   return g;
 }

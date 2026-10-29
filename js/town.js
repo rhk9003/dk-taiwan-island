@@ -6,12 +6,22 @@ const WALLS = ['#f6efe3', '#fde2c8', '#d9ecf2', '#f3d9e2', '#e3f0d6', '#fff1c4',
 const ROOFS = ['#c9583e', '#4f7fae', '#5f9a68', '#8a6a9e', '#d08a3a', '#7b6e66'];
 const AWNINGS = ['#e0673a', '#3f7fbf', '#3e9a6a', '#c8452f', '#e9a23b', '#8b2332', '#e86f8a'];
 const GLASS = '#a9d3e3';
+// 萬聖節（events.json 的 fx 有 halloweenTown）：屋頂和遮雨棚換成南瓜橘、紫、黑
+const THEMES = {
+  halloween: {
+    roofs: ['#e8741c', '#f08a24', '#5b3a8a', '#3a2a4a', '#2b2b2b', '#c85a12'],
+    awnings: ['#e8741c', '#7a4fb0', '#2b2b2b', '#f0a030', '#5b3a8a', '#c85a12'],
+  },
+};
 // 六角格的六個角（街上的路只走格子中心連到邊的中點，攤子和路燈放在角落就不會擋路）
 const CORNERS = [0, 1, 2, 3, 4, 5].map((k) => Math.PI / 6 + (k * Math.PI) / 3);
 // 都市感：北部的樓蓋高一點
 const CITY = { north: 1.7, central: 1.3, kaoping: 1.3, taozhumiao: 1.15 };
 
-export function buildTown(tiles) {
+/** theme：節日配色（THEMES 的 key），沒有就用平常的顏色 */
+export function buildTown(tiles, theme = null) {
+  const roofs = THEMES[theme]?.roofs || ROOFS;
+  const awnings = THEMES[theme]?.awnings || AWNINGS;
   const houses = [];
   const stalls = [];
   const lamps = [];
@@ -35,8 +45,8 @@ export function buildTown(tiles) {
           rot: (rand() - 0.5) * 0.4,
           tall,
           wall: pick(WALLS),
-          roof: pick(ROOFS),
-          awning: pick(AWNINGS),
+          roof: pick(roofs),
+          awning: pick(awnings),
         });
       }
     }
@@ -50,7 +60,7 @@ export function buildTown(tiles) {
       if (rand() < 0.4) {
         const c = corner(0, 0.68);
         // 攤子正面朝向格子中心（街道）
-        stalls.push({ ...c, rot: Math.atan2(t.x - c.x, t.z - c.z), color: AWNINGS[Math.floor(rand() * AWNINGS.length)] });
+        stalls.push({ ...c, rot: Math.atan2(t.x - c.x, t.z - c.z), color: awnings[Math.floor(rand() * awnings.length)] });
       }
       if (rand() < 0.45) lamps.push(corner(3, 0.8));
     }

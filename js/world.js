@@ -48,7 +48,8 @@ export function createWorld(container, data, handlers) {
   scene.background = new THREE.Color(SKY);
   scene.fog = new THREE.Fog(SKY, maxDim * 1.8, maxDim * 3.6);
   scene.add(island.group);
-  scene.add(buildTown(layout.tiles));
+  const fx = new Set(data.event?.fx || []); // 節日特效（events.json）
+  scene.add(buildTown(layout.tiles, fx.has('halloweenTown') ? 'halloween' : null));
 
   const sea = new THREE.Mesh(
     new THREE.PlaneGeometry(maxDim * 14, maxDim * 14),
@@ -82,7 +83,7 @@ export function createWorld(container, data, handlers) {
     if (!t.store) continue;
     const s = t.store;
     const mod = data.modules[s.module];
-    const g = createBuilding(mod.building, mod.color);
+    const g = createBuilding(mod.building, mod.color, fx.has('pumpkinRoofs') ? 'pumpkin' : null);
     const rand = rng(`${s.id}-place`);
     g.rotation.y = (rand() - 0.5) * 0.5;
     g.position.set(t.x, t.h, t.z);
@@ -287,7 +288,6 @@ export function createWorld(container, data, handlers) {
   });
   // DK 物流車：沿著環島公路送貨
   // 萬聖節（events.json 的 fx 有 costumeTrucks）物流車蓋上白布變裝
-  const fx = new Set(data.event?.fx || []);
   const trucks = [0, 0.25, 0.5, 0.75].map((offset, i) => {
     const truck = createDeliveryTruck(fx.has('costumeTrucks') ? 'costume' : null);
     scene.add(truck);
@@ -334,13 +334,14 @@ export function createWorld(container, data, handlers) {
       const p = project(ll);
       return new THREE.Vector3(p.x, 0, p.z);
     }), true, 'centripetal');
-    const { group: g, anims: a } = createCouponMascot();
+    const pumpkinCoupon = fx.has('pumpkinCoupon');
+    const { group: g, anims: a } = createCouponMascot(pumpkinCoupon ? 'pumpkin' : null);
     g.userData.coupon = true;
     scene.add(g);
     pickables.push(g);
     anims.push(...a);
     const label = new CSS2DObject(h('button', {
-      class: 'clabel',
+      class: pumpkinCoupon ? 'clabel pumpkin' : 'clabel',
       type: 'button',
       onclick: (e) => { e.stopPropagation(); handlers.onCoupon?.(); },
     }, h('span', {}, h('i'), data.site.coupon.label || '領優惠券'))); // 動畫放在內層，外層的 transform 是 3D 定位用的

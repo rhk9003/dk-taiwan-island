@@ -480,13 +480,33 @@ export function createBanner(text, color = WINE, textColor = '#ffffff') {
 }
 
 // 領優惠券專用的金色氣球人：比一般氣球人大很多，手上拿著優惠券，身邊有閃光繞著轉
-export function createCouponMascot() {
+/** style 是 'pumpkin'（萬聖節）時頭換成會發光的南瓜燈，手上的票券也換成萬聖節版 */
+export function createCouponMascot(style = null) {
   const anims = [];
   const g = new THREE.Group();
   const body = new THREE.Group();
+  const pumpkin = style === 'pumpkin';
   const gold = new THREE.MeshStandardMaterial({ color: '#f6c343', roughness: 0.3, metalness: 0.25 });
   body.add(place(geo('cmBody', () => new THREE.CapsuleGeometry(0.1, 0.08, 4, 16).translate(0, 0.14, 0)), gold));
-  body.add(place(geo('cmHead', () => new THREE.SphereGeometry(0.1, 24, 16).translate(0, 0.37, 0)), gold));
+  if (pumpkin) {
+    // 南瓜燈頭：三瓣橘色南瓜、綠色蒂頭，刻出來的眼睛和笑臉會發光
+    const skin = glow('#f08a24', '#ff7a00', 0.25);
+    const light = glow('#ffd86b', '#ffb52e', 1.1);
+    [[-0.05, 0.075], [0, 0.09], [0.05, 0.075]].forEach(([x, r], i) => {
+      const lobe = ball(r, i === 1 ? skin : glow('#e5761a', '#ff6a00', 0.25), x, 0.38, 0, 2);
+      lobe.scale.set(1, 1.05, 1.15);
+      body.add(lobe);
+    });
+    body.add(cyl(0.012, 0.016, 0.06, 5, '#4d7a35', 0, 0.46, 0));
+    for (const x of [-0.035, 0.035]) {
+      const eye = cone(0.018, 0.028, 3, light, x, 0.385, 0.098);
+      eye.rotation.x = -0.2;
+      body.add(eye);
+    }
+    body.add(box(0.07, 0.014, 0.012, light, 0, 0.335, 0.098));
+  } else {
+    body.add(place(geo('cmHead', () => new THREE.SphereGeometry(0.1, 24, 16).translate(0, 0.37, 0)), gold));
+  }
   for (const side of [-1, 1]) {
     const arm = place(geo('cmArm', () => new THREE.CapsuleGeometry(0.03, 0.08, 3, 8)), gold, side * 0.11, 0.2, 0.04);
     arm.rotation.z = side * 0.9;
@@ -502,16 +522,17 @@ export function createCouponMascot() {
   cv.width = 256;
   cv.height = 150;
   const ctx = cv.getContext('2d');
-  ctx.fillStyle = '#fff8ec';
+  const ink = pumpkin ? '#5b2a8a' : WINE;
+  ctx.fillStyle = pumpkin ? '#fff1e0' : '#fff8ec';
   ctx.fillRect(0, 0, 256, 150);
   ctx.setLineDash([10, 8]);
-  ctx.strokeStyle = WINE;
+  ctx.strokeStyle = pumpkin ? '#e8741c' : WINE;
   ctx.lineWidth = 6;
   ctx.strokeRect(10, 10, 236, 130);
-  ctx.fillStyle = WINE;
+  ctx.fillStyle = ink;
   ctx.textAlign = 'center';
-  ctx.font = '700 26px Georgia, serif';
-  ctx.fillText('COUPON', 128, 52);
+  ctx.font = pumpkin ? '700 22px Georgia, serif' : '700 26px Georgia, serif';
+  ctx.fillText(pumpkin ? 'TRICK OR TREAT' : 'COUPON', 128, 52);
   ctx.font = '900 50px "Noto Sans TC", "Microsoft JhengHei", sans-serif';
   ctx.fillText('優惠券', 128, 112);
   const tex = new THREE.CanvasTexture(cv);
@@ -526,8 +547,8 @@ export function createCouponMascot() {
   body.scale.setScalar(14); // 比一般氣球人大很多，全景也看得到
   g.add(body);
 
-  // 閃光
-  const sparkle = glow('#fff6c8', '#ffd36b', 1);
+  // 閃光（萬聖節是橘色的）
+  const sparkle = pumpkin ? glow('#ffc078', '#ff8a1f', 1) : glow('#fff6c8', '#ffd36b', 1);
   for (let i = 0; i < 5; i++) {
     const s = place(geo('spark', () => new THREE.OctahedronGeometry(0.16, 0)), sparkle);
     s.castShadow = false;
