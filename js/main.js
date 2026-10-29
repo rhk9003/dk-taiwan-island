@@ -559,6 +559,19 @@ async function boot() {
       else world.overview();
       setHash('stamps');
     },
+    // 點了島上的島民：他停下來，鏡頭跟過去，卡片是他的名片
+    resident(id) {
+      const r = id === mineId && me ? cleanResident({ ...me, id: mineId }) : serverResidents.find((x) => x.id === id);
+      if (!residentsOn || !r) return;
+      clearTimeout(enterTimer);
+      Object.assign(state, { region: null, store: null, mission: null });
+      ui.showResident(r, id === mineId);
+      world.setFocus(null);
+      world.setSelected(null);
+      world.holdResident(id);
+      world.focusResident(id);
+      setHash('');
+    },
     // 萬聖節糖果袋：拿了哪幾間店的糖、集滿領優惠券
     treat() {
       if (!candy) return app.overview();
@@ -618,10 +631,10 @@ async function boot() {
   let enterTimer = 0;
   // 去看別的地方時，停下來的路人繼續走
   for (const key of Object.keys(app)) {
-    if (key === 'shopper') continue;
     const go = app[key];
     app[key] = (...args) => {
-      world?.releaseShoppers();
+      if (key !== 'shopper') world?.releaseShoppers();
+      if (key !== 'resident') world?.releaseResidents();
       return go(...args);
     };
   }
@@ -638,6 +651,8 @@ async function boot() {
     onFindMe: () => world.focusResident(),
     islander: Boolean(islanderUrl),
     onIslanderCard: () => issueCard(),
+    onMe: () => app.me(),
+    hasMe: () => Boolean(me),
     onChangeCode: (code) => issueCard(code),
     onReclaim: (code) => reclaim(code),
     onPostcardsSeen: (total) => {
@@ -675,7 +690,7 @@ async function boot() {
   });
 
   try {
-    world = createWorld($('stage'), data, { onRegion: app.region, onStore: app.store, onLandmark: app.landmark, onCoupon: app.coupon, onMission: app.mission, onService: app.service, onShopper: app.shopper });
+    world = createWorld($('stage'), data, { onRegion: app.region, onStore: app.store, onLandmark: app.landmark, onCoupon: app.coupon, onMission: app.mission, onService: app.service, onShopper: app.shopper, onResident: (id) => app.resident(id) });
   } catch (e) {
     console.error(e);
     showError(`這個瀏覽器沒辦法顯示 3D 畫面（${e.message}）`);

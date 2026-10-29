@@ -538,8 +538,11 @@ export function createWorld(container, data, handlers) {
     const rect = renderer.domElement.getBoundingClientRect();
     ndc.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
     raycaster.setFromCamera(ndc, camera);
+    residents?.hitbox.computeBoundingSphere(); // 島民一直在走，點之前重算範圍
     for (const hit of raycaster.intersectObjects(pickables, true)) {
       if (!hit.object.visible) continue; // 收起來的彩帶點不到
+      const residentIds = hit.object.userData.residentIds;
+      if (residentIds && hit.instanceId != null) return { resident: residentIds[hit.instanceId] };
       for (let o = hit.object; o; o = o.parent) {
         if (o.userData.storeId) return { store: o.userData.storeId };
         if (o.userData.landmarkId) return { landmark: o.userData.landmarkId };
@@ -568,7 +571,8 @@ export function createWorld(container, data, handlers) {
     down = null;
     if (moved > 6 || !quick) return;
     const hit = pick(e.clientX, e.clientY);
-    if (hit?.store) handlers.onStore(hit.store);
+    if (hit?.resident) handlers.onResident?.(hit.resident);
+    else if (hit?.store) handlers.onStore(hit.store);
     else if (hit?.landmark) handlers.onLandmark?.(hit.landmark);
     else if (hit?.banner !== undefined) { if (hit.banner) window.open(hit.banner, '_blank', 'noopener'); }
     else if (hit?.coupon) handlers.onCoupon?.();
@@ -888,11 +892,13 @@ export function createWorld(container, data, handlers) {
     setResidents(list, mine) {
       if (residents) {
         scene.remove(residents.group);
+        pickables.splice(pickables.indexOf(residents.hitbox), 1);
         residents.dispose();
       }
       mineId = mine;
-      residents = createResidents(list, makeMover, mine, data.event?.hat);
+      residents = createResidents(list, makeMover, mine, data.event?.hat, Date.now(), (id) => handlers.onResident?.(id));
       scene.add(residents.group);
+      pickables.push(residents.hitbox);
     },
     // 有買鞋煩惱的路人：放 n 個「!」在不同地方的路人頭上
     setShoppers(n) {
@@ -919,6 +925,13 @@ export function createWorld(container, data, handlers) {
         const q = people.positionOf(walker);
         return followAt.set(q.x, q.y + 0.4, q.z);
       };
+    },
+    // 點開名片的島民停下來；去看別的地方時放開
+    holdResident(id) {
+      residents?.hold(id, true);
+    },
+    releaseResidents() {
+      residents?.hold(null, false);
     },
     releaseShoppers() {
       for (const o of shoppers) {

@@ -921,6 +921,39 @@ export function createUI(data, handlers) {
     );
   }
 
+  // ---- 島民名片：點了島上的島民，看他長多大、怎麼移動、最近從哪裡寄明信片 ----
+  function showResident(r, isMine) {
+    current = { region: null, store: null };
+    renderList();
+    closeShop();
+    const age = ageOf(r.since);
+    const canvas = h('canvas', { class: 'me-figure', 'aria-label': '島民的樣子' });
+    let figure = null;
+    try {
+      figure = createResidentPreview(canvas, data.event?.hat);
+      figure.set(r.look, r.since);
+    } catch {
+      figure = null;
+    }
+    const mode = RESIDENT_OPTIONS.mode.find((o) => o.id === r.mode)?.label || '';
+    const latest = postcardsOf(r, data.landmarks).cards[0];
+    fillCard(
+      head('ISLANDER・島民', isMine ? '這是你的島民！' : r.nickname || '沒有名字的島民'),
+      h('div', { class: 'me-preview' },
+        figure ? canvas : h('img', { src: `assets/mascot-${r.look.body}.png`, alt: '' }),
+        h('ul', {}, ...[
+          age.known ? h('li', { class: 'me-age' }, h('b', { text: age.title }), `上島第 ${age.days + 1} 天`) : null,
+          mode ? h('li', { text: `移動：${mode}` }) : null,
+          latest ? h('li', { text: `最近從${latest.landmark.name}寄了明信片` }) : null,
+        ].filter(Boolean))),
+      isMine
+        ? h('button', { type: 'button', class: 'cta', onclick: () => handlers.onMe() }, '看我的島民、明信片 →')
+        : handlers.hasMe()
+          ? h('p', { class: 'note-hint', text: '每個島民都會照真實時間長大，也會從去過的地方寄明信片回來。' })
+          : h('button', { type: 'button', class: 'cta', onclick: () => handlers.onMe() }, '我也要捏一個島民 →'),
+    );
+  }
+
   // ---- 島民證：換手機或清掉瀏覽器資料時，用號碼把島民接回來 ----
   const codeText = (code) => code || '';
   const normCode = (v) => String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -1314,5 +1347,5 @@ export function createUI(data, handlers) {
     else if (!card.hidden) handlers.onCloseCard();
   });
 
-  return { showRegion, showLandmark, showCoupon, showServiceMenu, openStation, showResidentEditor, showStampBook, showTreatBag, showShopper, showReport, markStamps: renderList, selectStore, openShop, showNone, maybeShowIntro, refresh };
+  return { showRegion, showLandmark, showCoupon, showServiceMenu, openStation, showResidentEditor, showStampBook, showTreatBag, showShopper, showReport, showResident, markStamps: renderList, selectStore, openShop, showNone, maybeShowIntro, refresh };
 }

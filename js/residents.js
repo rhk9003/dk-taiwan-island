@@ -222,9 +222,10 @@ export function createMovers(places) {
 
 /**
  * 把一批島民放上島。list 已經清過（cleanResident），mine 是這台裝置自己的角色 ID。
- * eventHat：節日帽子（EVENT_HATS 的 key），沒戴帽子的島民會戴上；now 用來算島民長多大
+ * eventHat：節日帽子（EVENT_HATS 的 key），沒戴帽子的島民會戴上；now 用來算島民長多大；
+ * onPick(id)：點了島民的名牌
  */
-export function createResidents(list, makeMover, mineId, eventHat = null, now = Date.now()) {
+export function createResidents(list, makeMover, mineId, eventHat = null, now = Date.now(), onPick = null) {
   const people = list.map((r) => {
     const age = ageOf(r.since, now);
     return {
@@ -268,13 +269,24 @@ export function createResidents(list, makeMover, mineId, eventHat = null, now = 
   if (EVENT_HATS[eventHat]) for (const [g, c] of EVENT_HATS[eventHat]()) addWear((p) => p.hat === 'event', g, mat(c));
   addWear((p) => p.age.beard, BEARD(), mat('#f4f1ea'));
   addWear((p) => p.age.cane, CANE(), mat('#7a5236'));
+  // 點島民用的隱形外框：比身體大一圈，走來走去的小島民也點得到（不畫出來，只給滑鼠／手指點）
+  const hitMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false });
+  const hitbox = createWearable(new THREE.SphereGeometry(0.3, 8, 6).translate(0, LIFT + 0.26, 0), hitMat, people.length);
+  hitbox.castShadow = false;
+  hitbox.userData.residentIds = people.map((p) => p.id);
+  group.add(hitbox);
+  wear.push({ mesh: hitbox, slot: new Map(people.map((_, i) => [i, i])) });
 
   // 名牌：公開的暱稱，和自己的「我」
   const labels = [];
   people.forEach((p) => {
     if (!p.nickname && !p.mine) return;
     const text = p.mine ? `我${p.nickname ? `・${p.nickname}` : ''}${p.pending ? '（暱稱審核中）' : ''}` : p.nickname;
-    const obj = new CSS2DObject(h('span', { class: p.mine ? 'nlabel me' : 'nlabel' }, text));
+    const obj = new CSS2DObject(h('button', {
+      type: 'button',
+      class: p.mine ? 'nlabel me' : 'nlabel',
+      onclick: (e) => { e.stopPropagation(); onPick?.(p.id); },
+    }, text));
     obj.visible = false;
     obj.userData.mine = p.mine;
     group.add(obj);
@@ -283,7 +295,7 @@ export function createResidents(list, makeMover, mineId, eventHat = null, now = 
 
   function update(t, dt) {
     people.forEach((p, i) => {
-      const swing = p.step(p, dt);
+      const swing = p.hold ? 0 : p.step(p, dt); // 被點開名片的島民停下來
       const body = figures.pose(i, p, t, swing, Math.abs(swing) * 0.035);
       for (const w of wear) {
         const k = w.slot.get(i);
@@ -300,6 +312,10 @@ export function createResidents(list, makeMover, mineId, eventHat = null, now = 
     labels: labels.map((l) => l.obj),
     update,
     positionOf: (id) => people.find((p) => p.id === id),
+    hitbox,
+    hold(id, on) {
+      for (const p of people) p.hold = on && p.id === id;
+    },
     dispose() {
       group.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
       for (const { obj } of labels) obj.element.remove();

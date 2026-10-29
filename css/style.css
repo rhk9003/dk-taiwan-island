@@ -1354,6 +1354,9 @@ a { color: var(--wine); }
   color: #4a3b35;
   font: 700 11px var(--font);
   white-space: nowrap;
+  border: 0;
+  pointer-events: auto; /* 點名牌也能打開島民名片 */
+  cursor: pointer;
 }
 .nlabel.me { background: var(--wine); color: #fff; font-size: 12px; }
 .nlabel.is-hidden { visibility: hidden; }
