@@ -624,16 +624,45 @@ export function createWorld(container, data, handlers) {
     return null;
   }
 
+  // 手機上名牌不吃觸控（CSS 的 pointer: coarse），手指碰到名牌也照樣拖、縮地圖（北部店多，名牌到處都是）；
+  // 點一下時由這裡找手指下面最上層的名牌，幫它按下去
+  function labelAt(x, y) {
+    let best = null;
+    let bestZ = -Infinity;
+    for (const el of labelRenderer.domElement.children) {
+      if (el.style.display === 'none') continue;
+      const css = getComputedStyle(el);
+      if (css.visibility === 'hidden') continue;
+      const r = el.getBoundingClientRect();
+      if (x < r.left || x > r.right || y < r.top || y > r.bottom) continue;
+      const z = Number(css.zIndex) || 0;
+      if (z >= bestZ) { best = el; bestZ = z; }
+    }
+    return best;
+  }
+
   const dom = renderer.domElement;
   let down = null;
   let pendingMove = null;
-  dom.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+  const touching = new Set(); // 現在按著的手指；兩指以上就是在縮放，放開時不算點擊
+  let multi = false;
+  dom.addEventListener('pointerdown', (e) => {
+    touching.add(e.pointerId);
+    if (touching.size > 1) multi = true;
+    else { multi = false; down = { x: e.clientX, y: e.clientY, t: performance.now() }; }
+  });
+  dom.addEventListener('pointercancel', (e) => { touching.delete(e.pointerId); down = null; });
   dom.addEventListener('pointerup', (e) => {
-    if (!down) return;
+    touching.delete(e.pointerId);
+    if (!down || multi) { if (!touching.size) down = null; return; }
     const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
     const quick = performance.now() - down.t < 600;
     down = null;
     if (moved > 6 || !quick) return;
+    if (e.pointerType !== 'mouse') {
+      const label = labelAt(e.clientX, e.clientY);
+      if (label) { label.click(); return; }
+    }
     const hit = pick(e.clientX, e.clientY);
     if (hit?.resident) handlers.onResident?.(hit.resident);
     else if (hit?.store) handlers.onStore(hit.store);
