@@ -40,6 +40,10 @@ a { color: var(--wine); }
 /* ---------- 3D 舞台 ---------- */
 .stage { position: relative; overflow: hidden; min-width: 0; }
 .stage canvas { display: block; touch-action: none; }
+/* 兩指縮放、點兩下放大都不給瀏覽器拿去放大整頁（只留上下左右捲動）；
+   地圖上的名牌、右下角按鈕、上方工具列連捲動都不要，手指按在上面也不會動到整頁 */
+* { touch-action: pan-x pan-y; }
+.label-layer *, .fabs, .fabs *, .toolbar, .toolbar *, .brand, .brand * { touch-action: none; }
 .label-layer { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
 
 .brand {

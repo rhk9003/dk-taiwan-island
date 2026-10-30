@@ -10,6 +10,7 @@ import { h, shortName } from './util.js';
 import { safeText } from './textrules.js';
 import { initTracking, setPlace, track } from './track.js';
 import { createRunway } from './runway.js';
+import { preventPageZoom } from './nozoom.js';
 
 const FILES = ['site', 'regions', 'modules', 'stores', 'products', 'landmarks', 'service', 'picks', 'shoppers', 'events'];
 const OPTIONAL = new Set(['landmarks', 'service', 'picks', 'shoppers', 'events']); // 沒有這些檔也能跑
@@ -907,4 +908,5 @@ async function boot() {
   }
 }
 
+preventPageZoom(); // 兩指縮放只縮地圖，不放大整頁
 boot();
