@@ -62,7 +62,7 @@ export function track(name, params = {}) {
 /**
  * 開島紀錄：用什麼開（LINE、FB…）、手機或電腦、從哪裡來、這台第幾次開。
  * 不送島民的裝置代號，另外用一組只拿來數人數的訪客代號。
- * 本機測試（localhost）不送；加 ?debug 才送，而且標成「測試」，每日統計不會算進去。
+ * 本機測試（localhost）不送；加 ?debug 才送。有加 ?debug 的（本機或正式網址）都標成「測試」，每日統計不會算進去。
  */
 export function logOpen(url) {
   const local = !location.hostname || /^(localhost|127\.|\[::1\])/.test(location.hostname);
@@ -81,7 +81,7 @@ export function logOpen(url) {
   } catch {
     visitor = visitor || newVisitor();
   }
-  const body = { role: 'open', visitor, count, ...howOpened(), entry: location.hash.slice(1).split('/')[0].slice(0, 30), test: local };
+  const body = { role: 'open', visitor, count, ...howOpened(), entry: location.hash.slice(1).split('/')[0].slice(0, 30), test: local || debug };
   if (debug) console.info('[open]', body);
   fetch(url, { method: 'POST', mode: 'no-cors', credentials: 'omit', keepalive: true, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
     .catch(() => { /* 沒記到就算了，不影響玩 */ });

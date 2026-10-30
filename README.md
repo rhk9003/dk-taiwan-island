@@ -226,7 +226,7 @@ python -m http.server 8781 --directory dk-taiwan-island
 - **開島紀錄**（`analytics.openLog: true`）：每次有人打開島（同一個分頁重新整理不算）就記一筆到「DK 台灣島 開島紀錄」試算表：時間、訪客、這台第幾次開、用什麼開（LINE／Facebook／Messenger／Instagram／Threads／其他App／手機瀏覽器／電腦）、iPhone／Android／電腦、從哪裡來（官網文章裡、直接開、`utm:來源`、別的網站）、直接到哪（`#runway` 這類）。「每日統計」分頁是公式，第 2 列是開站以來的合計，下面每天一列。
   - 後端在島民證的 Apps Script（`apps-script/islander.gs` 的 `role: "open"`），試算表由 `setup` 建立；這份試算表沒有島民證號碼，可以分享給同事看。
   - 「不同裝置」是用存在瀏覽器裡的訪客代號算的：LINE／FB 內建瀏覽器關掉常會清掉，同一個人會被算成好幾台，看趨勢就好。「這台第幾次開」一直是 1 的，就是紀錄被清掉的。
-  - 本機（localhost）不記；加 `?debug` 才記，而且「從哪裡來」標「測試」，每日統計不算。同一位訪客 2 分鐘內重開只記一次。
+  - 本機（localhost）不記；網址有加 `?debug` 的（本機或正式網址都一樣）「從哪裡來」標「測試」，每日統計不算。同一位訪客 2 分鐘內重開只記一次。
 
 ## 手機效能
 
