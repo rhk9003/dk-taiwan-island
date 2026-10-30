@@ -39,7 +39,7 @@ data/             ← 平常只改這裡
   shoppers.json   有買鞋煩惱的路人：可以推薦的鞋、路人的煩惱和答案
   events.json     節日與季節：日期、島上的裝飾、節日帽子、快報上的那句話
 apps-script/
-  islander.gs     島民證的後端（另一個 Google Apps Script 專案，見「島民證」）
+  islander.gs     島民證＋開島紀錄的後端（另一個 Google Apps Script 專案，見「島民證」「成效追蹤」）
 ```
 
 每個 json 檔最上面的 `_說明` 寫了各欄位的意思。
@@ -223,6 +223,10 @@ python -m http.server 8781 --directory dk-taiwan-island
 - 連到官網（dk-shoes.com.tw）的連結，客人點下去時會自動補上 UTM：`utm_source=dk_taiwan_island`、`utm_medium=referral`、`utm_campaign=dk_taiwan_island`、`utm_content=客人當時在哪`（例如 `store-頂好`、`stamps`、`banner`）。在官網 GA4 看「工作階段來源／媒介」= `dk_taiwan_island / referral`，就是台灣島帶過去的流量和訂單。
 - `data/site.json` 的 `analytics` 填 GA4 評估 ID（`G-` 開頭）或 Meta 像素 ID 才會載入追蹤碼、送事件：`select_content`（進店、看分區…）、`stamp_get`、`reward_claim`、`module_play`、`message_post`、`resident_save`、`find_nearby`、`outbound_click`。留空就只加 UTM。
 - 網址加 `?debug`，按 F12 的 Console 會印出每個事件，方便檢查。
+- **開島紀錄**（`analytics.openLog: true`）：每次有人打開島（同一個分頁重新整理不算）就記一筆到「DK 台灣島 開島紀錄」試算表：時間、訪客、這台第幾次開、用什麼開（LINE／Facebook／Messenger／Instagram／Threads／其他App／手機瀏覽器／電腦）、iPhone／Android／電腦、從哪裡來（官網文章裡、直接開、`utm:來源`、別的網站）、直接到哪（`#runway` 這類）。「每日統計」分頁是公式，第 2 列是開站以來的合計，下面每天一列。
+  - 後端在島民證的 Apps Script（`apps-script/islander.gs` 的 `role: "open"`），試算表由 `setup` 建立；這份試算表沒有島民證號碼，可以分享給同事看。
+  - 「不同裝置」是用存在瀏覽器裡的訪客代號算的：LINE／FB 內建瀏覽器關掉常會清掉，同一個人會被算成好幾台，看趨勢就好。「這台第幾次開」一直是 1 的，就是紀錄被清掉的。
+  - 本機（localhost）不記；加 `?debug` 才記，而且「從哪裡來」標「測試」，每日統計不算。同一位訪客 2 分鐘內重開只記一次。
 
 ## 手機效能
 

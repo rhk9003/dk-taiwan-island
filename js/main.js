@@ -8,7 +8,7 @@ import { createStampBook } from './stamps.js';
 import { activeEvent } from './seasons.js';
 import { h, shortName } from './util.js';
 import { safeText } from './textrules.js';
-import { initTracking, setPlace, track } from './track.js';
+import { initTracking, logOpen, setPlace, track } from './track.js';
 import { createRunway } from './runway.js';
 import { preventPageZoom } from './nozoom.js';
 
@@ -344,6 +344,7 @@ async function boot() {
   try {
     data = normalize(await loadData());
     initTracking(data.site.analytics);
+    logOpen(data.site.analytics?.openLog ? data.site.islanderUrl : '');
   } catch (e) {
     showError(e.message);
     return;

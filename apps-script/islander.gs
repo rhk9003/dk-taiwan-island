@@ -4,8 +4,8 @@
  * 客人換手機或清掉瀏覽器資料時，用 6 碼島民證把自己的島民接回來。
  * 跟「店長的話蒐集」的收件程式分開：自己的排隊鎖、自己的試算表，不跟留言、存島民搶。
  *
- *   setup   第一次使用時在編輯器上方選它再按「執行」：建立「DK 台灣島 島民證」試算表（ID 記在指令碼屬性），
- *           執行紀錄會印出試算表網址。之後重跑也安全，不會刪掉任何紀錄。
+ *   setup   第一次使用時在編輯器上方選它再按「執行」：建立「DK 台灣島 島民證」和「DK 台灣島 開島紀錄」兩份試算表
+ *           （ID 記在指令碼屬性），執行紀錄會印出試算表網址。之後重跑也安全，不會刪掉任何紀錄。
  *   doPost  台灣島送來的要求（text/plain 的 JSON）：
  *     { role: "issue", deviceId, code?, resident: {id, look, mode, nickname, since} }
  *        → 這台裝置的島民證（還沒有就發一組），順便更新島民快照 → {ok:true, code:"ABC234"}
@@ -14,6 +14,9 @@
  *     { role: "reclaim", deviceId, code }
  *        → 用號碼找回 → {ok:true, deviceId:"原本的裝置代號", code, resident:{…快照} 或 null}
  *          台灣島改用回傳的裝置代號，就變回原本那個島民。
+ *     { role: "open", visitor, count, browser, device, from, entry, test }
+ *        → 有人打開台灣島，在「開島紀錄」記一筆 → {ok:true}。不用島民證、不碰裝置代號；
+ *          「每日統計」分頁用公式算每天開幾次、幾台裝置、從哪裡來。
  *     失敗一律回 {ok:false, message:"給客人看的說明"}。
  *   doGet   回 {ok:true, service:"dk-island-islander"}，可以用來確認服務在不在。
  *
@@ -35,6 +38,14 @@ var ANY_CODE = /^[A-Z0-9]{6,12}$/;
 var FAIL_WINDOW_SECONDS = 600;
 var DEVICE_FAIL_LIMIT = 8;
 var GLOBAL_FAIL_LIMIT = 120;
+// 開島紀錄：同一位訪客 2 分鐘內重開只記一次；每 6 小時最多記 2 萬筆（被灌爆時保護試算表）
+var OPEN_SHEET = '開島紀錄';
+var OPEN_HEADERS = ['時間','日期','訪客','這台第幾次開','用什麼開','手機／電腦','從哪裡來','直接到'];
+var OPEN_BROWSERS = ['LINE','Facebook','Messenger','Instagram','Threads','其他App','手機瀏覽器','電腦'];
+var OPEN_DEVICES = ['iPhone','Android','電腦'];
+var OPEN_REPEAT_SECONDS = 120;
+var OPEN_LIMIT = 20000;
+var SUMMARY_SHEET = '每日統計';
 
 
 /* ---------- 第一次設定 ---------- */
@@ -55,6 +66,64 @@ function setup() {
   sheet.setFrozenRows(1);
   [90, 260, 110, 420, 150, 150, 70, 60].forEach(function (w, i) { sheet.setColumnWidth(i + 1, w); });
   console.log('島民證試算表：' + book.getUrl());
+  setupOpens_(props);
+}
+
+/** 開島紀錄放另一份試算表：裡面沒有島民證號碼，可以放心分享給同事看。 */
+function setupOpens_(props) {
+  var id = props.getProperty('OPENS_SPREADSHEET_ID');
+  var book = id ? SpreadsheetApp.openById(id) : SpreadsheetApp.create('DK 台灣島 開島紀錄');
+  props.setProperty('OPENS_SPREADSHEET_ID', book.getId());
+  book.setSpreadsheetTimeZone(TIME_ZONE);
+  var log = book.getSheetByName(OPEN_SHEET);
+  if (!log) {
+    var first = book.getSheets()[0];
+    log = first.getLastRow() === 0 ? first.setName(OPEN_SHEET) : book.insertSheet(OPEN_SHEET);
+  }
+  log.getRange(1, 1, 1, OPEN_HEADERS.length).setValues([OPEN_HEADERS]).setFontWeight('bold').setBackground('#f3e6e8');
+  log.setFrozenRows(1);
+  log.getRange('A:A').setNumberFormat('yyyy-mm-dd hh:mm:ss');
+  log.getRange('B:B').setNumberFormat('yyyy-mm-dd');
+  log.getRange('C:C').setNumberFormat('@');
+  [150, 90, 110, 90, 90, 80, 150, 100].forEach(function (w, i) { log.setColumnWidth(i + 1, w); });
+
+  var sum = book.getSheetByName(SUMMARY_SHEET) || book.insertSheet(SUMMARY_SHEET, 0);
+  // 公式都從第 2 列算起（跳過標題列），COUNTIFS 的每個範圍要一樣大
+  var R = function (col) { return "'" + OPEN_SHEET + "'!" + col + '2:' + col; };
+  var real = R('G') + ', "<>測試"'; // 本機測試的不算
+  var cols = [
+    ['開啟次數', ''],
+    ['不同裝置', 'unique'],
+    ['第一次開', R('D') + ', 1'],
+    ['LINE', R('E') + ', "LINE"'],
+    ['Facebook', R('E') + ', "Facebook"'],
+    ['Messenger', R('E') + ', "Messenger"'],
+    ['Instagram', R('E') + ', "Instagram"'],
+    ['Threads', R('E') + ', "Threads"'],
+    ['其他App', R('E') + ', "其他App"'],
+    ['手機瀏覽器', R('E') + ', "手機瀏覽器"'],
+    ['電腦', R('E') + ', "電腦"'],
+    ['官網文章裡', R('G') + ', "官網文章"']
+  ];
+  var count = function (dateCond, extra) {
+    if (extra === 'unique') return 'COUNTUNIQUEIFS(' + R('C') + ', ' + dateCond + ', ' + real + ')';
+    return 'COUNTIFS(' + dateCond + ', ' + real + (extra ? ', ' + extra : '') + ')';
+  };
+  sum.clear();
+  sum.getRange(1, 1, 1, cols.length + 1).setValues([['日期'].concat(cols.map(function (c) { return c[0]; }))])
+    .setFontWeight('bold').setBackground('#f3e6e8');
+  // 第 2 列是開站以來的合計，第 3 列起每天一列（新的在上面）
+  sum.getRange(2, 1).setValue('全部').setFontWeight('bold');
+  cols.forEach(function (c, i) {
+    sum.getRange(2, i + 2).setFormula('=' + count(R('B') + ', "<>"', c[1])).setFontWeight('bold');
+    sum.getRange(3, i + 2).setFormula('=MAP(A3:A, LAMBDA(d, IF(d="", , ' + count(R('B') + ', d', c[1]) + ')))');
+  });
+  sum.getRange(3, 1).setFormula('=IFERROR(SORT(UNIQUE(FILTER(' + R('B') + ', ' + R('B') + '<>"", ' + R('G') + '<>"測試")), 1, FALSE))');
+  sum.getRange('A:A').setNumberFormat('yyyy-mm-dd');
+  sum.setFrozenRows(2);
+  sum.setFrozenColumns(1);
+  sum.setColumnWidth(1, 100);
+  console.log('開島紀錄試算表：' + book.getUrl());
 }
 
 
@@ -72,6 +141,7 @@ function doPost(event) {
     var data;
     try { data = JSON.parse(raw); } catch (_) { fail_('資料格式不正確，請重新整理後再試。'); }
     if (!data || typeof data !== 'object' || Array.isArray(data)) fail_('資料格式不正確，請重新整理後再試。');
+    if (data.role === 'open') return json_(logOpen_(data));
     var deviceId = typeof data.deviceId === 'string' ? data.deviceId : '';
     if (!/^[A-Za-z0-9_-]{16,40}$/.test(deviceId)) fail_('裝置識別碼不正確，請重新整理後再試。');
     // 找回只有讀資料，不用排隊等鎖
@@ -153,6 +223,41 @@ function reclaim_(deviceId, value) {
   cache.put('fail-all', String(allFails + 1), FAIL_WINDOW_SECONDS);
   fail_('找不到這張島民證，請再確認一次號碼。');
 }
+
+/* ---------- 開島紀錄 ---------- */
+
+/**
+ * 有人打開台灣島：記一筆。欄位都先比對過固定的選項或格式，不認得的寫「其他」，
+ * 試算表不會被塞進公式或奇怪的字。還沒跑 setup 就安靜略過（台灣島照常開）。
+ */
+function logOpen_(data) {
+  var id = PropertiesService.getScriptProperties().getProperty('OPENS_SPREADSHEET_ID');
+  if (!id) return {ok:true, skipped:'not-set-up'};
+  var visitor = typeof data.visitor === 'string' && /^v[a-z0-9]{8,24}$/.test(data.visitor) ? data.visitor : '';
+  if (!visitor) fail_('訪客代號不正確。');
+  var cache = CacheService.getScriptCache();
+  if (cache.get('open:' + visitor)) return {ok:true, skipped:'repeat'};
+  var total = Number(cache.get('open-all')) || 0;
+  if (total >= OPEN_LIMIT) return {ok:true, skipped:'limit'};
+  cache.put('open:' + visitor, '1', OPEN_REPEAT_SECONDS);
+  cache.put('open-all', String(total + 1), 21600);
+
+  var pick = function (value, list) { return list.indexOf(value) !== -1 ? value : '其他'; };
+  var from = String(data.from || '');
+  if (data.test === true) from = '測試';
+  else if (!/^(官網文章|直接開|嵌在別的網站)$/.test(from) && !/^(utm:)?[a-z0-9][a-z0-9_.-]{0,59}$/i.test(from)) from = '其他';
+  var entry = String(data.entry || '');
+  if (!/^[a-z][a-z0-9_-]{0,29}$/i.test(entry)) entry = '';
+  var count = Math.floor(Number(data.count));
+  var now = new Date();
+  var day = Utilities.parseDate(Utilities.formatDate(now, TIME_ZONE, 'yyyy-MM-dd'), TIME_ZONE, 'yyyy-MM-dd');
+  SpreadsheetApp.openById(id).getSheetByName(OPEN_SHEET).appendRow([
+    now, day, visitor, count >= 1 && count < 1e6 ? count : '',
+    pick(data.browser, OPEN_BROWSERS), pick(data.device, OPEN_DEVICES), from, entry
+  ]);
+  return {ok:true};
+}
+
 
 /** 客人輸入的代號：轉大寫、去掉空白和連字號。 */
 function normalizeCode_(value) {

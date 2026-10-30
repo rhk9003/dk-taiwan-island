@@ -14,8 +14,8 @@
     "consent": "我同意照片公開展示在 DK 台灣島，照片是我本人拍攝，或已經取得照片中每個人的同意。",
     "maxUploads": 3
   },
-  "_analytics說明": "成效追蹤。連到官網的網址一律自動加 UTM（utm_source=dk_taiwan_island、utm_medium=referral、utm_campaign 用下面的 campaign、utm_content 是客人當時在哪間店或哪個畫面），在官網 GA4 的「工作階段來源／媒介」就看得到台灣島帶來的流量和訂單。ga4 填 GA4 評估 ID（G- 開頭）、metaPixel 填 Meta 像素 ID（一串數字），填了才會送事件：select_content（進店、看分區…）、stamp_get、reward_claim、module_play、message_post、resident_save、outbound_click。留空就只加 UTM。",
-  "analytics": { "ga4": "", "metaPixel": "", "campaign": "dk_taiwan_island" },
+  "_analytics說明": "成效追蹤。連到官網的網址一律自動加 UTM（utm_source=dk_taiwan_island、utm_medium=referral、utm_campaign 用下面的 campaign、utm_content 是客人當時在哪間店或哪個畫面），在官網 GA4 的「工作階段來源／媒介」就看得到台灣島帶來的流量和訂單。ga4 填 GA4 評估 ID（G- 開頭）、metaPixel 填 Meta 像素 ID（一串數字），填了才會送事件：select_content（進店、看分區…）、stamp_get、reward_claim、module_play、message_post、resident_save、outbound_click。留空就只加 UTM。openLog 設 true：每次有人打開島，就記一筆到島民證 Apps Script 的「DK 台灣島 開島紀錄」試算表（每日統計分頁看每天開幾次、從 LINE／FB／官網文章來多少）；設 false 就不記。",
+  "analytics": { "ga4": "", "metaPixel": "", "campaign": "dk_taiwan_island", "openLog": true },
   "_banners說明": "飛機拖的活動彩帶，可以放好幾個，每架飛機每飛一趟換下一個。text 是彩帶上的字（建議 16 字內），url 是點彩帶要開的活動頁，color 是彩帶底色。",
   "banners": [
     { "text": "DK 週年慶｜全館 85 折起", "url": "https://www.dk-shoes.com.tw/", "color": "#8B2332" },
