@@ -495,9 +495,10 @@
       "quote": "",
       "products": [],
       "hours": {
-        "weekday": "11:00~20:00",
-        "weekend": "11:00~20:00"
-      }
+        "weekday": "12:00~21:00",
+        "weekend": "12:00~21:00"
+      },
+      "hoursManual": true
     },
     {
       "id": "三峽",

@@ -2,6 +2,7 @@
 
 用法：python tools/pull_hours.py
 門市改營業時間、新開店時重跑一次就好；對不到名字的店會列出來。
+官網資料是錯的店，在 stores.json 手動改 hours 並加 "hoursManual": true，重跑時就不會被蓋掉。
 """
 import json
 import re
@@ -23,6 +24,11 @@ def main():
     data = json.loads(text)
     missing = []
     for s in data['stores']:
+        if s.get('hoursManual'):
+            r = official.get(s['name'])
+            if r and (r.get('NormalTime') or '').strip() != s['hours']['weekday']:
+                print(f'{s["name"]} 用手動的 {s["hours"]["weekday"]}（官網寫 {r.get("NormalTime")}）')
+            continue
         r = official.get(s['name'])
         if not r:
             missing.append(s['name'])

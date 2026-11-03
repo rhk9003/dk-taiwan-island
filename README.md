@@ -234,7 +234,7 @@ python -m http.server 8781 --directory dk-taiwan-island
 
 ## 門市營業時間
 
-`data/stores.json` 每間店的 `hours` 是從官網門市資料抓的（平日 `weekday`、週末 `weekend`）。門市改營業時間或開新店時跑 `python tools/pull_hours.py` 就會更新。進店畫面最下面會顯示「營業中／已打烊」（台灣時間，國定假日沒另外算）。
+`data/stores.json` 每間店的 `hours` 是從官網門市資料抓的（平日 `weekday`、週末 `weekend`）。門市改營業時間或開新店時跑 `python tools/pull_hours.py` 就會更新。官網資料是錯的店（例如林口店實際 12:00~21:00，官網還寫 11:00~20:00），直接改 `hours` 並加 `"hoursManual": true`，重跑時就不會被蓋掉（會印出跟官網不一樣的地方）。進店畫面最下面會顯示「營業中／已打烊」（台灣時間，國定假日沒另外算）。
 
 ## 還沒做的
 
