@@ -58,6 +58,31 @@
       "desc": "和四寶一起把鞋頭、鞋舌、鞋帶拖到對的位置，最後裝上氣閥，組一雙會呼吸的 DK 小白鞋。",
       "url": "https://sweet294728.github.io/little-white-shoe-factory/",
       "cta": "開始做鞋"
+    },
+    "blocks": {
+      "name": "四寶方塊",
+      "building": "shop",
+      "color": "#2B4C7E",
+      "desc": "和四寶一起排方塊，排滿一整排就消掉得分！挑戰模式不限時，限時模式拚 120 秒最高分。",
+      "url": "https://sweet294728.github.io/four-treasures-blocks/",
+      "cta": "開始玩"
+    },
+    "memory": {
+      "name": "小氣球記憶翻翻樂",
+      "building": "shop",
+      "color": "#D49A1F",
+      "desc": "翻開卡片找出一樣的四寶，記住位置、挑戰最快完成，從入門到挑戰有三種難度。",
+      "url": "https://sweet294728.github.io/four-treasures-blocks/memory-game/",
+      "cta": "開始翻牌"
+    },
+    "jump": {
+      "name": "跳台挑戰",
+      "building": "shop",
+      "color": "#20A39E",
+      "desc": "選一位四寶出發，輕點小跳、長按蓄力跳得更遠，看你能跳過幾個台子！",
+      "url": "https://sweet294728.github.io/four-treasures-blocks/jump-game/",
+      "aspect": "9 / 16",
+      "cta": "開始挑戰"
     }
   }
 }
