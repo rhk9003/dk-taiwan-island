@@ -83,6 +83,15 @@
       "url": "https://sweet294728.github.io/four-treasures-blocks/jump-game/",
       "aspect": "9 / 16",
       "cta": "開始挑戰"
+    },
+    "stack": {
+      "name": "鞋盒疊疊樂",
+      "building": "shop",
+      "color": "#9A6235",
+      "desc": "看準時機放下鞋盒，一個一個往上疊！失誤 3 次就結束，看你能疊多高。",
+      "url": "https://sweet294728.github.io/four-treasures-blocks/shoe-stack/",
+      "aspect": "9 / 16",
+      "cta": "開始疊"
     }
   }
 }

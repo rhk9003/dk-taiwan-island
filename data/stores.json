@@ -1,5 +1,5 @@
 {
-  "_說明": "全台門市。latlng 是門市在島上的位置 [緯度, 經度]：在 Google 地圖對門市按右鍵，點第一行的數字就會複製（例如 25.0435, 121.5470）；沒填就先放在該縣市中心附近，位置撞到別間店會自動挪到旁邊的空地。module 填 modules.json 裡的代號（shop、balloon、downstairs、quiz、fortune、board、workshop、blocks、memory、jump），換了建築就會跟著換。quote 是店長的一句話、manager 是店長稱呼、products 填 products.json 的商品 id。sample: true 代表內容是範例，卡片上會標「範例」。 hours 是營業時間（weekday 平日、weekend 週末），用 python tools/pull_hours.py 從官網門市資料抓，不用手打。",
+  "_說明": "全台門市。latlng 是門市在島上的位置 [緯度, 經度]：在 Google 地圖對門市按右鍵，點第一行的數字就會複製（例如 25.0435, 121.5470）；沒填就先放在該縣市中心附近，位置撞到別間店會自動挪到旁邊的空地。module 填 modules.json 裡的代號（shop、balloon、downstairs、quiz、fortune、board、workshop、blocks、memory、jump、stack），換了建築就會跟著換。quote 是店長的一句話、manager 是店長稱呼、products 填 products.json 的商品 id。sample: true 代表內容是範例，卡片上會標「範例」。 hours 是營業時間（weekday 平日、weekend 週末），用 python tools/pull_hours.py 從官網門市資料抓，不用手打。",
   "stores": [
     {
       "id": "頂好",
@@ -167,7 +167,7 @@
         25.013,
         121.514
       ],
-      "module": "fortune",
+      "module": "stack",
       "manager": "",
       "quote": "",
       "products": [],
@@ -262,7 +262,7 @@
         24.993,
         121.509
       ],
-      "module": "quiz",
+      "module": "stack",
       "manager": "",
       "quote": "",
       "products": [],
@@ -605,7 +605,7 @@
         24.956,
         121.224
       ],
-      "module": "downstairs",
+      "module": "stack",
       "manager": "",
       "quote": "",
       "products": [],
@@ -852,7 +852,7 @@
         23.975,
         120.68
       ],
-      "module": "board",
+      "module": "stack",
       "manager": "",
       "quote": "",
       "products": [],
@@ -947,7 +947,7 @@
         23.708,
         120.433
       ],
-      "module": "workshop",
+      "module": "stack",
       "manager": "",
       "quote": "",
       "products": [],
@@ -1102,7 +1102,7 @@
         22.655,
         120.317
       ],
-      "module": "balloon",
+      "module": "stack",
       "manager": "",
       "quote": "",
       "products": [],
